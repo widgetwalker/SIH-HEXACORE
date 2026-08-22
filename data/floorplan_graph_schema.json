@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "5-Floor Campus Building Spatial Graph Definition",
+  "building_name": "SIH Demonstration High School Academic Block",
+  "total_floors": 6,
+  "floors": [
+    {
+      "floor_number": 5,
+      "name": "Senior Wing & Terrace Access",
+      "nodes": [
+        { "id": "R501", "type": "ROOM", "x": 10, "y": 20, "capacity": 40 },
+        { "id": "R502", "type": "ROOM", "x": 30, "y": 20, "capacity": 40 },
+        { "id": "CORR_5", "type": "CORRIDOR", "x": 20, "y": 50 },
+        { "id": "STAIR_5A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_4A" },
+        { "id": "STAIR_5B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_4B" },
+        { "id": "LIFT_5", "type": "ELEVATOR", "x": 25, "y": 50, "connects_to": "LIFT_4", "prohibited_in_emergency": true }
+      ],
+      "edges": [
+        { "source": "R501", "target": "CORR_5", "length_meters": 6.0, "base_risk_weight": 1.0 },
+        { "source": "R502", "target": "CORR_5", "length_meters": 6.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_5", "target": "STAIR_5A", "length_meters": 15.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_5", "target": "STAIR_5B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+      ]
+    },
+    {
+      "floor_number": 4,
+      "name": "Secondary Classrooms",
+      "nodes": [
+        { "id": "R401", "type": "ROOM", "x": 10, "y": 20, "capacity": 40 },
+        { "id": "R402", "type": "ROOM", "x": 30, "y": 20, "capacity": 40 },
+        { "id": "CORR_4", "type": "CORRIDOR", "x": 20, "y": 50 },
+        { "id": "STAIR_4A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_3A" },
+        { "id": "STAIR_4B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_3B" }
+      ],
+      "edges": [
+        { "source": "R401", "target": "CORR_4", "length_meters": 6.0, "base_risk_weight": 1.0 },
+        { "source": "R402", "target": "CORR_4", "length_meters": 6.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_4", "target": "STAIR_4A", "length_meters": 15.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_4", "target": "STAIR_4B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+      ]
+    },
+    {
+      "floor_number": 3,
+      "name": "Central Library & Computer Laboratory",
+      "nodes": [
+        { "id": "LIB_301", "type": "LIBRARY", "x": 10, "y": 20, "capacity": 80 },
+        { "id": "COMP_302", "type": "COMPUTER_LAB", "x": 30, "y": 20, "capacity": 50, "hazard_profile": "HIGH_ELECTRICAL_LOAD" },
+        { "id": "CORR_3", "type": "CORRIDOR", "x": 20, "y": 50 },
+        { "id": "STAIR_3A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_2A" },
+        { "id": "STAIR_3B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_2B" }
+      ],
+      "edges": [
+        { "source": "LIB_301", "target": "CORR_3", "length_meters": 8.0, "base_risk_weight": 1.0 },
+        { "source": "COMP_302", "target": "CORR_3", "length_meters": 8.0, "base_risk_weight": 1.2 },
+        { "source": "CORR_3", "target": "STAIR_3A", "length_meters": 15.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_3", "target": "STAIR_3B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+      ]
+    },
+    {
+      "floor_number": 2,
+      "name": "Science & Chemical Laboratories",
+      "nodes": [
+        { "id": "CHEM_201", "type": "CHEMISTRY_LAB", "x": 10, "y": 20, "capacity": 35, "hazard_profile": "FLAMMABLE_CHEMICALS" },
+        { "id": "PHYS_202", "type": "PHYSICS_LAB", "x": 30, "y": 20, "capacity": 35 },
+        { "id": "CORR_2", "type": "CORRIDOR", "x": 20, "y": 50 },
+        { "id": "STAIR_2A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_1A" },
+        { "id": "STAIR_2B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_1B" }
+      ],
+      "edges": [
+        { "source": "CHEM_201", "target": "CORR_2", "length_meters": 8.0, "base_risk_weight": 1.5 },
+        { "source": "PHYS_202", "target": "CORR_2", "length_meters": 8.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_2", "target": "STAIR_2A", "length_meters": 15.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_2", "target": "STAIR_2B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+      ]
+    },
+    {
+      "floor_number": 1,
+      "name": "Junior Wing & Faculty Staffroom",
+      "nodes": [
+        { "id": "R101", "type": "ROOM", "x": 10, "y": 20, "capacity": 40 },
+        { "id": "STAFF_102", "type": "STAFF_ROOM", "x": 30, "y": 20, "capacity": 25 },
+        { "id": "CORR_1", "type": "CORRIDOR", "x": 20, "y": 50 },
+        { "id": "STAIR_1A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_0A" },
+        { "id": "STAIR_1B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_0B" }
+      ],
+      "edges": [
+        { "source": "R101", "target": "CORR_1", "length_meters": 6.0, "base_risk_weight": 1.0 },
+        { "source": "STAFF_102", "target": "CORR_1", "length_meters": 6.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_1", "target": "STAIR_1A", "length_meters": 15.0, "base_risk_weight": 1.0 },
+        { "source": "CORR_1", "target": "STAIR_1B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+      ]
+    },
+    {
+      "floor_number": 0,
+      "name": "Ground Floor, Courtyard & Assembly Zone",
+      "nodes": [
+        { "id": "MAIN_LOBBY", "type": "LOBBY", "x": 20, "y": 30 },
+        { "id": "PANEL_001", "type": "ELECTRICAL_TRANSFORMER_ROOM", "x": 40, "y": 10, "hazard_profile": "HIGH_VOLTAGE_ELECTRICAL" },
+        { "id": "STAIR_0A", "type": "STAIRWELL_NORTH_EXIT", "x": 5, "y": 50 },
+        { "id": "STAIR_0B", "type": "STAIRWELL_SOUTH_EXIT", "x": 45, "y": 50 },
+        { "id": "GATE_NORTH", "type": "MAIN_GATE", "x": 5, "y": 80 },
+        { "id": "GATE_SOUTH", "type": "EMERGENCY_GATE", "x": 45, "y": 80 },
+        { "id": "SAFE_ASSEMBLY_ZONE", "type": "OPEN_GROUND_REFUGE", "x": 25, "y": 120, "is_safe_target": true }
+      ],
+      "edges": [
+        { "source": "STAIR_0A", "target": "GATE_NORTH", "length_meters": 10.0, "base_risk_weight": 1.0 },
+        { "source": "STAIR_0B", "target": "GATE_SOUTH", "length_meters": 10.0, "base_risk_weight": 1.0 },
+        { "source": "GATE_NORTH", "target": "SAFE_ASSEMBLY_ZONE", "length_meters": 20.0, "base_risk_weight": 0.1 },
+        { "source": "GATE_SOUTH", "target": "SAFE_ASSEMBLY_ZONE", "length_meters": 20.0, "base_risk_weight": 0.1 }
+      ]
+    }
+  ]
+}

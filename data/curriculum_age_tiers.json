@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Disaster Preparedness Age-Tiered Curriculum",
+  "version": "1.0.0",
+  "standards_compliance": ["NDMA School Safety 2016", "NFPA 10/101", "OSHA 1910", "CDC Heat"],
+  "cohorts": [
+    {
+      "cohort_id": "TIER_1",
+      "name": "Early Primary",
+      "age_range": "5-7",
+      "cognitive_focus": "Sensory recognition, reflex instinct, trusted adult communication",
+      "modules": [
+        {
+          "hazard": "EARTHQUAKE",
+          "core_rule": "Drop, Cover, Hold On",
+          "storyline": "Golu the Elephant learns to drop to his knees and hold table legs when the ground dances.",
+          "interactive_action": "TAP_TARGET_DESK_WITHIN_3S",
+          "dos": ["Drop to hands and knees", "Cover head and neck under sturdy desk", "Hold on until shaking stops"],
+          "donts": ["Do not run outside while shaking", "Do not stand near glass windows"]
+        },
+        {
+          "hazard": "FIRE",
+          "core_rule": "Alarm sound recognition & Stop-Drop-Roll",
+          "storyline": "Buzzer the Bee hears the fire siren and walks calmly to the green playground gate.",
+          "interactive_action": "DRAG_AVATAR_TO_ASSEMBLY_POINT",
+          "dos": ["Hear alarm -> stop and listen to teacher", "Stop, Drop, and Roll if clothes catch flame", "Walk in single line to playground"],
+          "donts": ["Never go back for toys or bags", "Never hide under blankets or beds"]
+        }
+      ]
+    },
+    {
+      "cohort_id": "TIER_2",
+      "name": "Upper Primary",
+      "age_range": "8-10",
+      "cognitive_focus": "Basic hazard identification, exit sign recognition, emergency go-bag preparation",
+      "modules": [
+        {
+          "hazard": "CYCLONE",
+          "core_rule": "Emergency Go-Bag & Window Hazard Awareness",
+          "storyline": "Coastal storm preparation in Odisha: Assembling family emergency essentials.",
+          "interactive_action": "PACK_EMERGENCY_BAG_DRAG_DROP",
+          "dos": ["Pack torch, batteries, drinking water, first-aid, ORS", "Shelter in core interior room away from glass", "Listen to official radio bulletins"],
+          "donts": ["Do not go outside during calm eye of the storm", "Do not shelter under tall trees or utility poles"]
+        },
+        {
+          "hazard": "FIRE_EXTINGUISHER_BASICS",
+          "core_rule": "PASS Technique & Class Recognition",
+          "storyline": "Understanding fire types without unsupervised operation.",
+          "interactive_action": "PASS_SEQUENCE_SIMULATOR",
+          "dos": ["P - Pull pin", "A - Aim at base", "S - Squeeze lever", "S - Sweep side to side"],
+          "donts": ["Never use water on electrical panel fires", "Never use water on cooking oil pans"]
+        }
+      ]
+    },
+    {
+      "cohort_id": "TIER_3",
+      "name": "Middle School",
+      "age_range": "11-13",
+      "cognitive_focus": "Procedural exit differentiation, compound hazard logic, floor plan reading",
+      "modules": [
+        {
+          "hazard": "EARTHQUAKE_AFTERMATH",
+          "core_rule": "Damaged Staircase Avoidance & Secondary Exit Routing",
+          "interactive_action": "NAVIGATE_FLOORPLAN_CHOOSE_STAIR_B",
+          "dos": ["Inspect stairs for major structural cracks before descending", "Use alternate fire stairwell if primary is damaged", "Help younger peers descend calmly"],
+          "donts": ["Never use passenger lifts after earthquake", "Never run down stairs while shaking is active"]
+        },
+        {
+          "hazard": "CHEMICAL_LAB_HAZARDS",
+          "core_rule": "Fume Isolation & Upwind Evacuation",
+          "interactive_action": "LAB_SPILL_ISOLATION_AND_EVAC",
+          "dos": ["Alert teacher immediately", "Close laboratory fire doors to contain fumes", "Evacuate upwind of building"],
+          "donts": ["Never touch spilled unknown chemicals", "Never attempt cleaning without PPE"]
+        }
+      ]
+    },
+    {
+      "cohort_id": "TIER_4",
+      "name": "Secondary School",
+      "age_range": "14-17",
+      "cognitive_focus": "Stress decision-making, triage communication, multi-condition compound disasters",
+      "modules": [
+        {
+          "hazard": "COMPOUND_FIRE_AND_SMOKE_BLOCK",
+          "core_rule": "Shelter-in-Place & Smoke Sealing Protocols",
+          "interactive_action": "SHELTER_SEAL_AND_TRANSMIT_112",
+          "dos": ["Check door temperature with back of hand", "Seal bottom gap with damp jackets/towels", "Stay low (<50cm) where air is breathable", "Signal responders clearly from exterior window"],
+          "donts": ["Never open hot doors into smoke", "Never jump from upper floors (3rd-5th)"]
+        },
+        {
+          "hazard": "EMERGENCY_DISPATCH_PROTOCOL",
+          "core_rule": "Structured 112 / NDRF Crisis Transmit",
+          "interactive_action": "MITHRA_AI_VOICE_DISPATCH_SIMULATOR",
+          "dos": ["State exact location: Building, Floor, Room Number", "State hazard type and active spread", "State number of trapped/injured persons", "Report blocked escape corridors"],
+          "donts": ["Do not shout or scream into line", "Do not hang up until dispatcher confirms"]
+        }
+      ]
+    },
+    {
+      "cohort_id": "TIER_5",
+      "name": "College & Young Adults",
+      "age_range": "18+",
+      "cognitive_focus": "Incident Command System (ICS), crowd management, mass casualty triage, disaster rumor debunking",
+      "modules": [
+        {
+          "hazard": "CAMPUS_EOC_MASS_EVACUATION",
+          "core_rule": "Floor Warden Accountability & Crowd Control",
+          "interactive_action": "MULTI_FLOOR_EVACUATION_COMMAND_SIM",
+          "dos": ["Direct crowd into steady single-file descent", "Verify all classrooms on assigned floor are clear", "Perform digital QR roll call at safe assembly zone", "Transmit trapped manifest directly to NDRF search units"],
+          "donts": ["Never allow crowd bottlenecking at exit doors", "Never permit re-entry into evacuated building"]
+        },
+        {
+          "hazard": "START_TRIAGE_AND_FIRST_AID",
+          "core_rule": "Simple Triage and Rapid Treatment (START)",
+          "interactive_action": "TRIAGE_TAGGING_SIMULATOR",
+          "dos": ["Tag RED: Immediate life threat (airway/severe bleeding)", "Tag YELLOW: Delayed (fractures, stable)", "Tag GREEN: Minor walking wounded", "Tag BLACK: Deceased / Non-viable"],
+          "donts": ["Do not move spinal injury casualties unless in immediate fire danger"]
+        }
+      ]
+    }
+  ]
+}
