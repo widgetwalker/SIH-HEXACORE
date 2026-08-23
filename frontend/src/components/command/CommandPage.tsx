@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ConstellationField } from "@designcodeio/threeui";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import styles from "./CommandPage.module.css";
+
+const ConstellationField = dynamic(
+  () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
+  { ssr: false }
+);
 
 const ALERTS = [
   { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 — Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },

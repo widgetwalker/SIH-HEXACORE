@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ConstellationField } from "@designcodeio/threeui";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import styles from "./LandingPage.module.css";
+
+const ConstellationField = dynamic(
+  () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
+  { ssr: false }
+);
 
 const DISASTER_TYPES = ["Earthquake.", "Fire.", "Flood.", "Heatwave.", "Chemical Spill.", "Cyclone."];
 

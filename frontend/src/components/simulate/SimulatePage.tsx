@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { EmberStorm } from "@designcodeio/threeui";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import styles from "./SimulatePage.module.css";
+
+const EmberStorm = dynamic(
+  () => import("@designcodeio/threeui/components/EmberStorm").then((mod) => mod.EmberStorm),
+  { ssr: false }
+);
 
 export default function SimulatePage() {
   const [timer, setTimer] = useState(90);
