@@ -2,27 +2,27 @@
 
 Based on the core research document and team composition, this blueprint specifies the **Role Allocation, Task Ownership, RACI Matrix, and Day-by-Day Sprint Execution Roadmap** to deliver the Smart India Hackathon (SIH) MVP by **September 9th, 2026**.
 
-```
+```text
 +--------------------------------------------------------------------------------------------------+
-|                                    CORE TEAM STRUCTURE & LEADS                                   |
+|                                      CORE TEAM STRUCTURE & ROLES                                 |
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
-|   1. DHEERAJ            ──► Lead AI & Product Design Engineer (AI + Design)                      |
+|   1. DHEERAJ            ──► AI + Design                                                          |
 |                             • GenAI Scenarios, GNN Pathfinding, CV Model, UI/UX Design System    |
 |                                                                                                  |
-|   2. VENKATARAMAN C.V   ──► Lead Backend & Cloud Architect                                       |
+|   2. VENKATARAMAN C.V   ──► Backend                                                              |
 |                             • FastAPI Microservices, PostGIS DB, WebSockets, CAP Alert Feed      |
 |                                                                                                  |
-|   3. MANHA AK           ──► AI + Frontend Full-Stack Engineer                                     |
+|   3. MANHA AK           ──► AI + Frontend                                                        |
 |                             • Three.js / R3F 3D Simulation Canvas, "Mitra" AI Voice/Text UI      |
 |                                                                                                  |
-|   4. I.SRAVYA           ──► Lead Frontend & PWA Engineer                                         |
+|   4. I.SRAVYA           ──► Frontend                                                             |
 |                             • Next.js 15 PWA Core, EOC Dashboard, Floor Map UI, Gamification     |
 |                                                                                                  |
-|   5. TRINAYANI D        ──► Lead Pedagogy & Research Specialist                                  |
+|   5. TRINAYANI D        ──► Research                                                             |
 |                             • NDMA Curriculum, 5 Age Tiers, 150+ Question Bank, Badging          |
 |                                                                                                  |
-|   6. RAHUL NAYAK        ──► Lead Multi-Agency & Systems Research Specialist                       |
+|   6. RAHUL NAYAK        ──► Research                                                             |
 |                             • Multi-Agency SOPs (NDRF/SDMA/Fire), CAP Protocols, Pitch Deck     |
 |                                                                                                  |
 +--------------------------------------------------------------------------------------------------+
@@ -32,7 +32,7 @@ Based on the core research document and team composition, this blueprint specifi
 
 ## 1. Individual Member Work Breakdown Structure (WBS)
 
-### 1. Dheeraj — Lead AI & Product Design  (AI + Design)
+### 1. Dheeraj — AI + Design
 
 - **Generative Scenario Engine:** Build the LLM structured scenario generation pipeline with Pydantic JSON schemas, outputting realistic dynamic disaster scenarios (hazards, cascading triggers, room blockages).
 - **GNN & Dynamic Pathfinding:** Implement real-time dynamic graph routing (Dynamic A* / Dijkstra with hazard weight penalty function) for sub-15ms recalculation during corridor blockages.
@@ -40,7 +40,7 @@ Based on the core research document and team composition, this blueprint specifi
 - **Adaptive DDA Engine:** Model student panic telemetry and reaction latency to tailor dynamic simulation difficulty.
 - **UI/UX Design System & Visual Assets:** Lead the visual design identity, Figma design tokens, HUD overlay styling (Panic Meter, Oxygen gauge, Heart-rate animation), 3D level layout aesthetics, badge artwork, and visual slides for the SIH submission deck.
 
-### 2. Venkataraman C.V — Lead Backend & Cloud
+### 2. Venkataraman C.V — Backend
 
 - **FastAPI Microservices:** Scaffold asynchronous REST endpoints for authentication, student progress, campus registry, and drill orchestration.
 - **Real-Time WebSocket Gateway:** Build high-throughput Socket.io / Redis Pub-Sub server to broadcast sub-50ms hazard state changes to 5,000+ concurrent clients.
@@ -48,28 +48,28 @@ Based on the core research document and team composition, this blueprint specifi
 - **CAP / SACHET Ingestion Pipeline:** Create automated polling & webhook worker to ingest NDMA SACHET / IMD CAP v1.2 XML/JSON emergency feeds.
 - **Security & RBAC:** Implement JWT authentication with role-based policies (Student, Warden, Admin, NDRF, Fire/Police).
 
-### 3. Manha AK — AI & Frontend Full-Stack
+### 3. Manha AK — AI + Frontend
 
 - **3D Simulation Canvas (Three.js / React Three Fiber):** Build procedural 3D school building renderer (Ground to 5th Floor), camera controls, and character movement physics (`@react-three/rapier`).
 - **Hazard Particle Shaders:** Write custom GLSL shaders for realistic volumetric smoke dissipation, fire propagation, and thermal warning zones.
 - **"Mitra" AI Crisis Companion:** Integrate speech-to-text / text-to-speech conversational frontend with low-latency AI crisis counseling agent for trapped students.
 - **Canvas-to-State Bridge:** Connect real-time WebSocket telemetry to Three.js scene state for dynamic multiplayer drill rendering.
 
-### 4. I.Sravya — Lead Frontend & PWA
+### 4. I.Sravya — Frontend
 
 - **PWA Architecture:** Scaffold Next.js 15 App Router structure, Workbox service worker caching strategy, and IndexedDB offline lesson persistence.
 - **Student Learning & Gamification Portal:** Build responsive UI for age-tiered curriculum, PASS fire extinguisher interactive module, badge showcase, and live leaderboards.
 - **Campus EOC & Multi-Agency Dashboard:** Build high-density command visualizer displaying live floor plans, real-time student headcount tally, and hazard heatmaps.
 - **Headcount QR/NFC Scanner:** Develop camera-based QR code scanner and manual roll-call interface for floor wardens at assembly zones.
 
-### 5. Trinayani D — Pedagogy & Research
+### 5. Trinayani D — Research
 
 - **NDMA & International Standard Mapping:** Codify NDMA School Safety Guidelines, NFPA 10/101 fire codes, OSHA lab safety rules, and CDC heatwave standards into structured lesson matrices.
 - **Age-Tiered Educational Content:** Author interactive lessons, animations scripts, and storylines across all 5 age cohorts (5-7, 8-10, 11-13, 14-17, 18+).
 - **Comprehensive Question & Scenario Bank:** Develop 150+ validated decision-tree questions, hazard-spotting challenges, and extinguisher identification puzzles.
 - **Educational Impact Metrics:** Formulate pre-drill vs post-drill retention rubrics and certification scoring benchmarks.
 
-### 6. Rahul Nayak —  Multi-Agency & Systems Research
+### 6. Rahul Nayak — Research
 
 - **Multi-Agency Command SOPs:** Map real-world emergency response workflows between School Administration, NDRF, SDMA, Fire Stations, and Ambulance services.
 - **CAP v1.2 Protocol Schema Verification:** Validate alert data formats and geofencing parameters against official NDMA SACHET standards.
@@ -80,7 +80,7 @@ Based on the core research document and team composition, this blueprint specifi
 
 ## 2. RACI Governance Matrix
 
-| Core System Milestone / Deliverable | Dheeraj (AI+Design) | Venkataraman (Backend) | Manha AK (AI/FE) | I.Sravya (Frontend) | Trinayani D (Pedagogy) | Rahul Nayak (Agency/SOP) |
+| Core System Milestone / Deliverable | Dheeraj (AI+Design) | Venkataraman (Backend) | Manha AK (AI+Frontend) | I.Sravya (Frontend) | Trinayani D (Research) | Rahul Nayak (Research) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **UI/UX Design System & Brand Identity** | **A / R** | I | C | C | C | C |
 | **Curriculum & Age-Tiered Matrices** | I | I | C | C | **A / R** | C |
@@ -102,7 +102,7 @@ Based on the core research document and team composition, this blueprint specifi
 
 ## 3. Day-by-Day Sprint Roadmap (August 23 – September 9, 2026)
 
-```
+```text
 +--------------------------------------------------------------------------------------------------+
 |                                    4-SPRINT TIMELINE OVERVIEW                                    |
 +--------------------------------------------------------------------------------------------------+

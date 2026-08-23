@@ -26,7 +26,7 @@
 
 ## 🏛️ High-Level System Architecture
 
-```
+```text
 +--------------------------------------------------------------------------------------------------+
 |                                  SYSTEM ARCHITECTURE TOPOLOGY                                    |
 +--------------------------------------------------------------------------------------------------+
@@ -58,14 +58,14 @@
 
 ## 👥 Core Development Team & Roles
 
-| Member | Primary Role | Core Ownership Area |
+| Member | Role | Core Ownership Area |
 | :--- | :--- | :--- |
-| **Dheeraj** | **Lead AI & Product Design Engineer (AI + Design)** | GenAI Scenario Synthesis, GNN Dynamic Pathfinding, CV Posture Validator, UI/UX Design System, 3D Level Aesthetics & Pitch Visuals |
-| **Venkataraman C.V** | **Lead Backend & Cloud Architect** | FastAPI Async Services, PostGIS Spatial Schema, WebSocket Telemetry, CAP/SACHET Live Feed, Redis Pub/Sub |
-| **Manha AK** | **AI & Frontend Full-Stack Engineer** | Three.js / React Three Fiber 3D Simulation Canvas, Smoke/Fire GLSL Shaders, "Mitra" AI Crisis Chatbot UI |
-| **I.Sravya** | **Lead Frontend & PWA Engineer** | Next.js 15 PWA Core, Student Learning Portal, Campus EOC Incident Command Hub, QR Headcount Scanner |
-| **Trinayani D** | **Lead Pedagogy & Research Specialist** | NDMA/NFPA Curriculum Codification, 5-Tier Age Progression Lessons, Question Bank, Certification Rubrics |
-| **Rahul Nayak** | **Lead Multi-Agency & Systems Specialist** | Multi-Agency SOPs (NDRF, SDMA, Fire), CAP Protocol Standards, Exit Decision Matrices, SIH Pitch & Demo |
+| **Dheeraj** | **AI + Design** | GenAI Scenario Synthesis, GNN Dynamic Pathfinding, CV Posture Validator, UI/UX Design System, 3D Level Aesthetics & Pitch Visuals |
+| **Venkataraman C.V** | **Backend** | FastAPI Async Services, PostGIS Spatial Schema, WebSocket Telemetry, CAP/SACHET Live Feed, Redis Pub/Sub |
+| **Manha AK** | **AI + Frontend** | Three.js / React Three Fiber 3D Simulation Canvas, Smoke/Fire GLSL Shaders, "Mitra" AI Crisis Chatbot UI |
+| **I.Sravya** | **Frontend** | Next.js 15 PWA Core, Student Learning Portal, Campus EOC Incident Command Hub, QR Headcount Scanner |
+| **Trinayani D** | **Research** | NDMA/NFPA Curriculum Codification, 5-Tier Age Progression Lessons, Question Bank, Certification Rubrics |
+| **Rahul Nayak** | **Research** | Multi-Agency SOPs (NDRF, SDMA, Fire), CAP Protocol Standards, Exit Decision Matrices, SIH Pitch & Demo |
 
 ---
 

@@ -1,0 +1,75 @@
+.page { background: var(--bg-void); min-height: 100vh; position: relative; }
+.bgLayer { position: fixed; inset: 0; z-index: 0; opacity: 0.25; pointer-events: none; }
+.dashboard { position: relative; z-index: 1; padding: 80px 24px 24px; max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+/* Top bar */
+.topBar { display: flex; align-items: center; justify-content: space-between; }
+.topLeft { display: flex; align-items: center; gap: 12px; }
+.topRight { display: flex; align-items: center; gap: 16px; }
+.clock { font-size: 1.25rem; font-weight: 700; color: var(--accent-teal); letter-spacing: 0.08em; }
+
+/* Stat strip */
+.statStrip { display: flex; gap: 10px; }
+.statChip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 12px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); backdrop-filter: blur(12px); }
+.statNum { font-size: 1.5rem; font-weight: 800; font-family: var(--font-mono); color: var(--text-primary); line-height: 1; }
+.statLbl { font-size: 0.6875rem; color: var(--text-faint); font-weight: 500; }
+.statSafe { border-color: rgba(0,212,170,0.3); }
+.statSafe .statNum { color: var(--accent-teal); }
+.statDanger { border-color: rgba(239,68,68,0.3); animation: alert-blink 1.5s infinite; }
+.statDanger .statNum { color: var(--accent-red); }
+.statWarning .statNum { color: var(--accent-amber); }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: 260px 1fr 320px; gap: 12px; flex: 1; }
+
+/* Panel */
+.panel { background: rgba(5,8,16,0.85); border: 1px solid var(--border-default); border-radius: var(--radius-lg); backdrop-filter: blur(16px); overflow: hidden; }
+.panelHeader { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
+
+/* Floor list */
+.floorList { padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.floorRow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); transition: background 0.2s; }
+.floorRow:hover { background: var(--bg-glass); }
+.row-danger { background: var(--accent-red-dim); }
+.row-warning { background: rgba(245,158,11,0.05); }
+.floorId { min-width: 24px; font-weight: 700; font-size: 0.75rem; color: var(--text-muted); }
+.floorBars { flex: 1; }
+.barGroup { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--border-subtle); }
+.bar { height: 100%; }
+.barSafe { background: var(--accent-teal); }
+.barTrapped { background: var(--accent-red); }
+.barMissing { background: var(--accent-amber); opacity: 0.6; }
+.floorCount { font-size: 0.65rem; color: var(--text-faint); min-width: 36px; text-align: right; }
+
+/* Map */
+.mapArea { padding: 16px; height: calc(100% - 44px); display: flex; align-items: center; justify-content: center; }
+.mapPlaceholder { width: 100%; height: 100%; position: relative; }
+.mapSvg { width: 100%; height: 100%; }
+
+/* Right column */
+.rightCol { display: flex; flex-direction: column; gap: 12px; }
+.alertPanel { flex: 1; }
+.alertFeed { padding: 8px; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.alertItem { padding: 10px 12px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 4px; border-left: 3px solid; }
+.alert-red { border-left-color: var(--accent-red); background: rgba(239,68,68,0.04); }
+.alert-amber { border-left-color: var(--accent-amber); background: rgba(245,158,11,0.04); }
+.alert-blue { border-left-color: var(--accent-blue); background: rgba(59,130,246,0.04); }
+.alertTime { font-size: 0.625rem; color: var(--text-faint); }
+.alertSev { align-self: flex-start; font-size: 0.6rem; }
+.alertSrc { font-size: 0.6875rem; font-weight: 600; color: var(--text-secondary); }
+.alertMsg { font-size: 0.75rem; color: var(--text-muted); line-height: 1.45; }
+
+/* Agencies */
+.agencyList { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.agencyRow { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius-md); transition: background 0.15s; }
+.agencyRow:hover { background: var(--bg-glass); }
+.agencyDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.agencyInfo { flex: 1; display: flex; flex-direction: column; }
+.agencyName { font-size: 0.8125rem; font-weight: 600; }
+.agencyRole { font-size: 0.6875rem; color: var(--text-faint); }
+
+/* Action bar */
+.actionBar { display: flex; gap: 12px; padding-top: 8px; }
+
+@media (max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .statStrip { flex-wrap: wrap; } .statChip { min-width: 80px; } .actionBar { flex-wrap: wrap; } }

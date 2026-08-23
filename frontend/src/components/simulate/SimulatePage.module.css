@@ -1,0 +1,82 @@
+.page { background: var(--bg-void); min-height: 100vh; }
+
+/* Canvas area */
+.canvasArea { position: relative; width: 100%; height: calc(100vh - 64px); margin-top: 64px; overflow: hidden; background: #050508; }
+.embers { position: absolute; inset: 0; z-index: 0; opacity: 0.6; }
+.viewport { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.viewportOverlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.startOverlay { display: flex; flex-direction: column; align-items: center; padding: 40px; background: rgba(5,8,16,0.85); border-radius: var(--radius-2xl); border: 1px solid var(--border-default); backdrop-filter: blur(20px); }
+.simRunning { color: var(--accent-amber); letter-spacing: 0.12em; font-size: 0.7rem; position: absolute; bottom: 80px; animation: alert-blink 1.5s infinite; }
+
+/* Building wireframe */
+.buildingPlaceholder { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.buildingWire { display: flex; flex-direction: column; gap: 4px; padding: 20px; }
+.wireFloor { display: flex; align-items: center; gap: 12px; padding: 12px 24px; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: rgba(255,255,255,0.02); min-width: 260px; transition: all 0.3s; position: relative; }
+.wireFloorActive { border-color: var(--accent-teal); background: var(--accent-teal-dim); box-shadow: var(--glow-teal); }
+.wireFloorFire { border-color: var(--accent-red); background: var(--accent-red-dim); }
+.wireLabel { font-family: var(--font-mono); font-weight: 700; font-size: 0.875rem; color: var(--text-muted); min-width: 28px; }
+.wireFloorActive .wireLabel { color: var(--accent-teal); }
+.wireFloorFire .wireLabel { color: var(--accent-red); }
+.fireIndicator { font-size: 1.25rem; animation: alert-blink 0.8s infinite; }
+.playerDot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-teal); box-shadow: var(--glow-teal); margin-left: auto; animation: live-pulse 1.5s infinite; }
+
+/* HUD panels */
+.hudTopLeft { position: absolute; top: 16px; left: 16px; z-index: 10; display: flex; align-items: stretch; gap: 16px; padding: 14px 20px; }
+.hudTopRight { position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; align-items: stretch; gap: 16px; padding: 14px 20px; }
+.hudBottom { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 6px; padding: 10px 16px; }
+.hudBlock { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.hudTimer { font-size: 1.75rem; color: var(--accent-teal); }
+.hudCritical { color: var(--accent-red) !important; animation: alert-blink 0.6s infinite; }
+
+/* Panic bar */
+.panicBar { width: 80px; height: 6px; background: var(--border-subtle); border-radius: 9999px; overflow: hidden; }
+.panicFill { height: 100%; border-radius: 9999px; transition: width 1s ease, background 0.5s; }
+
+/* O2 gauge */
+.oxygenGauge { position: relative; width: 54px; height: 54px; }
+.gaugeSvg { width: 100%; height: 100%; }
+.gaugeVal { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--text-primary); }
+
+/* Floor chips */
+.floorChip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; border-radius: var(--radius-md); min-width: 60px; }
+.floorId { font-family: var(--font-mono); font-weight: 700; font-size: 0.75rem; }
+.floorLabel { font-size: 0.6rem; font-weight: 500; }
+.floor-clear { background: rgba(255,255,255,0.04); color: var(--text-faint); }
+.floor-safe { background: var(--accent-teal-dim); color: var(--accent-teal); border: 1px solid rgba(0,212,170,0.3); }
+.floor-warning { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
+.floor-danger { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); animation: alert-blink 1s infinite; }
+
+/* Heartbeat */
+.heartbeatWrap { position: absolute; bottom: 70px; left: 16px; z-index: 10; display: flex; align-items: flex-end; gap: 3px; height: 24px; }
+.heartbeatBar { width: 3px; background: var(--accent-red); border-radius: 2px; animation: heartbeat 1s ease-in-out infinite; }
+
+/* Floor nav */
+.floorNav { position: fixed; right: 24px; bottom: 50%; transform: translateY(50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.floorBtn { padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem; cursor: pointer; backdrop-filter: blur(12px); transition: all 0.2s; }
+.floorBtn:hover { background: var(--accent-teal-dim); border-color: var(--accent-teal); }
+.floorBtn:disabled { opacity: 0.3; pointer-events: none; }
+.floorBtnDown { border-color: var(--accent-amber); }
+.floorBtnDown:hover { background: var(--accent-amber-dim); }
+
+/* Mitra FAB */
+.mitraFab { position: fixed; bottom: 24px; right: 24px; z-index: 50; display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(10,15,30,0.9); border: 1px solid var(--accent-blue); border-radius: 9999px; cursor: pointer; backdrop-filter: blur(16px); box-shadow: var(--glow-blue); transition: all 0.25s; font-family: var(--font-sans); }
+.mitraFab:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(59,130,246,0.5); }
+.mitraOrb { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-violet)); box-shadow: 0 0 10px rgba(59,130,246,0.5); animation: live-pulse 2s infinite; }
+.mitraLabel { font-size: 0.8125rem; font-weight: 700; color: var(--accent-blue); }
+
+/* Mitra drawer */
+.mitraDrawer { position: fixed; bottom: 80px; right: 24px; z-index: 50; width: 380px; max-height: 480px; background: rgba(10,15,30,0.95); border: 1px solid var(--border-default); border-radius: var(--radius-xl); backdrop-filter: blur(24px); display: flex; flex-direction: column; box-shadow: var(--shadow-elevated); animation: fade-in-up 0.3s var(--ease-out-expo); }
+.mitraHeader { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-subtle); }
+.mitraName { font-weight: 700; font-size: 0.9rem; display: block; }
+.mitraStatus { font-size: 0.7rem; color: var(--accent-blue); }
+.mitraMessages { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.mitraMsgBot { padding: 12px 14px; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.55; }
+.mitraMsgBot strong { color: var(--accent-teal); }
+.mitraInput { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-subtle); }
+
+@media (max-width: 768px) {
+  .hudTopLeft, .hudTopRight { padding: 10px 14px; }
+  .hudTimer { font-size: 1.25rem; }
+  .mitraDrawer { width: calc(100% - 32px); right: 16px; }
+  .floorNav { right: 12px; }
+}
