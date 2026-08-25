@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
+import { SCENARIOS } from "./game/floorplan";
+import { generateDebrief, saveRun, fmtTime, type DebriefLine, type RunTelemetry } from "./game/telemetry";
 import type { GameState } from "./game/EvacuationGame";
 import styles from "./SimulatePage.module.css";
 
@@ -10,38 +13,50 @@ const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: fal
 
 type Phase = "briefing" | "running" | "ended";
 
-const WIN_DEBRIEF = [
-  "✓ Crawled under smoke and conserved oxygen (NDMA 4.2)",
-  "✓ Rerouted around spreading fire cells",
-  "✓ Box-breathing kept panic below cognitive freeze",
-  "Next: attempt the compound Quake + Fire scenario",
-];
-
-const LOSE_DEBRIEF = [
-  "✗ Oxygen depleted — hold SHIFT to crawl low in smoke",
-  "Never cross a burning cell; reroute via the alternate corridor",
-  "When vision tunnels (panic > 70), stop and hold B to box-breathe",
-  "Fire roughly doubles every minute — commit to a route early",
-];
+/* Mitra: live context-aware coaching driven by real game state */
+function getMitraTip(gs: GameState | null): string {
+  if (!gs) return "I'm tracking your route. Amber doorways block fire & smoke until you push through them.";
+  if (gs.status === "won") return "Clean evacuation logged ✓ Your run is on the command analytics dashboard.";
+  if (gs.status === "lost") return "Run logged. Check your debrief — smoke exposure and panic are the usual killers.";
+  if (gs.panic > 70) return "Panic spiking! Stop and hold B — box-breathe: 4s in, 4s hold, 4s out.";
+  if (gs.breathing) return "Good. Move again once panic drops below 40.";
+  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen critical. Crawl (SHIFT) straight to the nearest beacon — no detours.";
+  if (gs.crouching) return "Smart crawling. Doorways slow the spread — use them as firebreaks.";
+  if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go.";
+  return "Stay low, keep moving. I'm tracking your route and logging every decision.";
+}
 
 export default function SimulatePage() {
   const [phase, setPhase] = useState<Phase>("briefing");
   const [runId, setRunId] = useState(0);
+  const [selIdx, setSelIdx] = useState(0);
   const [gs, setGs] = useState<GameState | null>(null);
+  const [debrief, setDebrief] = useState<DebriefLine[] | null>(null);
+  const [lastRun, setLastRun] = useState<RunTelemetry | null>(null);
   const [mitraOpen, setMitraOpen] = useState(false);
+
+  const scenario = SCENARIOS[selIdx];
 
   const onState = (s: GameState) => {
     setGs(s);
     if (s.status !== "running") setPhase("ended");
   };
 
+  const onEnd = (run: RunTelemetry) => {
+    saveRun(run);
+    setLastRun(run);
+    setDebrief(generateDebrief(run));
+  };
+
   const start = () => {
     setGs(null);
+    setDebrief(null);
+    setLastRun(null);
     setRunId((r) => r + 1);
     setPhase("running");
   };
 
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+  const fmt = fmtTime;
   const vignette = gs && gs.panic > 60 ? Math.min((gs.panic - 60) / 40, 1) : 0;
 
   return (
@@ -50,7 +65,12 @@ export default function SimulatePage() {
 
       <div className={styles.stage}>
         {(phase === "running" || phase === "ended") && (
-          <EvacuationGame key={runId} onState={onState} />
+          <EvacuationGame
+            key={`${runId}-${scenario.id}`}
+            scenario={scenario}
+            onState={onState}
+            onEnd={onEnd}
+          />
         )}
 
         {/* panic vignette */}
@@ -60,19 +80,39 @@ export default function SimulatePage() {
         {phase === "briefing" && (
           <div className={styles.overlay}>
             <div className={`hud-panel ${styles.card}`}>
-              <span className="badge badge-red badge-pulse">SCENARIO 07 · LAB FIRE · EAST WING</span>
-              <h1 className={styles.cardTitle}>EVACUATION DRILL</h1>
-              <p className={styles.cardDesc}>
-                A fire has ignited somewhere in the building and is spreading cell by
-                cell. Smoke drains your oxygen. Panic slows your legs. Reach the green
-                assembly beacon before conditions overwhelm you.
-              </p>
+              <span className="badge badge-red badge-pulse">{scenario.badge}</span>
+              <h1 className={styles.cardTitle}>{scenario.hazardLabel} DRILL</h1>
+              <p className={styles.cardDesc}>{scenario.brief}</p>
+
+              {/* scenario selector */}
+              <div className={styles.scenarioRow} role="tablist" aria-label="Scenario selection">
+                {SCENARIOS.map((s, i) => (
+                  <button
+                    key={s.id}
+                    role="tab"
+                    aria-selected={i === selIdx}
+                    className={`${styles.scenarioCard} ${i === selIdx ? styles.scenarioCardActive : ""}`}
+                    onClick={() => setSelIdx(i)}
+                  >
+                    <span className={styles.scenarioName}>{s.name}</span>
+                    <span className={styles.scenarioMeta}>
+                      {s.hazardLabel} · {"●".repeat(s.difficulty)}{"○".repeat(3 - s.difficulty)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               <div className={styles.controls}>
                 <div className={styles.controlItem}><kbd>W A S D</kbd><span>Move</span></div>
                 <div className={styles.controlItem}><kbd>SHIFT</kbd><span>Crawl low under smoke</span></div>
                 <div className={styles.controlItem}><kbd>B</kbd><span>Box-breathe (recover panic)</span></div>
               </div>
-              <button className="btn btn-danger" onClick={start}>Start Drill →</button>
+              <div className={styles.resultActions}>
+                <button className="btn btn-danger" onClick={start}>Start Drill →</button>
+                <Link href="/admin" className={`btn btn-ghost ${styles.adminLink}`}>
+                  Command Analytics ↗
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -83,7 +123,7 @@ export default function SimulatePage() {
             <div className={`hud-panel ${styles.hudTop}`}>
               <div className={styles.hudBlock}>
                 <span className="hud-label">Time</span>
-                <span className={`hud-value ${styles.hudTime}`}>{fmt(Math.max(0, 120 - gs.time))}</span>
+                <span className={`hud-value ${styles.hudTime}`}>{fmt(Math.max(0, scenario.timeLimit - gs.time))}</span>
               </div>
               <div className="hud-separator" />
               <div className={styles.hudBlock}>
@@ -124,7 +164,7 @@ export default function SimulatePage() {
           </>
         )}
 
-        {/* ── DEBRIEF ── */}
+        {/* ── DEBRIEF (generated from actual run telemetry) ── */}
         {phase === "ended" && gs && (
           <div className={styles.overlay}>
             <div className={`hud-panel ${styles.card}`}>
@@ -142,31 +182,32 @@ export default function SimulatePage() {
               <div className={styles.resultStats}>
                 <div><span className="hud-label">Time</span><b>{fmt(gs.time)}</b></div>
                 <div><span className="hud-label">O₂ left</span><b>{Math.round(gs.oxygen)}%</b></div>
-                <div><span className="hud-label">Panic</span><b>{Math.round(gs.panic)}%</b></div>
-                <div><span className="hud-label">Score</span><b>{gs.status === "won" ? gs.score : 0}</b></div>
+                <div><span className="hud-label">Peak panic</span><b>{lastRun ? Math.round(lastRun.panicPeak) : Math.round(gs.panic)}%</b></div>
+                <div><span className="hud-label">Score</span><b>{gs.score}</b></div>
               </div>
               <ul className={styles.debrief}>
-                {(gs.status === "won" ? WIN_DEBRIEF : LOSE_DEBRIEF).map((d) => (
-                  <li key={d}>{d}</li>
+                {(debrief ?? [{ ok: true, text: "Run complete." }]).map((d, i) => (
+                  <li key={i} style={{ color: d.ok ? undefined : "var(--accent-red)" }}>{d.text}</li>
                 ))}
               </ul>
               <div className={styles.resultActions}>
                 <button className="btn btn-primary" onClick={start}>Retry Drill</button>
+                <Link href="/admin" className={`btn btn-ghost ${styles.adminLink}`}>View Analytics ↗</Link>
                 <button className="btn btn-ghost" onClick={() => setPhase("briefing")}>Back to Briefing</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── MITRA DOCK (UI stub — conversational engine is Manha's module) ── */}
+        {/* ── MITRA DOCK — live crisis companion, reads real game state ── */}
         <button className={styles.mitraBtn} onClick={() => setMitraOpen(!mitraOpen)} data-cursor>
           🎙 Mitra
         </button>
         {mitraOpen && (
           <div className={`hud-panel ${styles.mitraPanel}`}>
             <span className="hud-label">Mitra · Crisis Companion</span>
-            <p className={styles.mitraMsg}>Stay low and keep moving. I&apos;m tracking your route.</p>
-            <div className={styles.typing}><span /><span /><span /></div>
+            <p className={styles.mitraMsg}>{getMitraTip(gs)}</p>
+            {phase === "running" && <div className={styles.typing}><span /><span /><span /></div>}
           </div>
         )}
       </div>

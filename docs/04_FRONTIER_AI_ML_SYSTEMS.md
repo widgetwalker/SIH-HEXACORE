@@ -1,5 +1,8 @@
 # 04. Frontier AI/ML Systems & Innovations
 
+> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+
+
 To ensure the solution leads in technical innovation during the Smart India Hackathon (SIH) evaluation, the platform integrates five cutting-edge AI/ML modules. These systems shift disaster preparedness from static memorization to intelligent, adaptive, and real-time responsive education.
 
 ```

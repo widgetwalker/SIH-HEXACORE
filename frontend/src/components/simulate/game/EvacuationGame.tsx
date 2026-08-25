@@ -2,6 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { parseFloorplan, SCENARIOS, type BlockageEvent, type Scenario } from "./floorplan";
+import type { RunTelemetry, TelemetryEvent } from "./telemetry";
+
+type BlockageWithWarn = BlockageEvent & { warned?: boolean };
 
 export interface GameState {
   status: "running" | "won" | "lost";
@@ -15,58 +19,51 @@ export interface GameState {
 }
 
 interface Props {
+  scenario?: Scenario;
   onState: (s: GameState) => void;
+  onEnd?: (run: RunTelemetry) => void;
 }
 
 /*
  * Playable evacuation drill (doc 02 §2 runtime loop):
- *  - procedural fire ignition + cell-to-cell spread
- *  - smoke layer: drains oxygen unless crawling (SHIFT)
- *  - panic meter: proximity-driven; >70 causes cognitive freeze (slow);
- *    hold B to box-breathe and recover
- *  - outcome resolution: reach assembly beacon = won, O2 empty / timeout = lost
+ *  - scenario floorplans loaded from JSON (multi-exit, doors)
+ *  - procedural fire ignition + cell-to-cell spread; closed doors block
+ *    fire & smoke until the player pushes through them
+ *  - smoke layer drains oxygen unless crawling (SHIFT); panic meter causes
+ *    cognitive freeze >70; hold B to box-breathe and recover
+ *  - scripted blockage events collapse corridors mid-run (compound disasters)
+ *  - NPC crowd flows toward exits via a BFS distance field
+ *  - synthesized alarm / fire crackle / heartbeat audio (WebAudio, no assets)
+ *  - full run telemetry recorded for generated debriefs + admin analytics
  */
 
-const MAP = [
-  "########################",
-  "#P........#........#...#",
-  "#.........#........#...#",
-  "#.....##..#..##....#.F.#",
-  "####.###########.###.###",
-  "#......................#",
-  "#......................#",
-  "###.#######.#######.####",
-  "#.....#........#.......#",
-  "#..F..#........#.......#",
-  "#.....#...##...#...#####",
-  "#.....#........#...#..E#",
-  "###.###.....##.#...#...#",
-  "#.......#......#.......#",
-  "#.......#..F...........#",
-  "########################",
-];
-const ROWS = MAP.length;
-const COLS = MAP[0].length;
 const CELL = 2;
-const TIME_LIMIT = 120;
+const NPC_COUNT = 18;
 
-const idxOf = (c: number, r: number) => r * COLS + c;
-const cellToWorld = (c: number, r: number) =>
-  new THREE.Vector3((c - COLS / 2 + 0.5) * CELL, 0, (r - ROWS / 2 + 0.5) * CELL);
-
-export default function EvacuationGame({ onState }: Props) {
+export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const onStateRef = useRef(onState);
   onStateRef.current = onState;
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
+    /* ── floorplan from JSON ── */
+    const scen: Scenario = scenario ?? SCENARIOS[0];
+    const fp = parseFloorplan(scen);
+    const { rows, cols, walls, doors, fireSeeds, exits, spawn, idxOf } = fp;
+    const TIME_LIMIT = scen.timeLimit;
+
+    const cellToWorld = (c: number, r: number) =>
+      new THREE.Vector3((c - cols / 2 + 0.5) * CELL, 0, (r - rows / 2 + 0.5) * CELL);
+
     /* ── scene setup ── */
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050810);
-    scene.fog = new THREE.FogExp2(0x050810, 0.02);
+    scene.fog = new THREE.FogExp2(0x050810, scen.fogDensity);
 
     const camera = new THREE.PerspectiveCamera(
       55,
@@ -80,6 +77,9 @@ export default function EvacuationGame({ onState }: Props) {
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);
 
+    /* beacon meshes registered here so the tick loop can animate them */
+    const animBeacons: { beacon: THREE.Mesh; ring: THREE.Mesh }[] = [];
+
     scene.add(new THREE.AmbientLight(0xffffff, 0.55));
     const sun = new THREE.DirectionalLight(0xffffff, 0.7);
     sun.position.set(10, 24, 8);
@@ -87,57 +87,57 @@ export default function EvacuationGame({ onState }: Props) {
 
     /* ── floor + grid ── */
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(COLS * CELL, ROWS * CELL),
+      new THREE.PlaneGeometry(cols * CELL, rows * CELL),
       new THREE.MeshLambertMaterial({ color: 0x0d1426 })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const grid = new THREE.GridHelper(COLS * CELL, COLS, 0x1b2745, 0x141d36);
+    const grid = new THREE.GridHelper(cols * CELL, cols, 0x1b2745, 0x141d36);
     grid.position.y = 0.01;
     scene.add(grid);
 
-    /* ── walls / spawn / exit / fire seeds ── */
-    const walls = new Set<number>();
-    const fireSeeds: number[] = [];
-    let spawn = cellToWorld(1, 1);
-    let exitCell = { c: COLS - 2, r: ROWS - 2 };
+    /* ── walls / doors ── */
     const wallGeo = new THREE.BoxGeometry(CELL, 2.6, CELL);
     const wallMat = new THREE.MeshLambertMaterial({ color: 0x1c2a4d });
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const ch = MAP[r][c];
-        if (ch === "#") {
-          walls.add(idxOf(c, r));
-          const w = new THREE.Mesh(wallGeo, wallMat);
-          w.position.copy(cellToWorld(c, r)).setY(1.3);
-          scene.add(w);
-        } else if (ch === "P") {
-          spawn = cellToWorld(c, r);
-        } else if (ch === "E") {
-          exitCell = { c, r };
-        } else if (ch === "F") {
-          fireSeeds.push(idxOf(c, r));
-        }
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (!walls.has(idxOf(c, r))) continue;
+        const w = new THREE.Mesh(wallGeo, wallMat);
+        w.position.copy(cellToWorld(c, r)).setY(1.3);
+        scene.add(w);
       }
     }
-    const isWall = (c: number, r: number) =>
-      c < 0 || r < 0 || c >= COLS || r >= ROWS || walls.has(idxOf(c, r));
+    /* door meshes: closed = amber slab; opened = flat teal threshold */
+    const doorMeshes = new Map<number, THREE.Mesh>();
+    const doorMatClosed = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
+    doors.forEach((idx) => {
+      const c = idx % cols;
+      const r = Math.floor(idx / cols);
+      const d = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.9, 2.4, CELL * 0.35), doorMatClosed.clone());
+      d.position.copy(cellToWorld(c, r)).setY(1.2);
+      d.rotation.y = fp.at(c, r - 1) === "#" || fp.at(c, r + 1) === "#" ? 0 : Math.PI / 2;
+      scene.add(d);
+      doorMeshes.set(idx, d);
+    });
 
-    /* ── assembly beacon ── */
-    const exitWorld = cellToWorld(exitCell.c, exitCell.r);
-    const beacon = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.55, 0.55, 6, 24, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
-    );
-    beacon.position.copy(exitWorld).setY(3);
-    scene.add(beacon);
-    const beaconRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.7, 0.95, 32),
-      new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-    );
-    beaconRing.rotation.x = -Math.PI / 2;
-    beaconRing.position.copy(exitWorld).setY(0.05);
-    scene.add(beaconRing);
+    /* ── exit beacons (multiple supported) ── */
+    const exitWorlds = exits.map((e) => cellToWorld(e.c, e.r));
+    for (const ew of exitWorlds) {
+      const beacon = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.55, 0.55, 6, 24, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+      );
+      beacon.position.copy(ew).setY(3);
+      scene.add(beacon);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.7, 0.95, 32),
+        new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.copy(ew).setY(0.05);
+      scene.add(ring);
+      animBeacons.push({ beacon, ring });
+    }
 
     /* ── player ── */
     const player = new THREE.Group();
@@ -147,16 +147,20 @@ export default function EvacuationGame({ onState }: Props) {
     );
     body.position.y = 0.85;
     player.add(body);
-    player.position.copy(spawn);
+    player.position.copy(cellToWorld(spawn.c, spawn.r));
     scene.add(player);
 
     /* ── fire & smoke visuals ── */
+    const flameHex = new THREE.Color(scen.colors.flame).getHex();
+    const glowHex = new THREE.Color(scen.colors.glow).getHex();
+    const smokeHex = new THREE.Color(scen.colors.smoke).getHex();
+
     const fireSet = new Set<number>();
     const smokeSet = new Set<number>();
     const fireMeshes = new Map<number, THREE.Group>();
     const smokeMeshes = new Map<number, THREE.Mesh>();
     const fireMat = new THREE.MeshBasicMaterial({
-      color: 0xff7a1a,
+      color: flameHex,
       transparent: true,
       opacity: 0.9,
       blending: THREE.AdditiveBlending,
@@ -164,25 +168,35 @@ export default function EvacuationGame({ onState }: Props) {
       side: THREE.DoubleSide,
     });
     const glowMat = new THREE.MeshBasicMaterial({
-      color: 0xef4444,
+      color: glowHex,
       transparent: true,
       opacity: 0.35,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const smokeMat = new THREE.MeshBasicMaterial({
-      color: 0x30363f,
+      color: smokeHex,
       transparent: true,
       opacity: 0.55,
       depthWrite: false,
       side: THREE.DoubleSide,
     });
 
+    const isOpenForSpread = (c: number, r: number) => {
+      if (c < 0 || r < 0 || c >= cols || r >= rows || walls.has(idxOf(c, r))) return false;
+      const idx = idxOf(c, r);
+      if (doors.has(idx) && !openedDoors.has(idx)) return false;
+      return true;
+    };
+
+    /* doors start closed; the player opens them by walking into them */
+    const openedDoors = new Set<number>();
+
     const addFire = (idx: number) => {
       if (fireSet.has(idx) || walls.has(idx)) return;
       fireSet.add(idx);
-      const c = idx % COLS;
-      const r = Math.floor(idx / COLS);
+      const c = idx % cols;
+      const r = Math.floor(idx / cols);
       const g = new THREE.Group();
       const flameGeo = new THREE.PlaneGeometry(CELL * 0.9, 2.2);
       const f1 = new THREE.Mesh(flameGeo, fireMat);
@@ -200,13 +214,13 @@ export default function EvacuationGame({ onState }: Props) {
 
     const recomputeSmoke = () => {
       fireSet.forEach((idx) => {
-        const c = idx % COLS;
-        const r = Math.floor(idx / COLS);
+        const c = idx % cols;
+        const r = Math.floor(idx / cols);
         for (let dr = -1; dr <= 1; dr++) {
           for (let dc = -1; dc <= 1; dc++) {
             const nc = c + dc;
             const nr = r + dr;
-            if (isWall(nc, nr)) continue;
+            if (!isOpenForSpread(nc, nr)) continue;
             const nIdx = idxOf(nc, nr);
             if (smokeSet.has(nIdx)) continue;
             smokeSet.add(nIdx);
@@ -249,20 +263,245 @@ export default function EvacuationGame({ onState }: Props) {
     let panic = 10;
     let spreadTimer = 0;
     let emitTimer = 0;
+    let sampleTimer = 0;
     let raf = 0;
+    let ended = false;
     const clock = new THREE.Clock();
 
+    /* telemetry accumulators */
+    const routeHeat = new Array<number>(rows * cols).fill(0);
+    const violations: TelemetryEvent[] = [];
+    let panicPeak = 10;
+    let panicFreezeSeconds = 0;
+    let smokeStandingSeconds = 0;
+    let smokeCrouchSeconds = 0;
+    let breathCount = 0;
+    let breathingPrev = false;
+    let distanceTraveled = 0;
+    let fireCellEntries = 0;
+    let wasInFire = false;
+    let deathCell: { c: number; r: number } | undefined;
+    let exitUsed: { c: number; r: number } | undefined;
+    let bannerMsg = "";
+    let bannerUntil = 0;
+
+    /* ── scripted mid-run blockages ── */
+    const blockages = [...(scen.blockages ?? [])].sort((a, b) => a.t - b.t);
+    let nextBlockage = 0;
+    const rubbleMat = new THREE.MeshLambertMaterial({ color: 0x3a3f4a });
+    const applyBlockage = (cells: [number, number][], message: string) => {
+      for (const [c, r] of cells) {
+        const idx = idxOf(c, r);
+        walls.add(idx);
+        smokeSet.delete(idx);
+        const old = smokeMeshes.get(idx);
+        if (old) { scene.remove(old); smokeMeshes.delete(idx); }
+        fireSet.delete(idx);
+        const fm = fireMeshes.get(idx);
+        if (fm) { scene.remove(fm); fireMeshes.delete(idx); }
+        const rubble = new THREE.Mesh(wallGeo, rubbleMat);
+        rubble.position.copy(cellToWorld(c, r)).setY(1.3);
+        rubble.rotation.y = Math.random() * 0.4 - 0.2;
+        scene.add(rubble);
+      }
+      bannerMsg = message;
+      bannerUntil = time + 6;
+      violations.push({
+        t: time,
+        type: "route_blocked",
+        detail: message,
+        cell: cells[0] ? { c: cells[0][0], r: cells[0][1] } : undefined,
+      });
+      recomputeSmoke();
+      fieldDirty = true;
+    };
+
+    /* ── NPC crowd (BFS flow-field toward nearest reachable exit) ── */
+    interface NpcAgent {
+      mesh: THREE.Mesh;
+      speed: number;
+      dead: boolean;
+      deadTimer: number;
+      fade: number;
+    }
+    const npcs: NpcAgent[] = [];
+    let distField = new Int16Array(rows * cols).fill(-1);
+    let fieldDirty = true;
+    let fieldTimer = 0;
+
+    const passableForNpc = (c: number, r: number) => {
+      if (c < 0 || r < 0 || c >= cols || r >= rows) return false;
+      const idx = idxOf(c, r);
+      if (walls.has(idx)) return false;
+      if (doors.has(idx) && !openedDoors.has(idx)) return false;
+      return true;
+    };
+
+    const rebuildField = () => {
+      distField = new Int16Array(rows * cols).fill(-1);
+      const q: number[] = [];
+      for (const e of exits) {
+        distField[e.idx] = 0;
+        q.push(e.idx);
+      }
+      let head = 0;
+      while (head < q.length) {
+        const idx = q[head++];
+        const c = idx % cols;
+        const r = Math.floor(idx / cols);
+        const d = distField[idx];
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          const nc = c + dc;
+          const nr = r + dr;
+          if (!passableForNpc(nc, nr)) continue;
+          const nIdx = idxOf(nc, nr);
+          if (distField[nIdx] !== -1) continue;
+          distField[nIdx] = d + 1;
+          q.push(nIdx);
+        }
+      }
+      fieldDirty = false;
+    };
+
+    const npcGeo = new THREE.CapsuleGeometry(0.28, 0.5, 4, 8);
+    for (let i = 0; i < NPC_COUNT; i++) {
+      /* spawn on open floor away from exits & fire seeds */
+      for (let tries = 0; tries < 60; tries++) {
+        const c = 1 + Math.floor(Math.random() * (cols - 2));
+        const r = 1 + Math.floor(Math.random() * (rows - 2));
+        const idx = idxOf(c, r);
+        if (walls.has(idx) || doors.has(idx) || fireSeeds.includes(idx)) continue;
+        if (exits.some((e) => Math.abs(e.c - c) + Math.abs(e.r - r) < 6)) continue;
+        const mesh = new THREE.Mesh(
+          npcGeo,
+          new THREE.MeshLambertMaterial({ color: 0xd97706, transparent: true })
+        );
+        const w = cellToWorld(c, r);
+        mesh.position.set(
+          w.x + (Math.random() - 0.5) * 0.8,
+          0.55,
+          w.z + (Math.random() - 0.5) * 0.8
+        );
+        scene.add(mesh);
+        npcs.push({ mesh, speed: 1.9 + Math.random() * 1.2, dead: false, deadTimer: 0, fade: 1 });
+        break;
+      }
+    }
+
+    /* ── synthesized audio (no assets) ── */
+    let audioCtx: AudioContext | null = null;
+    let masterGain: GainNode | null = null;
+    let crackleGain: GainNode | null = null;
+    let alarmInterval: ReturnType<typeof setInterval> | null = null;
+    let beatTimer = 0;
+
+    const beep = (freq: number, dur: number, when: number, vol: number) => {
+      if (!audioCtx || !masterGain) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.exponentialRampToValueAtTime(vol, when + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+      osc.connect(gain).connect(masterGain);
+      osc.start(when);
+      osc.stop(when + dur + 0.05);
+    };
+    const thump = (vol: number) => {
+      if (!audioCtx || !masterGain) return;
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(58, t0);
+      osc.frequency.exponentialRampToValueAtTime(38, t0 + 0.12);
+      gain.gain.setValueAtTime(vol, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14);
+      osc.connect(gain).connect(masterGain);
+      osc.start(t0);
+      osc.stop(t0 + 0.16);
+    };
+    try {
+      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.45;
+      masterGain.connect(audioCtx.destination);
+
+      /* looping fire crackle: filtered white noise, level driven per-frame */
+      const noiseLen = audioCtx.sampleRate * 2;
+      const noiseBuf = audioCtx.createBuffer(1, noiseLen, audioCtx.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < noiseLen; i++) data[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource();
+      src.buffer = noiseBuf;
+      src.loop = true;
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = "bandpass";
+      bandpass.frequency.value = 420;
+      bandpass.Q.value = 0.7;
+      crackleGain = audioCtx.createGain();
+      crackleGain.gain.value = 0;
+      src.connect(bandpass).connect(crackleGain).connect(masterGain);
+      src.start();
+
+      /* evacuation alarm: two quick square beeps every ~2.2s */
+      alarmInterval = setInterval(() => {
+        if (!audioCtx || status !== "running") return;
+        const t = audioCtx.currentTime;
+        beep(760, 0.14, t, 0.06);
+        beep(760, 0.14, t + 0.22, 0.06);
+      }, 2200);
+    } catch {
+      /* audio unavailable — drill continues silently */
+    }
+
+    /* ── movement collision ── */
     const tryMove = (nx: number, nz: number) => {
       const R = 0.45;
       const pts = [
         [nx - R, nz - R], [nx + R, nz - R], [nx - R, nz + R], [nx + R, nz + R],
       ];
       for (const [x, z] of pts) {
-        const c = Math.floor(x / CELL + COLS / 2);
-        const r = Math.floor(z / CELL + ROWS / 2);
-        if (isWall(c, r)) return false;
+        const c = Math.floor(x / CELL + cols / 2);
+        const r = Math.floor(z / CELL + rows / 2);
+        if (walls.has(idxOf(c, r))) return false;
       }
       return true;
+    };
+
+    const buildRunTelemetry = (): RunTelemetry => ({
+      runId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      scenarioId: scen.id,
+      scenarioName: scen.name,
+      status: status === "won" ? "won" : "lost",
+      time,
+      oxygenLeft: oxygen,
+      panicPeak,
+      panicFreezeSeconds,
+      score: status === "won"
+        ? Math.max(0, Math.round(oxygen * 2 + (TIME_LIMIT - time) * 3 + (100 - panic)))
+        : 0,
+      smokeStandingSeconds,
+      smokeCrouchSeconds,
+      breathCount,
+      distanceTraveled: Math.round(distanceTraveled),
+      fireCellEntries,
+      exitUsed,
+      deathCell,
+      violations: violations.slice(0, 40),
+      routeHeat,
+      cols,
+      rows,
+      createdAt: Date.now(),
+    });
+
+    const finishRun = () => {
+      if (ended) return;
+      ended = true;
+      emit();
+      onEndRef.current?.(buildRunTelemetry());
     };
 
     const emit = () => {
@@ -272,17 +511,21 @@ export default function EvacuationGame({ onState }: Props) {
       );
       const crouching = keys.has("shift");
       const breathing = keys.has("b");
-      const pc = Math.floor(player.position.x / CELL + COLS / 2);
-      const pr = Math.floor(player.position.z / CELL + ROWS / 2);
+      const pc = Math.floor(player.position.x / CELL + cols / 2);
+      const pr = Math.floor(player.position.z / CELL + rows / 2);
       const pIdx = idxOf(pc, pr);
-      let message = "Reach the green ASSEMBLY beacon";
-      if (status === "won") message = "Evacuated to assembly point ✓";
-      else if (status === "lost") message = oxygen <= 0 ? "Oxygen depleted — casualty" : "Time expired — drill failed";
-      else if (fireSet.has(pIdx)) message = "YOU ARE IN FLAMES — GET OUT!";
+      const nearExit = exitWorlds.some((w) => player.position.distanceTo(w) < CELL * 4);
+      let message = exits.length > 1
+        ? `Reach any green ASSEMBLY beacon (${exits.length} active)`
+        : "Reach the green ASSEMBLY beacon";
+      if (time < bannerUntil) message = bannerMsg;
+      else if (status === "won") message = "Evacuated to assembly point ✓";
+      else if (status === "lost") message = oxygen <= 0 ? `${scen.hazardLabel} exposure fatal — casualty` : "Time expired — drill failed";
+      else if (fireSet.has(pIdx)) message = `YOU ARE IN ${scen.hazardLabel} — GET OUT!`;
       else if (breathing) message = "Box-breathing… 4s in, 4s hold, 4s out";
       else if (panic > 70) message = "PANIC HIGH — hold B to box-breathe";
-      else if (smokeSet.has(pIdx) && !crouching) message = "Smoke! Hold SHIFT to crawl low";
-      else if (player.position.distanceTo(exitWorld) < CELL * 4) message = "Assembly point ahead!";
+      else if (smokeSet.has(pIdx) && !crouching) message = `${scen.hazardLabel === "TOXIC GAS" ? "Gas!" : "Smoke!"} Hold SHIFT to crawl low`;
+      else if (nearExit) message = "Assembly point ahead!";
       onStateRef.current({ status, time, oxygen, panic, crouching, breathing, message, score });
     };
 
@@ -294,6 +537,24 @@ export default function EvacuationGame({ onState }: Props) {
         time += dt;
         const crouching = keys.has("shift");
         const breathing = keys.has("b");
+
+        /* scripted blockage timeline (warn first, then collapse) */
+        const pending = blockages[nextBlockage];
+        if (
+          pending &&
+          pending.warnT !== undefined &&
+          time >= pending.warnT &&
+          time < pending.t
+        ) {
+          if (!(pending as BlockageWithWarn).warned) {
+            (pending as BlockageWithWarn).warned = true;
+            if (pending.warnMessage) { bannerMsg = pending.warnMessage; bannerUntil = time + 5; }
+          }
+        }
+        while (nextBlockage < blockages.length && time >= blockages[nextBlockage].t) {
+          applyBlockage(blockages[nextBlockage].cells, blockages[nextBlockage].message);
+          nextBlockage++;
+        }
 
         /* movement (frozen while box-breathing; slowed by panic + crouch) */
         if (!breathing) {
@@ -307,8 +568,10 @@ export default function EvacuationGame({ onState }: Props) {
           if (keys.has("d") || keys.has("arrowright")) dx += 1;
           if (dx || dz) {
             const len = Math.hypot(dx, dz);
-            const nx = player.position.x + (dx / len) * speed * dt;
-            const nz = player.position.z + (dz / len) * speed * dt;
+            const step = speed * dt;
+            distanceTraveled += step;
+            const nx = player.position.x + (dx / len) * step;
+            const nz = player.position.z + (dz / len) * step;
             if (tryMove(nx, player.position.z)) player.position.x = nx;
             if (tryMove(player.position.x, nz)) player.position.z = nz;
             player.rotation.y = Math.atan2(dx, dz);
@@ -316,60 +579,129 @@ export default function EvacuationGame({ onState }: Props) {
         }
         body.scale.y = crouching ? 0.55 : 1;
 
-        /* hazard effects on player */
-        const pc = Math.floor(player.position.x / CELL + COLS / 2);
-        const pr = Math.floor(player.position.z / CELL + ROWS / 2);
+        const pc = Math.floor(player.position.x / CELL + cols / 2);
+        const pr = Math.floor(player.position.z / CELL + rows / 2);
         const pIdx = idxOf(pc, pr);
+
+        /* push through closed doors */
+        if (doors.has(pIdx) && !openedDoors.has(pIdx)) {
+          openedDoors.add(pIdx);
+          fieldDirty = true;
+          const dm = doorMeshes.get(pIdx);
+          if (dm) {
+            (dm.material as THREE.MeshLambertMaterial).color.set(0x00d4aa);
+            (dm.material as THREE.MeshLambertMaterial).opacity = 0.25;
+            (dm.material as THREE.MeshLambertMaterial).transparent = true;
+            dm.scale.y = 0.12;
+            dm.position.y = 0.12;
+          }
+        }
+
+        /* hazard effects on player */
         let nearFire = false;
         fireSet.forEach((idx) => {
-          const fc = idx % COLS;
-          const fr = Math.floor(idx / COLS);
+          const fc = idx % cols;
+          const fr = Math.floor(idx / cols);
           if (Math.abs(fc - pc) <= 2 && Math.abs(fr - pr) <= 2) nearFire = true;
         });
+
+        /* telemetry: route heat sampling is done in sample block below */
         if (fireSet.has(pIdx)) {
           oxygen -= 35 * dt;
           panic = Math.min(100, panic + 60 * dt);
+          if (!wasInFire) {
+            fireCellEntries++;
+            violations.push({ t: time, type: "entered_fire", cell: { c: pc, r: pr } });
+          }
         } else if (smokeSet.has(pIdx)) {
           oxygen -= (keys.has("shift") ? 1.2 : 4.5) * dt;
           panic = Math.min(100, panic + 6 * dt);
+          if (keys.has("shift")) smokeCrouchSeconds += dt;
+          else smokeStandingSeconds += dt;
         }
+        wasInFire = fireSet.has(pIdx);
         if (nearFire) panic = Math.min(100, panic + 8 * dt);
         else if (!smokeSet.has(pIdx)) panic = Math.max(0, panic - 3.5 * dt);
         if (breathing) panic = Math.max(0, panic - 16 * dt);
+        if (breathing && !breathingPrev) breathCount++;
+        breathingPrev = breathing;
 
-        /* fire spread */
+        if (panic > panicPeak) panicPeak = panic;
+        if (panic > 70 && !breathing) {
+          panicFreezeSeconds += dt;
+          if (
+            panicFreezeSeconds > 4 &&
+            !violations.some((v) => v.type === "panic_freeze")
+          ) {
+            violations.push({ t: time, type: "panic_freeze", cell: { c: pc, r: pr } });
+          }
+        }
+        if (
+          smokeStandingSeconds > 6 &&
+          !violations.some((v) => v.type === "smoke_exposure")
+        ) {
+          violations.push({ t: time, type: "smoke_exposure", cell: { c: pc, r: pr } });
+        }
+
+        /* fire spread — closed doors block it */
         spreadTimer += dt;
-        if (spreadTimer > 2.6) {
+        if (spreadTimer > scen.spreadInterval) {
           spreadTimer = 0;
           const next: number[] = [];
           fireSet.forEach((idx) => {
-            const c = idx % COLS;
-            const r = Math.floor(idx / COLS);
+            const c = idx % cols;
+            const r = Math.floor(idx / cols);
             [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dc, dr]) => {
-              if (!isWall(c + dc, r + dr) && Math.random() < 0.45) next.push(idxOf(c + dc, r + dr));
+              if (isOpenForSpread(c + dc, r + dr) && Math.random() < scen.spreadChance) {
+                next.push(idxOf(c + dc, r + dr));
+              }
             });
           });
           next.forEach(addFire);
           recomputeSmoke();
         }
 
-        /* outcome resolution */
-        if (player.position.distanceTo(exitWorld) < 1.5) status = "won";
-        else if (oxygen <= 0) { oxygen = 0; status = "lost"; }
-        else if (time >= TIME_LIMIT) status = "lost";
-        if (status !== "running") emit();
+        /* outcome resolution — any beacon wins */
+        const reachedExitIdx = exitWorlds.findIndex((w) => player.position.distanceTo(w) < 1.5);
+        if (reachedExitIdx >= 0) {
+          exitUsed = exits[reachedExitIdx];
+          status = "won";
+        } else if (oxygen <= 0) {
+          oxygen = 0;
+          deathCell = { c: pc, r: pr };
+          status = "lost";
+        } else if (time >= TIME_LIMIT) {
+          deathCell = { c: pc, r: pr };
+          status = "lost";
+        }
+        if (status !== "running") {
+          emit();
+          finishRun();
+        }
+
+        /* telemetry sampling @4Hz */
+        sampleTimer += dt;
+        if (sampleTimer > 0.25) {
+          sampleTimer = 0;
+          routeHeat[pIdx]++;
+        }
+
+        updateNpcs(dt);
+        updateAudio(dt, pc, pr, pIdx);
       }
 
-      /* visuals */
+      /* visuals: flames flicker */
       fireMeshes.forEach((g, idx) => {
         const s = 1 + 0.18 * Math.sin(t * 13 + idx);
         g.children[0].scale.y = s;
         g.children[1].scale.y = 1 + 0.18 * Math.cos(t * 11 + idx);
       });
-      beacon.rotation.y = t * 0.8;
-      const ringP = (t * 0.7) % 1;
-      beaconRing.scale.setScalar(1 + ringP * 2.2);
-      (beaconRing.material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ringP);
+      for (const b of animBeacons) {
+        b.beacon.rotation.y = t * 0.8;
+        const ringP = (t * 0.7) % 1;
+        b.ring.scale.setScalar(1 + ringP * 2.2);
+        (b.ring.material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ringP);
+      }
 
       /* camera: third-person follow + quake shake intro */
       const shake = Math.max(0, 1 - t / 3);
@@ -392,7 +724,110 @@ export default function EvacuationGame({ onState }: Props) {
       if (status === "running") raf = requestAnimationFrame(tick);
     };
 
-    camera.position.set(spawn.x, 13, spawn.z + 9.5);
+    /* NPC flow-field follow */
+    const tmpTarget = new THREE.Vector3();
+    function updateNpcs(dt: number) {
+      fieldTimer += dt;
+      if (fieldDirty && fieldTimer > 0.5) {
+        rebuildField();
+        fieldTimer = 0;
+      }
+      for (const npc of npcs) {
+        if (npc.dead) {
+          npc.deadTimer -= dt;
+          if (npc.deadTimer <= 0 && npc.fade > 0) {
+            npc.fade = Math.max(0, npc.fade - dt);
+            (npc.mesh.material as THREE.MeshLambertMaterial).opacity = npc.fade * 0.9;
+          }
+          continue;
+        }
+        const c = Math.round(npc.mesh.position.x / CELL + cols / 2 - 0.5);
+        const r = Math.round(npc.mesh.position.z / CELL + rows / 2 - 0.5);
+        if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+        const idx = idxOf(c, r);
+
+        /* caught in fire → casualty */
+        if (fireSet.has(idx)) {
+          npc.deadTimer += dt;
+          if (npc.deadTimer > 1.2) {
+            npc.dead = true;
+            (npc.mesh.material as THREE.MeshLambertMaterial).color.set(0xef4444);
+            continue;
+          }
+        }
+
+        const here = distField[idx];
+        if (here === 0) {
+          /* evacuated */
+          npc.fade -= dt * 2;
+          npc.mesh.scale.setScalar(Math.max(0.01, npc.fade));
+          (npc.mesh.material as THREE.MeshLambertMaterial).opacity = Math.max(0, npc.fade);
+          if (npc.fade <= 0) npc.mesh.visible = false;
+          continue;
+        }
+        if (here === -1) continue; /* no known path — stand still */
+
+        /* pick best neighbor toward exit */
+        let bestD = here;
+        let bc = c, br = r;
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          const nc = c + dc;
+          const nr = r + dr;
+          if (!passableForNpc(nc, nr)) continue;
+          const nd = distField[idxOf(nc, nr)];
+          if (nd !== -1 && nd < bestD) { bestD = nd; bc = nc; br = nr; }
+        }
+        tmpTarget.copy(cellToWorld(bc, br));
+        const inSmoke = smokeSet.has(idx);
+        const spd = npc.speed * (inSmoke ? 0.5 : 1);
+        const dir = tmpTarget.sub(npc.mesh.position);
+        dir.y = 0;
+        if (dir.lengthSq() > 0.001) {
+          dir.normalize().multiplyScalar(spd * dt);
+          npc.mesh.position.add(dir);
+        }
+        /* simple separation so they don't stack perfectly */
+        for (const other of npcs) {
+          if (other === npc || other.dead || other.fade <= 0) continue;
+          const dx = npc.mesh.position.x - other.mesh.position.x;
+          const dz = npc.mesh.position.z - other.mesh.position.z;
+          const d2 = dx * dx + dz * dz;
+          if (d2 > 0.0001 && d2 < 0.64) {
+            const push = (0.8 - Math.sqrt(d2)) * 0.5;
+            npc.mesh.position.x += (dx / Math.sqrt(d2)) * push * dt * 4;
+            npc.mesh.position.z += (dz / Math.sqrt(d2)) * push * dt * 4;
+          }
+        }
+      }
+    }
+
+    /* audio driven by live sim state */
+    function updateAudio(dt: number, pc: number, pr: number, pIdx: number) {
+      if (!audioCtx || !crackleGain) return;
+      /* crackle loudness from proximity to nearest burning cell */
+      let nearest = Infinity;
+      fireSet.forEach((idx) => {
+        const fc = idx % cols;
+        const fr = Math.floor(idx / cols);
+        const d = Math.max(Math.abs(fc - pc), Math.abs(fr - pr));
+        if (d < nearest) nearest = d;
+      });
+      const level = Number.isFinite(nearest) ? Math.max(0, 1 - nearest / 6) : 0;
+      crackleGain.gain.value += (level * 0.28 - crackleGain.gain.value) * Math.min(1, dt * 3);
+
+      /* heartbeat speeds up with panic */
+      beatTimer -= dt;
+      if (beatTimer <= 0 && panic > 30) {
+        const bpm = 55 + (panic / 100) * 85;
+        beatTimer = 60 / bpm;
+        thump(0.12 + (panic / 100) * 0.15);
+        setTimeout(() => thump(0.07), 120);
+      }
+      void pIdx;
+    }
+
+    camera.position.set(player.position.x, 13, player.position.z + 9.5);
+    rebuildField();
     emit();
     tick();
 
@@ -401,6 +836,8 @@ export default function EvacuationGame({ onState }: Props) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("resize", onResize);
+      if (alarmInterval) clearInterval(alarmInterval);
+      try { audioCtx?.close(); } catch { /* already closed */ }
       scene.traverse((o) => {
         const obj = o as THREE.Mesh;
         if (obj.geometry) obj.geometry.dispose();
@@ -411,6 +848,7 @@ export default function EvacuationGame({ onState }: Props) {
       renderer.dispose();
       mount.removeChild(renderer.domElement);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <div ref={mountRef} style={{ position: "absolute", inset: 0 }} />;

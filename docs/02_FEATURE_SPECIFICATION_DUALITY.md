@@ -1,5 +1,8 @@
 # 02. Feature Specification: The Dual-Core Engine & Command Hub
 
+> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+
+
 This document defines the comprehensive functional specifications of the platform across its three core pillars:
 1. **The Pedagogical Teaching Engine** (Theory, Curriculum, Age-Tiered Learning & Assessment)
 2. **The Immersive Simulation & Gaming Engine** (Procedural Multi-Floor 3D Drills, Stress Mechanics, Branching Scenarios)

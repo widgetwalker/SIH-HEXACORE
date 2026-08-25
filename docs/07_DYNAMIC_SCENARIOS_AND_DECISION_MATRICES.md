@@ -1,5 +1,8 @@
 # 07. Dynamic Scenarios, Floor-Wise Response Matrices & Universal Decision Trees
 
+> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+
+
 This document establishes the comprehensive disaster scenario definitions, floor-wise evacuation rules (Ground to 5th Floor), compound multi-hazard protocols, and universal decision trees codified from official guidelines issued by the **National Disaster Management Authority (NDMA)**, **NFPA**, **OSHA**, **USGS**, **NOAA**, and **CDC**.
 
 ---
