@@ -19,24 +19,34 @@ export default function CustomCursor() {
     const onMove = (e: globalThis.MouseEvent) => {
       x = e.clientX;
       y = e.clientY;
-      hover = !!(e.target as HTMLElement).closest?.("a,button,[data-cursor]");
+    };
+
+    const onOver = (e: globalThis.MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest?.("a,button,[data-cursor],[role='button'],input,select")) {
+        hover = true;
+      } else {
+        hover = false;
+      }
     };
 
     const tick = () => {
-      rx += (x - rx) * 0.16;
-      ry += (y - ry) * 0.16;
-      dot.style.transform = `translate(${x}px, ${y}px)`;
-      ring.style.transform = `translate(${rx.toFixed(1)}px, ${ry.toFixed(1)}px) scale(${hover ? 1.9 : 1})`;
+      rx += (x - rx) * 0.2;
+      ry += (y - ry) * 0.2;
+      dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      ring.style.transform = `translate3d(${rx.toFixed(1)}px, ${ry.toFixed(1)}px, 0) scale(${hover ? 1.75 : 1})`;
       ring.style.borderColor = hover ? "rgba(0,212,170,0.9)" : "rgba(0,212,170,0.45)";
       raf = requestAnimationFrame(tick);
     };
 
     window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("mouseover", onOver, { passive: true });
     raf = requestAnimationFrame(tick);
 
     return () => {
       document.body.classList.remove("fx-cursor");
       window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseover", onOver);
       cancelAnimationFrame(raf);
     };
   }, []);

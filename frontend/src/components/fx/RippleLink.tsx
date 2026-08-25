@@ -35,20 +35,22 @@ export default function RippleLink({
 
   const onMove = (e: MouseEvent<HTMLAnchorElement>) => {
     if (!magnetic || !ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const dx = e.clientX - (r.left + r.width / 2);
-    const dy = e.clientY - (r.top + r.height / 2);
-    ref.current.style.transform = `translate(${(dx * 0.18).toFixed(1)}px, ${(dy * 0.18).toFixed(1)}px)`;
+    const el = ref.current;
+    const rect = el.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    el.style.transform = `translate3d(${(dx * 0.14).toFixed(1)}px, ${(dy * 0.14).toFixed(1)}px, 0)`;
   };
 
   const onLeave = () => {
-    if (ref.current) ref.current.style.transform = "";
+    if (ref.current) ref.current.style.transform = "translate3d(0, 0, 0)";
   };
 
   return (
     <Link
       href={href}
       ref={ref}
+      prefetch={true}
       className={className}
       onMouseDown={spawnRipple}
       onMouseMove={onMove}
@@ -56,7 +58,8 @@ export default function RippleLink({
       style={{
         position: "relative",
         overflow: "hidden",
-        transition: "transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s",
+        willChange: "transform",
+        transition: "transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s",
       }}
     >
       {children}

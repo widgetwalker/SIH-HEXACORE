@@ -32,12 +32,32 @@
 /* Main */
 .main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 40px; overflow-y: auto; }
 
+/* Toast */
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 200;
+  background: rgba(10, 15, 30, 0.95);
+  border: 1px solid var(--accent-teal);
+  box-shadow: 0 8px 32px rgba(0, 212, 170, 0.3);
+  backdrop-filter: blur(16px);
+  padding: 12px 20px;
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  animation: fade-in-up 0.25s var(--ease-out-expo);
+  pointer-events: none;
+}
+
 /* Tiers */
 .tierSection { display: flex; flex-direction: column; gap: 20px; }
 .tierGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-.tierCard { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 12px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.25s ease; font-family: var(--font-sans); }
+.tierCard { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 12px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); font-family: var(--font-sans); user-select: none; touch-action: manipulation; }
 .tierCard:hover { border-color: var(--border-strong); transform: translateY(-2px); }
-.tierActive { border-color: var(--tier-color); box-shadow: 0 0 20px rgba(0,0,0,0.3), inset 0 0 0 1px var(--tier-color); }
+.tierCard:active { transform: scale(0.95); }
+.tierActive { border-color: var(--tier-color); box-shadow: 0 0 20px rgba(0,0,0,0.3), inset 0 0 0 1px var(--tier-color); background: rgba(255,255,255,0.03); }
 .tierIcon { font-size: 1.75rem; }
 .tierAge { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
 .tierName { font-size: 0.9375rem; font-weight: 700; }
@@ -48,9 +68,11 @@
 .modulesSection { display: flex; flex-direction: column; gap: 16px; }
 .modulesHeader { display: flex; align-items: center; justify-content: space-between; }
 .modulesList { display: flex; flex-direction: column; gap: 8px; }
-.moduleCard { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all 0.2s ease; cursor: pointer; }
-.moduleCard:hover { border-color: var(--border-strong); background: var(--bg-card-hover); }
-.moduleLocked { opacity: 0.45; pointer-events: none; }
+.moduleCard { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; user-select: none; touch-action: manipulation; }
+.moduleCard:hover { border-color: var(--border-strong); background: var(--bg-card-hover); transform: translateY(-1px); }
+.moduleCard:active { transform: scale(0.98); }
+.moduleSelected { border-color: var(--accent-teal); box-shadow: 0 0 16px rgba(0,212,170,0.25); background: rgba(0,212,170,0.04); }
+.moduleLocked { opacity: 0.45; cursor: not-allowed; }
 .moduleIcon { font-size: 1.5rem; flex-shrink: 0; }
 .moduleInfo { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .moduleTitle { font-size: 0.9375rem; font-weight: 600; }
@@ -64,8 +86,9 @@
 /* Badges */
 .badgesSection { display: flex; flex-direction: column; gap: 16px; }
 .badgesGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.badgeCard { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 16px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); position: relative; transition: all 0.25s; }
-.badgeCard:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.badgeCard { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 16px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); position: relative; transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; user-select: none; touch-action: manipulation; }
+.badgeCard:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.badgeCard:active { transform: scale(0.95); }
 .badgeLocked { opacity: 0.35; filter: grayscale(1); }
 .badgeEmoji { font-size: 2rem; }
 .badgeName { font-size: 0.8125rem; font-weight: 600; text-align: center; }
@@ -73,3 +96,4 @@
 
 @media (max-width: 1024px) { .tierGrid { grid-template-columns: repeat(3, 1fr); } .badgesGrid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .layout { flex-direction: column; } .sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border-subtle); } .tierGrid { grid-template-columns: repeat(2, 1fr); } .main { padding: 20px 16px; } }
+

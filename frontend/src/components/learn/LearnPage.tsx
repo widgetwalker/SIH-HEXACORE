@@ -32,10 +32,24 @@ const BADGES = [
 
 export default function LearnPage() {
   const [activeTier, setActiveTier] = useState(2);
+  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [selectedModule, setSelectedModule] = useState<string | null>("m1");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   return (
     <div className={styles.page}>
       <Navbar mode="learning" />
+
+      {toast && (
+        <div className={styles.toast}>
+          <span>{toast}</span>
+        </div>
+      )}
 
       <div className={styles.layout}>
         {/* Sidebar */}
@@ -83,12 +97,19 @@ export default function LearnPage() {
 
           <nav className={styles.sidebarNav}>
             {[
-              { label: "Dashboard", active: true },
+              { label: "Dashboard" },
               { label: "My Certificates" },
               { label: "Leaderboard" },
               { label: "Settings" },
             ].map((item) => (
-              <button key={item.label} className={`${styles.navItem} ${item.active ? styles.navItemActive : ""}`}>
+              <button
+                key={item.label}
+                className={`${styles.navItem} ${activeTab === item.label ? styles.navItemActive : ""}`}
+                onClick={() => {
+                  setActiveTab(item.label);
+                  showToast(`Switched to ${item.label}`);
+                }}
+              >
                 {item.label}
               </button>
             ))}
@@ -130,7 +151,20 @@ export default function LearnPage() {
             </div>
             <div className={styles.modulesList}>
               {MODULES.map((m) => (
-                <div key={m.id} className={`${styles.moduleCard} ${m.status === "locked" ? styles.moduleLocked : ""}`}>
+                <div
+                  key={m.id}
+                  className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
+                  onClick={() => {
+                    if (m.status !== "locked") {
+                      setSelectedModule(m.id);
+                      showToast(`Loaded "${m.title}"`);
+                    } else {
+                      showToast("🔒 Complete previous modules to unlock this drill");
+                    }
+                  }}
+                  role="button"
+                  tabIndex={m.status !== "locked" ? 0 : -1}
+                >
                   <span className={styles.moduleIcon}>{m.icon}</span>
                   <div className={styles.moduleInfo}>
                     <h3 className={styles.moduleTitle}>{m.title}</h3>
@@ -164,7 +198,13 @@ export default function LearnPage() {
             <h2 className="heading-lg">Achievement Badges</h2>
             <div className={styles.badgesGrid}>
               {BADGES.map((b) => (
-                <div key={b.name} className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}>
+                <div
+                  key={b.name}
+                  className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}
+                  onClick={() => showToast(b.earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
+                  role="button"
+                  tabIndex={0}
+                >
                   <span className={styles.badgeEmoji}>{b.icon}</span>
                   <span className={styles.badgeName}>{b.name}</span>
                   {b.earned && <span className={styles.badgeCheck}>✓</span>}

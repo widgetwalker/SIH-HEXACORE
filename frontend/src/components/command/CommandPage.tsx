@@ -35,6 +35,13 @@ const AGENCIES = [
 
 export default function CommandPage() {
   const [clock, setClock] = useState("22:42:30");
+  const [toast, setToast] = useState<string | null>(null);
+  const [selectedFloor, setSelectedFloor] = useState<string | null>("4F");
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,6 +59,12 @@ export default function CommandPage() {
   return (
     <div className={styles.page}>
       <Navbar mode="command" />
+
+      {toast && (
+        <div className={styles.toast}>
+          <span>{toast}</span>
+        </div>
+      )}
 
       {/* Background */}
       <div className={styles.bgLayer}>
@@ -88,7 +101,16 @@ export default function CommandPage() {
             </div>
             <div className={styles.floorList}>
               {FLOORS.map((f) => (
-                <div key={f.id} className={`${styles.floorRow} ${styles[`row-${f.status}`]}`}>
+                <div
+                  key={f.id}
+                  className={`${styles.floorRow} ${styles[`row-${f.status}`]} ${selectedFloor === f.id ? styles.floorRowSelected : ""}`}
+                  onClick={() => {
+                    setSelectedFloor(f.id);
+                    showToast(`Floor ${f.id} selected: ${f.safe} safe, ${f.trapped} trapped, ${f.missing} missing`);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <span className={`mono ${styles.floorId}`}>{f.id}</span>
                   <div className={styles.floorBars}>
                     <div className={styles.barGroup}>
@@ -116,9 +138,9 @@ export default function CommandPage() {
                   <rect x="80" y="40" width="240" height="220" rx="4" fill="none" stroke="var(--border-default)" strokeWidth="1" />
                   {/* Floors */}
                   {[0,1,2,3,4,5].map((i) => (
-                    <g key={i}>
+                    <g key={i} onClick={() => setSelectedFloor(`${5-i}F`)} style={{ cursor: "pointer" }}>
                       <line x1="80" y1={40 + i * 36.67} x2="320" y2={40 + i * 36.67} stroke="var(--border-subtle)" strokeWidth="0.5" />
-                      <text x="75" y={40 + i * 36.67 + 20} fill="var(--text-faint)" fontSize="8" fontFamily="var(--font-mono)" textAnchor="end">{5-i}F</text>
+                      <text x="75" y={40 + i * 36.67 + 20} fill={selectedFloor === `${5-i}F` ? "var(--accent-teal)" : "var(--text-faint)"} fontSize="8" fontFamily="var(--font-mono)" textAnchor="end">{5-i}F</text>
                     </g>
                   ))}
                   {/* Fire indicator on 4F */}
@@ -145,7 +167,14 @@ export default function CommandPage() {
               </div>
               <div className={styles.alertFeed}>
                 {ALERTS.map((a) => (
-                  <div key={a.id} className={`${styles.alertItem} ${styles[`alert-${a.color}`]}`}>
+                  <div
+                    key={a.id}
+                    className={`${styles.alertItem} ${styles[`alert-${a.color}`]}`}
+                    onClick={() => showToast(`[${a.source}] ${a.msg}`)}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                  >
                     <span className={`mono ${styles.alertTime}`}>{a.time}</span>
                     <span className={`badge badge-${a.color} ${styles.alertSev}`}>{a.severity}</span>
                     <span className={styles.alertSrc}>{a.source}</span>
@@ -161,7 +190,14 @@ export default function CommandPage() {
               </div>
               <div className={styles.agencyList}>
                 {AGENCIES.map((a) => (
-                  <div key={a.name} className={styles.agencyRow}>
+                  <div
+                    key={a.name}
+                    className={styles.agencyRow}
+                    onClick={() => showToast(`Pinging ${a.name} (${a.role})... Status: ${a.status}`)}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                  >
                     <div className={`${styles.agencyDot}`} style={{ background: `var(--accent-${a.color})`, boxShadow: `0 0 8px var(--accent-${a.color})` }} />
                     <div className={styles.agencyInfo}>
                       <span className={styles.agencyName}>{a.name}</span>
@@ -177,9 +213,27 @@ export default function CommandPage() {
 
         {/* Bottom action bar */}
         <div className={styles.actionBar}>
-          <button className="btn btn-danger" id="cmd-broadcast">⚡ Emergency Broadcast</button>
-          <button className="btn btn-ghost" id="cmd-scan">📱 QR Headcount Scan</button>
-          <button className="btn btn-ghost" id="cmd-report">📊 Generate NDMA Report</button>
+          <button
+            className="btn btn-danger"
+            id="cmd-broadcast"
+            onClick={() => showToast("📢 Emergency CAP v1.2 Broadcast Dispatched to 239 Connected Nodes!")}
+          >
+            ⚡ Emergency Broadcast
+          </button>
+          <button
+            className="btn btn-ghost"
+            id="cmd-scan"
+            onClick={() => showToast("📱 QR Scanner Initiated — 48 Verified Safe on 2F")}
+          >
+            📱 QR Headcount Scan
+          </button>
+          <button
+            className="btn btn-ghost"
+            id="cmd-report"
+            onClick={() => showToast("📊 NDMA Incident Report #2026-08 Exported (PDF/JSON)")}
+          >
+            📊 Generate NDMA Report
+          </button>
         </div>
       </div>
     </div>
