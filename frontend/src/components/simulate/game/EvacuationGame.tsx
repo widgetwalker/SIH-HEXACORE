@@ -454,7 +454,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         beep(760, 0.14, t + 0.22, 0.06);
       }, 2200);
     } catch {
-      /* audio unavailable — drill continues silently */
+      /* audio unavailable - drill continues silently */
     }
 
     /* ── movement collision ── */
@@ -520,10 +520,10 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         : "Reach the green ASSEMBLY beacon";
       if (time < bannerUntil) message = bannerMsg;
       else if (status === "won") message = "Evacuated to assembly point ✓";
-      else if (status === "lost") message = oxygen <= 0 ? `${scen.hazardLabel} exposure fatal — casualty` : "Time expired — drill failed";
-      else if (fireSet.has(pIdx)) message = `YOU ARE IN ${scen.hazardLabel} — GET OUT!`;
+      else if (status === "lost") message = oxygen <= 0 ? `${scen.hazardLabel} exposure fatal - casualty` : "Time expired - drill failed";
+      else if (fireSet.has(pIdx)) message = `YOU ARE IN ${scen.hazardLabel} - GET OUT!`;
       else if (breathing) message = "Box-breathing… 4s in, 4s hold, 4s out";
-      else if (panic > 70) message = "PANIC HIGH — hold B to box-breathe";
+      else if (panic > 70) message = "PANIC HIGH - hold B to box-breathe";
       else if (smokeSet.has(pIdx) && !crouching) message = `${scen.hazardLabel === "TOXIC GAS" ? "Gas!" : "Smoke!"} Hold SHIFT to crawl low`;
       else if (nearExit) message = "Assembly point ahead!";
       onStateRef.current({ status, time, oxygen, panic, crouching, breathing, message, score });
@@ -643,7 +643,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           violations.push({ t: time, type: "smoke_exposure", cell: { c: pc, r: pr } });
         }
 
-        /* fire spread — closed doors block it */
+        /* fire spread - closed doors block it */
         spreadTimer += dt;
         if (spreadTimer > scen.spreadInterval) {
           spreadTimer = 0;
@@ -661,7 +661,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           recomputeSmoke();
         }
 
-        /* outcome resolution — any beacon wins */
+        /* outcome resolution - any beacon wins */
         const reachedExitIdx = exitWorlds.findIndex((w) => player.position.distanceTo(w) < 1.5);
         if (reachedExitIdx >= 0) {
           exitUsed = exits[reachedExitIdx];
@@ -765,7 +765,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           if (npc.fade <= 0) npc.mesh.visible = false;
           continue;
         }
-        if (here === -1) continue; /* no known path — stand still */
+        if (here === -1) continue; /* no known path - stand still */
 
         /* pick best neighbor toward exit */
         let bestD = here;

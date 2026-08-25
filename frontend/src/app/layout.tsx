@@ -5,7 +5,7 @@ import "./globals.css";
 import CustomCursor from "@/components/fx/CustomCursor";
 
 export const metadata: Metadata = {
-  title: "SafeZone — Gamified Disaster Preparedness | SIH 2026",
+  title: "SafeZone - Gamified Disaster Preparedness | SIH 2026",
   description:
     "Train today, survive tomorrow. A unified AI-powered platform combining gamified disaster education, immersive 3D simulation, and real-time multi-agency emergency command for Indian schools and colleges.",
   keywords: [
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     "emergency simulation",
   ],
   openGraph: {
-    title: "SafeZone — Disaster Preparedness Education Platform",
+    title: "SafeZone - Disaster Preparedness Education Platform",
     description:
       "AI-powered gamified disaster training for schools. Real simulations. Real safety.",
     type: "website",

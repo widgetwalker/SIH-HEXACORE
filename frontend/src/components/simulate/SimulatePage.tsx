@@ -17,11 +17,11 @@ type Phase = "briefing" | "running" | "ended";
 function getMitraTip(gs: GameState | null): string {
   if (!gs) return "I'm tracking your route. Amber doorways block fire & smoke until you push through them.";
   if (gs.status === "won") return "Clean evacuation logged ✓ Your run is on the command analytics dashboard.";
-  if (gs.status === "lost") return "Run logged. Check your debrief — smoke exposure and panic are the usual killers.";
-  if (gs.panic > 70) return "Panic spiking! Stop and hold B — box-breathe: 4s in, 4s hold, 4s out.";
+  if (gs.status === "lost") return "Run logged. Check your debrief - smoke exposure and panic are the usual killers.";
+  if (gs.panic > 70) return "Panic spiking! Stop and hold B - box-breathe: 4s in, 4s hold, 4s out.";
   if (gs.breathing) return "Good. Move again once panic drops below 40.";
-  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen critical. Crawl (SHIFT) straight to the nearest beacon — no detours.";
-  if (gs.crouching) return "Smart crawling. Doorways slow the spread — use them as firebreaks.";
+  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen critical. Crawl (SHIFT) straight to the nearest beacon - no detours.";
+  if (gs.crouching) return "Smart crawling. Doorways slow the spread - use them as firebreaks.";
   if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go.";
   return "Stay low, keep moving. I'm tracking your route and logging every decision.";
 }
@@ -199,7 +199,7 @@ export default function SimulatePage() {
           </div>
         )}
 
-        {/* ── MITRA DOCK — live crisis companion, reads real game state ── */}
+        {/* ── MITRA DOCK - live crisis companion, reads real game state ── */}
         <button className={styles.mitraBtn} onClick={() => setMitraOpen(!mitraOpen)} data-cursor>
           🎙 Mitra
         </button>

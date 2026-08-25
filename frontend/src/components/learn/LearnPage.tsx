@@ -57,8 +57,8 @@ export default function LearnPage() {
           <div className={styles.sidebarProfile}>
             <div className={styles.profileAvatar}>D</div>
             <div className={styles.profileInfo}>
-              <span className={styles.profileName}>Dheeraj</span>
-              <span className={styles.profileRole}>AI + Design</span>
+              <span className={styles.profileName}>Cadet</span>
+              <span className={styles.profileRole}>Student Responder</span>
             </div>
           </div>
 

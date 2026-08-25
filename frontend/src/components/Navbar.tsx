@@ -115,8 +115,8 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
             href="/learn"
             prefetch={true}
             className={styles.avatar}
-            aria-label="Dheeraj (AI + Design)"
-            title="Dheeraj (AI + Design) - View Profile"
+            aria-label="User Profile"
+            title="User Profile"
             style={{ textDecoration: "none" }}
           >
             D
