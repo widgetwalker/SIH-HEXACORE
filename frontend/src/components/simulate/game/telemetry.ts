@@ -38,7 +38,7 @@ export interface RunTelemetry {
   exitUsed?: { c: number; r: number };
   deathCell?: { c: number; r: number };
   violations: TelemetryEvent[];
-  /** visits per grid cell index — powers the admin heatmap */
+  /** visits per grid cell index - powers the admin heatmap */
   routeHeat: number[];
   cols: number;
   rows: number;
@@ -63,7 +63,7 @@ export function saveRun(run: RunTelemetry): void {
     while (runs.length > MAX_RUNS) runs.shift();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
   } catch {
-    /* storage full or unavailable — telemetry loss is non-fatal */
+    /* storage full or unavailable - telemetry loss is non-fatal */
   }
 }
 
@@ -86,10 +86,10 @@ export function generateDebrief(run: RunTelemetry): DebriefLine[] {
   if (run.fireCellEntries > 0) {
     lines.push({
       ok: false,
-      text: `✗ Crossed ${run.fireCellEntries} burning cell${run.fireCellEntries > 1 ? "s" : ""} — never enter a flaming corridor; reroute instead`,
+      text: `✗ Crossed ${run.fireCellEntries} burning cell${run.fireCellEntries > 1 ? "s" : ""} - never enter a flaming corridor; reroute instead`,
     });
   } else {
-    lines.push({ ok: true, text: "✓ Zero fire-cell exposure — clean route discipline" });
+    lines.push({ ok: true, text: "✓ Zero fire-cell exposure - clean route discipline" });
   }
 
   /* smoke handling */
@@ -97,7 +97,7 @@ export function generateDebrief(run: RunTelemetry): DebriefLine[] {
   if (standing > 6) {
     lines.push({
       ok: false,
-      text: `✗ Spent ${standing}s standing in smoke (lost ~${Math.round(standing * 4.5)}% O₂) — hold SHIFT to crawl low`,
+      text: `✗ Spent ${standing}s standing in smoke (lost ~${Math.round(standing * 4.5)}% O₂) - hold SHIFT to crawl low`,
     });
   } else if (run.smokeCrouchSeconds > 2) {
     lines.push({ ok: true, text: `✓ Crawled low through ${Math.round(run.smokeCrouchSeconds)}s of smoke like a pro` });
@@ -110,12 +110,12 @@ export function generateDebrief(run: RunTelemetry): DebriefLine[] {
     if (run.breathCount > 0) {
       lines.push({
         ok: false,
-        text: `△ Panic peaked at ${Math.round(run.panicPeak)}% but you recovered with box-breathing (${run.breathCount}×) — keep it below 70 next time`,
+        text: `△ Panic peaked at ${Math.round(run.panicPeak)}% but you recovered with box-breathing (${run.breathCount}×) - keep it below 70 next time`,
       });
     } else {
       lines.push({
         ok: false,
-        text: `✗ Panic hit ${Math.round(run.panicPeak)}% and froze your legs for ${Math.round(run.panicFreezeSeconds)}s — hold B to box-breathe before it spikes`,
+        text: `✗ Panic hit ${Math.round(run.panicPeak)}% and froze your legs for ${Math.round(run.panicFreezeSeconds)}s - hold B to box-breathe before it spikes`,
       });
     }
   } else {
@@ -126,9 +126,9 @@ export function generateDebrief(run: RunTelemetry): DebriefLine[] {
   if (run.status === "won") {
     lines.push({ ok: true, text: `✓ Evacuated in ${fmtTime(run.time)} with ${Math.round(run.oxygenLeft)}% O₂ remaining` });
   } else if (run.oxygenLeft <= 0) {
-    lines.push({ ok: true, text: "✗ Oxygen depleted before reaching assembly — smoke exposure is the #1 killer" });
+    lines.push({ ok: true, text: "✗ Oxygen depleted before reaching assembly - smoke exposure is the #1 killer" });
   } else {
-    lines.push({ ok: true, text: `✗ Timeout at ${fmtTime(run.time)} — commit to a route early, fire roughly doubles every minute` });
+    lines.push({ ok: true, text: `✗ Timeout at ${fmtTime(run.time)} - commit to a route early, fire roughly doubles every minute` });
   }
 
   /* exit choice */

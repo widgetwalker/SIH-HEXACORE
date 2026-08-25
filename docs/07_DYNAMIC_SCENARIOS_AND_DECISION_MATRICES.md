@@ -210,12 +210,12 @@ Real-world disasters rarely occur in isolation. The platform dynamically simulat
 
 ## 7. Authoritative Standards & References
 
-1. **National Disaster Management Authority (NDMA), India** — *National Disaster Management Guidelines - School Safety Policy*. [ndma.gov.in](https://ndma.gov.in/)
-2. **SACHET Portal, NDMA** — *National Disaster Alert Portal & Standard Operating Dos and Don'ts*. [sachet.ndma.gov.in](https://sachet.ndma.gov.in/DosDont)
-3. **U.S. Geological Survey (USGS)** — *Earthquake Safety: Drop, Cover, and Hold On Protocol*. [usgs.gov](https://store.usgs.gov/assets/yimages/PDF/205515.pdf)
-4. **National Oceanic and Atmospheric Administration (NOAA)** — *Tsunami Preparedness & Vertical Evacuation Guide*. [noaa.gov](https://repository.library.noaa.gov/view/noaa/36038/noaa_36038_DS2.pdf)
-5. **Occupational Safety and Health Administration (OSHA)** — *Standard 1910.157: Portable Fire Extinguishers & Chemical Hygiene in Laboratories*. [osha.gov](https://www.osha.gov/laws-regs/regulations/standardnumber/1910/1910.1450AppA)
-6. **National Fire Protection Association (NFPA)** — *NFPA 10: Standard for Portable Fire Extinguishers & NFPA 101: Life Safety Code*. [nfpa.org](https://www.nfpa.org/)
-7. **Centers for Disease Control and Prevention (CDC)** — *Heat-Related Illness Warning Signs and Emergency Management*. [cdc.gov](https://www.cdc.gov/disasters/extremeheat/pdf/Heat_Related_Illness.pdf)
-8. **Environmental Studies (EVS) Institute** — *Disaster Preparedness Plan: Key Steps and Components*. [evs.institute](https://evs.institute/disaster-management/disaster-preparedness-plan-key-steps-components)
-9. **Semantic Scholar Academic Research** — *Disaster Preparedness: Relationships Among Prior Experience, Personal Characteristics, and Distress (Sattler & Kaiser)*. [semanticscholar.org](https://www.semanticscholar.org/paper/Disaster-Preparedness%3A-Relationships-Among-Prior-Sattler-Kaiser/eae68e35084a99b308ee4c38efbbb62ec3f94238)
+1. **National Disaster Management Authority (NDMA), India** - *National Disaster Management Guidelines - School Safety Policy*. [ndma.gov.in](https://ndma.gov.in/)
+2. **SACHET Portal, NDMA** - *National Disaster Alert Portal & Standard Operating Dos and Don'ts*. [sachet.ndma.gov.in](https://sachet.ndma.gov.in/DosDont)
+3. **U.S. Geological Survey (USGS)** - *Earthquake Safety: Drop, Cover, and Hold On Protocol*. [usgs.gov](https://store.usgs.gov/assets/yimages/PDF/205515.pdf)
+4. **National Oceanic and Atmospheric Administration (NOAA)** - *Tsunami Preparedness & Vertical Evacuation Guide*. [noaa.gov](https://repository.library.noaa.gov/view/noaa/36038/noaa_36038_DS2.pdf)
+5. **Occupational Safety and Health Administration (OSHA)** - *Standard 1910.157: Portable Fire Extinguishers & Chemical Hygiene in Laboratories*. [osha.gov](https://www.osha.gov/laws-regs/regulations/standardnumber/1910/1910.1450AppA)
+6. **National Fire Protection Association (NFPA)** - *NFPA 10: Standard for Portable Fire Extinguishers & NFPA 101: Life Safety Code*. [nfpa.org](https://www.nfpa.org/)
+7. **Centers for Disease Control and Prevention (CDC)** - *Heat-Related Illness Warning Signs and Emergency Management*. [cdc.gov](https://www.cdc.gov/disasters/extremeheat/pdf/Heat_Related_Illness.pdf)
+8. **Environmental Studies (EVS) Institute** - *Disaster Preparedness Plan: Key Steps and Components*. [evs.institute](https://evs.institute/disaster-management/disaster-preparedness-plan-key-steps-components)
+9. **Semantic Scholar Academic Research** - *Disaster Preparedness: Relationships Among Prior Experience, Personal Characteristics, and Distress (Sattler & Kaiser)*. [semanticscholar.org](https://www.semanticscholar.org/paper/Disaster-Preparedness%3A-Relationships-Among-Prior-Sattler-Kaiser/eae68e35084a99b308ee4c38efbbb62ec3f94238)

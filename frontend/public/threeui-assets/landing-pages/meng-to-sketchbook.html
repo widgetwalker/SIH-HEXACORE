@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meng To</title>
-<meta name="description" content="designer, creator, AI educator — Singapore">
+<meta name="description" content="designer, creator, AI educator - Singapore">
 <style>
 @font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:block;
   src:url(meng-to-sketchbook/instrument-serif.woff2) format('woff2')}
@@ -144,7 +144,7 @@ button{font:inherit}
 }
 .sb-book{position:relative;width:100%;aspect-ratio:1760/1240;transform-style:preserve-3d;z-index:1}
 
-/* The book sits on a surface, so its shadow is a soft pool underneath —
+/* The book sits on a surface, so its shadow is a soft pool underneath -
    no box, no filter on the artwork, nothing with an edge of its own.
    Both blobs fade to zero well inside their own bounds, and both ease
    off while a leaf is in the air. */
@@ -494,7 +494,7 @@ button{font:inherit}
   <section id="about" class="about">
     <div>
       <p class="section-label">About</p>
-      <p class="bio">Meng To is a designer, creator, and AI educator based in Singapore. He is the founder of <a class="bio-link" href="#">Design+Code</a>, where for over a decade he has taught designers and developers to build real apps — from Sketch and Xcode through SwiftUI, and now the AI tools that let one person ship what used to take a team. His work lives on the seam between craft and code: teaching designers to build, and builders to see. This sketchbook is the other half of that — the city looked at slowly, in <a class="bio-link" href="#">ink and a little colour</a>: shophouse shutters, hawker tents, the bay at dusk.</p>
+      <p class="bio">Meng To is a designer, creator, and AI educator based in Singapore. He is the founder of <a class="bio-link" href="#">Design+Code</a>, where for over a decade he has taught designers and developers to build real apps - from Sketch and Xcode through SwiftUI, and now the AI tools that let one person ship what used to take a team. His work lives on the seam between craft and code: teaching designers to build, and builders to see. This sketchbook is the other half of that - the city looked at slowly, in <a class="bio-link" href="#">ink and a little colour</a>: shophouse shutters, hawker tents, the bay at dusk.</p>
     </div>
     <img class="bloom" src="meng-to-sketchbook/bloom.png" alt="" aria-hidden="true">
   </section>
@@ -512,7 +512,7 @@ button{font:inherit}
 
 <script>
 /* =====================================================================
-   Meng To — sketchbook hero.
+   Meng To - sketchbook hero.
    Spreads are transparent PNGs of an open sketchbook generated with
    Higgsfield.  The leaf that turns is a real curved surface: a chain of
    nested strips whose tangent sweeps through an arc, so the page bends
@@ -543,7 +543,7 @@ const hint=document.getElementById('sbHint');
 const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------ the turning leaf */
-const N=18;            /* strips — enough for a smooth curve          */
+const N=18;            /* strips - enough for a smooth curve          */
 const SPAN=0.449;      /* gutter → outer page edge, as a fraction     */
 const BETA=0.60;       /* peak curl of the arc, radians              */
 let idx=0, turn=null;  /* turn = {dir, from, to, t}                   */
@@ -702,7 +702,7 @@ function tick(now){
 function kick(){ if(raf===null){last=performance.now();raf=requestAnimationFrame(tick);} }
 
 /* ------------------------------------------- tilt + zoom of the book */
-const TILT_X=4.5, TILT_Y=7;      /* degrees — deliberately restrained   */
+const TILT_X=4.5, TILT_Y=7;      /* degrees - deliberately restrained   */
 const ZOOM_MIN=0.9, ZOOM_MAX=1.5;
 const view={rx:0,ry:0,z:1, trx:0,try_:0,tz:1};
 let viewActive=false;
@@ -733,7 +733,7 @@ function setView(rx,ry,z){
   viewActive=true;kick();
   if(typeof syncZoom==='function')syncZoom();
 }
-/* the book leans toward the cursor — no dragging, and never far */
+/* the book leans toward the cursor - no dragging, and never far */
 function tiltTo(cx,cy){
   if(drag)return;                       /* hold still while a page is being turned */
   const r=book.getBoundingClientRect();
@@ -748,7 +748,7 @@ addEventListener('pointermove',e=>{
 },{passive:true});
 addEventListener('pointerout',e=>{if(!e.relatedTarget)setView(0,0,view.tz)});
 addEventListener('blur',()=>setView(0,0,view.tz));
-/* the wheel belongs to the page — zoom is on the toolbar, or a double click
+/* the wheel belongs to the page - zoom is on the toolbar, or a double click
    to come back to 100% */
 stage.addEventListener('dblclick',()=>setView(view.trx,view.try_,1));
 

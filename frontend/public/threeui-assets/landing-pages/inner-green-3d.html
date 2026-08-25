@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sylva — Into the living world</title>
+<title>Sylva - Into the living world</title>
 <meta name="description" content="Restoring wild places through patient design, native planting, and a deeper kind of stewardship.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 24'%3E%3Crect width='22' height='24' fill='%234a4d44'/%3E%3Cpath fill='%23fff' d='M11 1.3c-2.1 0-3.95 1.2-4.75 2.95C3.95 4.55 2.3 6.25 2.3 8.35c0 2.3 1.9 4.2 4.3 4.2h8.8c2.4 0 4.3-1.9 4.3-4.2 0-2.1-1.65-3.8-4-4.1C14.95 2.5 13.1 1.3 11 1.3Z'/%3E%3Cpath fill='%23fff' d='M9.6 12.55h2.8v4.2c1.35.3 2.45 1.15 3.15 2.4-1.35.4-2.4.15-3.15-.4v4.15H9.6v-4.15c-.75.55-1.8.8-3.15.4.7-1.25 1.8-2.1 3.15-2.4v-4.2Z'/%3E%3C/svg%3E">
 <script>document.documentElement.className += " js";</script>
@@ -54,7 +54,7 @@
     min-height:calc(880 * var(--u));
     overflow:hidden;
     isolation:isolate;
-    /* the reference screen reads a near-flat #4a4d44 corner to corner —
+    /* the reference screen reads a near-flat #4a4d44 corner to corner -
        all the modelling comes from the light pool the root sits in */
     background:
       radial-gradient(64% 52% at 27% 84%, rgba(232,238,222,.085) 0%, rgba(232,238,222,0) 72%),
@@ -103,7 +103,7 @@
     white-space:nowrap; user-select:none; pointer-events:none;
   }
 
-  /* ── three.js canvas (z 3 — above card 1, below everything else) ─────── */
+  /* ── three.js canvas (z 3 - above card 1, below everything else) ─────── */
   #scene{
     position:absolute; inset:0; z-index:3;
     width:100%; height:100%;
@@ -114,7 +114,7 @@
 
   /* ── nav: a floating dock (z 5) ──────────────────────────────────────
      A centred capsule of pills that magnify as the pointer nears them, over
-     a rim highlight that tracks where the pointer is — the dock idiom from
+     a rim highlight that tracks where the pointer is - the dock idiom from
      ascii-page-transition, in this page's palette and unit system.
      The wrapper does the centring so the capsule itself is free to carry the
      pointer-parallax transform; putting both on one element means whichever
@@ -133,7 +133,7 @@
     border-radius:calc(14 * var(--u));
     border:1px solid rgba(255,255,255,.11);
     /* No backdrop-filter. It sits over a canvas that repaints every frame,
-       so the backdrop has to be re-sampled and re-blurred every frame too —
+       so the backdrop has to be re-sampled and re-blurred every frame too -
        measured at ~20 fps off the whole page, and the radius made no
        difference because the cost is the extra pass, not the blur. A
        translucent panel with a lit top edge reads the same at this size. */
@@ -144,7 +144,7 @@
                inset 0 1px rgba(255,255,255,.06);
     isolation:isolate;
   }
-  /* Anchored at the top so growth runs downward, out of the headline's way —
+  /* Anchored at the top so growth runs downward, out of the headline's way -
      a dock that grew from its centre would push into the nav's own row. */
   .dock-item{
     position:relative; z-index:6;
@@ -167,7 +167,7 @@
     transition:color .18s var(--ease), border-color .2s var(--ease), background .2s var(--ease);
   }
   /* A magnified pill hangs below the capsule, so it needs to be its own
-     opaque tile — a translucent white wash at that size reads as a milky
+     opaque tile - a translucent white wash at that size reads as a milky
      rectangle stuck to the bar rather than as a key lifting off it. */
   .dock-item[data-near="true"]{
     z-index:7;
@@ -238,7 +238,7 @@
   }
   /* No overflow clip: cropping a 63u face to wipe it in cuts the descenders
      of "Step" and "living" at the moment they land. The padding stays even
-     though the clip is gone — it set the two lines' metrics, and removing it
+     though the clip is gone - it set the two lines' metrics, and removing it
      would shift line two. */
   .headline span{ display:block; padding-bottom:.04em; }
   .headline span i{ display:inline-block; font-style:normal; }
@@ -428,8 +428,8 @@
   .card--about h2{ top:calc(177 * var(--u)); width:calc(142 * var(--u)); }
   .card--stove .label{ top:calc(45 * var(--u)); }
   .card--stove h2{ top:calc(70 * var(--u)); }
-  /* Both cards carry a plate. The Field Note reads downward — label, title,
-     then the photograph — so its window sits at the foot of the card; the
+  /* Both cards carry a plate. The Field Note reads downward - label, title,
+     then the photograph - so its window sits at the foot of the card; the
      Ethos card reads the other way up, so its window is at the head and the
      copy sits under it. Same frame, mirrored. */
   .card figure{
@@ -464,7 +464,7 @@
     pointer-events:none; opacity:0; mix-blend-mode:screen;
   }
   /* The white scan rides the clip edge, so its centre has to travel the
-     media element's box, not the figure's — .portal-media is overscanned by
+     media element's box, not the figure's - .portal-media is overscanned by
      9u on every side to give the parallax rotation somewhere to go. Offsetting
      by that 9u in calc() rather than by a translate percentage keeps the
      glow on the edge at every breakpoint, whatever size the plate is. */
@@ -523,7 +523,7 @@
   /* ── entrance: everything is wiped in behind a mask ───────────────────
      Transform is reserved for the pointer parallax, so the reveal is done
      with clip-path. Once the intro has run, .intro-done drops the clip
-     entirely — a live clip-path would open a stacking context on the About
+     entirely - a live clip-path would open a stacking context on the About
      card and trap its knob under the moss. */
   .js .mask{ clip-path:inset(100% 0 0 0 round var(--mr,0px)); }
   .is-ready .mask{
@@ -581,7 +581,7 @@
   }
   /* The glow travels by animating its own offset, not by a translate
      percentage. A translate is a percentage of the glow's width, so the
-     distance it covers depends on the plate's proportions — it overshot by
+     distance it covers depends on the plate's proportions - it overshot by
      a quarter of the card here and rode ahead of the edge the whole way.
      In calc() the travel is exactly the media box: 100% of the plate plus
      the 9u of overscan at each end, at every breakpoint. */
@@ -718,7 +718,7 @@
 
   <div class="dock-wrap">
     <nav class="dock par-dock" style="--pd:5" data-spec aria-label="Primary">
-      <a class="dock-item dock-mark" data-dock data-spec data-burst href="#" style="--d:120ms" aria-label="Sylva — home">
+      <a class="dock-item dock-mark" data-dock data-spec data-burst href="#" style="--d:120ms" aria-label="Sylva - home">
         <svg viewBox="0 0 22 24" aria-hidden="true">
           <path d="M11 1.3c-2.1 0-3.95 1.2-4.75 2.95C3.95 4.55 2.3 6.25 2.3 8.35c0 2.3 1.9 4.2 4.3 4.2h8.8c2.4 0 4.3-1.9 4.3-4.2 0-2.1-1.65-3.8-4-4.1C14.95 2.5 13.1 1.3 11 1.3Z"/>
           <path d="M9.6 12.55h2.8v4.2c1.35.3 2.45 1.15 3.15 2.4-1.35.4-2.4.15-3.15-.4v4.15H9.6v-4.15c-.75.55-1.8.8-3.15.4.7-1.25 1.8-2.1 3.15-2.4v-4.2Z"/>
@@ -893,7 +893,7 @@
     };
 
 /* =====================================================================
-   Liquid metal — a dispersion shader.
+   Liquid metal - a dispersion shader.
 
    A scalar field V is painted through a soft plateau: dark below it, blown
    white inside, dark above.  The plateau is evaluated once per spectral
@@ -903,8 +903,8 @@
    which is why the same shader gives razor-thin rainbow lines where the
    field is pinched and huge navy-to-cyan washes where it is not.
 
-   V itself is built as a family of parallel curves — one swooping valley
-   repeated up the button, at a density that varies along its length — so
+   V itself is built as a family of parallel curves - one swooping valley
+   repeated up the button, at a density that varies along its length - so
    the ribbons stay laminar rather than turbulent.  See the shader body.
    ===================================================================== */
 
@@ -937,8 +937,8 @@ float sdPill(vec2 p, vec2 b, float r){
    quick double-tap overlaps instead of cutting the first one off.
 
    Two things keep it from reading as a water ripple: the wavefront is
-   faceted rather than circular — its radius is modulated by angle, and the
-   facets rotate as it travels — and the crest profile is a cusp rather than
+   faceted rather than circular - its radius is modulated by angle, and the
+   facets rotate as it travels - and the crest profile is a cusp rather than
    a gaussian, so it lands as a crease in sheet metal instead of a soft swell. */
 float ripple(vec2 p, float t){
   float sum = 0.;
@@ -1001,7 +1001,7 @@ float perim(vec2 d, float a, float r){
 // periodic bump, so a highlight wraps cleanly at s = 0
 float pb(float u, float w){ u = fract(u); float x = min(u, 1.-u); return exp(-(x*x)/(w*w)); }
 
-// travelling brightness around the rim — three lobes at different speeds and
+// travelling brightness around the rim - three lobes at different speeds and
 // widths, which never quite re-align, so the light keeps re-pooling
 float rimHot(float s, float t){
   float v = uE[0];
@@ -1020,14 +1020,14 @@ void main(){
 
   /* Each channel is offset both *across* the stroke and *along* it, so the rim
      fringes red-outside / cyan-inside and its hue also drifts as a highlight
-     slides past — the two together are what read as metal rather than as a
+     slides past - the two together are what read as metal rather than as a
      moving white dot. */
   float a = max(uHalf.x - uHalf.y, 0.);
   float s = perim(d, a, uHalf.y);
   float top = mix(1., 0.5 + 0.5 * (d.y / uHalf.y), uE[5]);
 
   // pressing lifts the whole outline, and each ripple flares it again as the
-  // ring sweeps past — so the rim reports the press twice, once as a step and
+  // ring sweeps past - so the rim reports the press twice, once as a step and
   // once as a wave running round the edge
   // …and the stretch of outline nearest the cursor picks up a little too
   vec2  p   = vec2(d.x, -d.y) / (uHalf.y * 2.);
@@ -1068,11 +1068,11 @@ float fbm(vec2 p){ return fbm(p, 0.5); }
 
    The bands in the reference are a *family of parallel curves*: one swooping
    valley repeated up the button, dense where the light is pinched and pulled
-   wide open where it is not.  So the field is built that way explicitly —
+   wide open where it is not.  So the field is built that way explicitly -
 
        V = (y - valley(x)) * density(x)
 
-   — rather than hoping 2-D noise happens to produce it.  Level sets of V are
+   - rather than hoping 2-D noise happens to produce it.  Level sets of V are
    all vertical translates of the same valley curve, which is what makes the
    ribbons laminar and near-parallel; a density that varies along x is what makes
    them crowd into razor fringes at one end and open into a broad wash at the
@@ -1095,7 +1095,7 @@ float surface(vec2 p, float t){
   V += uP[5] * fbm(p*vec2(0.8, 1.7)*uP[6] + vec2(t*0.05, -t*0.03), uP[17]);
   return V - uP[7];
 }
-// One plateau per unit of V — so the density is literally bands per button height.
+// One plateau per unit of V - so the density is literally bands per button height.
 // A plateau rather than a step is what puts warm on the low edge and cool on
 // the high edge of every ribbon.
 float tone(float v){
@@ -1137,7 +1137,7 @@ void main(){
   float well = pointerW(p);
   V += rip * uRipK.w;
 
-  // Real dispersion is not linear in wavelength — the blue end bends far more
+  // Real dispersion is not linear in wavelength - the blue end bends far more
   // than the red (Cauchy).  Skewing the sample offsets the same way is what
   // gives the reference its broad cool wash against a tight warm edge.
   const int N = 21;
@@ -1152,7 +1152,7 @@ void main(){
   col /= wsum;
   col = pow(col, vec3(uP[15]));
 
-  // light envelope — the ribbons only exist where the sheet is lit, and the
+  // light envelope - the ribbons only exist where the sheet is lit, and the
   // dark upper region is bounded by the same valley curve the bands follow
   float lit = smoothstep(uP[18], uP[19], q.y - valleyAt(q, t));
   lit *= mix(1., lit, 0.55);                     // deepen the unlit crescent
@@ -1179,7 +1179,7 @@ void main(){
   vec2 uv = gl_FragCoord.xy * uDstTexel;
   // Taps sit a quarter of a *destination* texel out, so for a 2x reduction
   // they land exactly on the four source texel centres.  Spacing them by a
-  // whole source texel instead — as this did originally — skips every other
+  // whole source texel instead - as this did originally - skips every other
   // pixel, and any fine detail in the field folds down into low-frequency
   // moiré that no amount of subsequent blurring can remove.
   vec2 e = uDstTexel * 0.25;
@@ -1231,7 +1231,7 @@ void main(){
   float veil = 1. - smoothstep(0.46, 0.88, abs(d.y) / uHalf.y);
 
   // Blurring flattens the tonal range into a wash; putting the contrast back
-  // with a power curve — after the blur, so it costs no smoothness — is what
+  // with a power curve - after the blur, so it costs no smoothness - is what
   // makes it read as poured metal rather than a soft glow.  Highlights keep
   // their level while the mid-tones drop away.
   vec3 metal = pow(max(m.rgb / max(m.a, 1e-3), 0.), vec3(uPunch));
@@ -1240,7 +1240,7 @@ void main(){
 
   // The ripple's own light is added here, after the blur, so the crease stays
   // a hard line.  Its displacement of the field still rides inside the
-  // softened metal — the sheet bows, and the crest glints along the fold.
+  // softened metal - the sheet bows, and the crest glints along the fold.
   float rip = ripple(vec2(d.x, -d.y) / (uHalf.y * 2.), uT);
   core += vec3(rip * rip) * uRipK2.w * pill * mix(1., 0.42, veil);
 
@@ -1253,7 +1253,7 @@ void main(){
   // hot rim bleeds onto the face, as it does on the reference component.
   vec3 rgb = core + glow * uGlowGain * mix(1., uGlowIn, pill) * (1. - occl * (1. - pill));
 
-  // premultiplied — the page's ambient pool and the button's drop shadow are
+  // premultiplied - the page's ambient pool and the button's drop shadow are
   // CSS underneath, and this layer adds light on top of them
   float a = clamp(max(rgb.r, max(rgb.g, rgb.b)), 0., 1.);
   o = vec4(min(rgb, vec3(1.)), a);
@@ -1266,37 +1266,37 @@ const stage = document.getElementById('stage');
 const btn   = document.getElementById('btn');
 const plate = document.querySelector('.plate');
 
-// the metal field — uP[0..20]
+// the metal field - uP[0..20]
 const P = window.__P = {
   valFreq:   0.50,   // 0  x-frequency of the valley curve
   valAmp:    0.55,   // 1  valley depth, in button heights (bounded so the
                      //    ribbon can never drift entirely off the pill)
-  dens:      2.40,   // 2  band density — bands per button height
+  dens:      2.40,   // 2  band density - bands per button height
   densVar:   2.20,   // 3  how much the density swings along x (exponential)
   densFreq:  0.32,   // 4  x-frequency of the density variation
   wobAmp:    0.12,   // 5  organic 2-D wobble, in field units
   wobFreq:   1.60,   // 6  its frequency
   lift:      0.05,   // 7  phase offset of the band family
-  refract:   0.18,   // 8  self-refraction — folds the iso-lines
+  refract:   0.18,   // 8  self-refraction - folds the iso-lines
   edge:      0.04,   // 9  softness of the plateau edges
   width:     0.46,   // 10 plateau width, as a fraction of one band period
   disp:      0.30,   // 11 spectral dispersion, in band periods
-  skew:      1.50,   // 12 dispersion skew — >1 spreads the blue end
-  // The filaments were 20 cycles per button height — finer than the softening
+  skew:      1.50,   // 12 dispersion skew - >1 spreads the blue end
+  // The filaments were 20 cycles per button height - finer than the softening
   // buffer can carry, so they aliased into stripes instead of reading as
   // fibres.  At this blur they contribute nothing but that, so they are off.
   fineAmp:   0.0,    // 13 filament amplitude
   fineFreq:  9.0,    // 14 filament frequency across the iso-lines
   gamma:     1.00,   // 15 tone gamma
   gain:      1.90,   // 16 overall gain
-  octGain:   0.32,   // 17 fbm octave gain — low keeps the wobble big
+  octGain:   0.32,   // 17 fbm octave gain - low keeps the wobble big
   litLo:    -0.26,   // 18 distance below the valley where light begins
   litHi:     0.10,   // 19 …and where it is full
   dim:       0.44    // 20 how far the metal is knocked back under the label
 };
 const PKEYS = Object.keys(P);
 
-// the animated rim — uE[0..5]
+// the animated rim - uE[0..5]
 const E = window.__E = {
   base:   0.20,      // 0 floor brightness, so the whole outline stays drawn
   hot:    0.82,      // 1 gain on the travelling highlights
@@ -1315,11 +1315,11 @@ const C = window.__C = {
   glowR:  host.dataset.liquidMetal === 'play' ? 0.94 : 1.30,      // outer-glow radius
   glowIn: 0.30,      // how much bloom is allowed back inside the pill
   occl:   0.62,      // how much the drop shadow eats the bloom beneath it
-  soften: 0.24,      // blur on the metal, in button heights — the "molten" knob
+  soften: 0.24,      // blur on the metal, in button heights - the "molten" knob
   punch:  1.50       // contrast curve on the softened metal; 1 = off
 };
 
-// disturbances — all distances in button heights, times in seconds
+// disturbances - all distances in button heights, times in seconds
 const R = window.__R = {
   // press ripple
   speed:  1.85,      // how fast the ring expands
@@ -1454,13 +1454,13 @@ function localPt(e){
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
 let drawn = null;                  // signature of the last frame actually drawn
 
-/* HOST ADAPTATION — idle frame cap.
+/* HOST ADAPTATION - idle frame cap.
    The authored scene owns its page and can afford to run all twenty passes
    every frame forever, because the rim keeps travelling even at rest. Here
    two of these sit on top of a hero that is already rendering 190k blades of
    moss, and measured together they were halving the whole page: 50 fps with
    them, 92 without.
-   Nothing is removed — the cap only applies while the button is genuinely
+   Nothing is removed - the cap only applies while the button is genuinely
    idle, and the rim's travel is 0.07 laps a second, so 30 Hz is far more than
    it needs. The moment a pointer, a press, a focus or a ripple is in play it
    goes back to running every frame, because that is when the metal has to
@@ -1548,7 +1548,7 @@ function frame(now){
   gl.uniform1fv(pRim.u.uE, eArr);
   drawTo(T_rim);
 
-  // 3. soften the metal — half-res box down, then a separable gaussian.  This
+  // 3. soften the metal - half-res box down, then a separable gaussian.  This
   //    is what turns the prismatic ribbons molten rather than etched.
   gl.useProgram(pDown.p);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T_core.tex);
@@ -1562,8 +1562,8 @@ function frame(now){
   gl.uniform1i(pBlur.u.uTex, 0);
   gl.uniform2f(pBlur.u.uTexel, 1/T_s1.w, 1/T_s1.h);
   // Target sigma in half-res texels, tied to the button so it scales with any
-  // size.  One very wide 9-tap pass leaves visible comb ghosts — the taps end
-  // up further apart than the sigma they are meant to describe — so the blur
+  // size.  One very wide 9-tap pass leaves visible comb ghosts - the taps end
+  // up further apart than the sigma they are meant to describe - so the blur
   // is split into passes whose radii add in quadrature.
   const sigTex = C.soften * (BH * 0.5) * 0.95;
   if(sigTex > 0.1){
@@ -1653,7 +1653,7 @@ btn.addEventListener('pointerdown', e => {
 });
 window.addEventListener('pointerup',     () => { on.press = false; sync(); });
 window.addEventListener('pointercancel', () => { on.press = false; sync(); });
-// only keyboard focus keeps it lit — a mouse click shouldn't leave the button
+// only keyboard focus keeps it lit - a mouse click shouldn't leave the button
 // glowing after the pointer has moved away
 btn.addEventListener('focus', () => {
   on.focus = btn.matches(':focus-visible'); sync();
@@ -1698,8 +1698,8 @@ window.__seek   = v => { clock = v; drawn = null; };
  * geometry: a tapered tube swept along a measured centreline, a second tube
  * that loops over it to make the arch, a handful of recursive offshoots, and
  * ~130 000 instanced blades of moss planted on whatever part of that surface
- * faces the light. The silhouette landmarks — crest at 25% width, valley at
- * 50%, apex at 73%, the hollow under it — are lifted straight off the
+ * faces the light. The silhouette landmarks - crest at 25% width, valley at
+ * 50%, apex at 73%, the hollow under it - are lifted straight off the
  * original artwork's alpha channel, so the composition it was laid out
  * against is unchanged.
  *
@@ -1748,7 +1748,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       smooth.x += (pointer.x - smooth.x) * 0.055;
       smooth.y += (pointer.y - smooth.y) * 0.055;
       /* three decimals is finer than a pixel of travel, and rounding lets the
-         writes stop entirely once the pointer settles — no style invalidation
+         writes stop entirely once the pointer settles - no style invalidation
          on an idle page */
       var nx = Math.round(smooth.x * 1000) / 1000, ny = Math.round(smooth.y * 1000) / 1000;
       if (nx !== lastX || ny !== lastY) {
@@ -1771,7 +1771,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       if (e.pointerType === 'touch') return;
       pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
-      /* the GL camera is framed on .hero, not on the window — on the narrow
+      /* the GL camera is framed on .hero, not on the window - on the narrow
          layout the hero is the taller of the two, so the pointer has to be
          put back into the canvas's own box or the moss parts in the wrong place */
       var r = hero.getBoundingClientRect();
@@ -1814,7 +1814,7 @@ window.__seek   = v => { clock = v; drawn = null; };
 
      The dot front, the white scan and the CSS clip all have to sit on the
      same line, which means reproducing the CSS progression exactly rather
-     than approximating it: floor(t * STEPS) / STEPS, linear — an eased
+     than approximating it: floor(t * STEPS) / STEPS, linear - an eased
      curve here put the dots a third of a plate ahead of the edge they are
      supposed to be gathering on. The clip is applied to .portal-media,
      which is overscanned past the figure by 9u so the parallax rotation has
@@ -1864,7 +1864,7 @@ window.__seek   = v => { clock = v; drawn = null; };
              with the page's pale-moss transmission colour. */
         }
 
-        /* layout offsets, not bounding rects — .portal-media carries a live
+        /* layout offsets, not bounding rects - .portal-media carries a live
            transform and its rect would drift with the pointer */
         var over = -media.offsetLeft;
         var span = media.offsetWidth;
@@ -1932,7 +1932,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   /* ── the dock ────────────────────────────────────────────────────────
      Proximity magnification over a rim highlight that points back at the
      pointer. Both are springs, both run off the page's single rAF, and both
-     switch off for a coarse pointer — a dock that magnifies on touch just
+     switch off for a coarse pointer - a dock that magnifies on touch just
      reads as broken, because there is no hover to anticipate the tap.
 
      Every layout read happens inside the frame, never in the pointer
@@ -2115,7 +2115,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     })(SPEC.items[i]);
 
     /* the current section moves with the click, and the pill throws a
-       handful of pollen — the page already has an emitter for that */
+       handful of pollen - the page already has an emitter for that */
     root.addEventListener('click', function (e) {
       var item = e.target.closest('[data-dock]');
       if (!item) return;
@@ -2132,7 +2132,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     if (readyStarted) return;
     readyStarted = true;
     /* The pre-intro styles come from .js on <html>, set while the head was
-       parsing, and this runs in the same task as the rest of the script — so
+       parsing, and this runs in the same task as the rest of the script - so
        nothing has forced the browser to compute them yet. Without a recalc
        here it computes once, sees the finished state, and every transition is
        skipped. */
@@ -2141,7 +2141,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     startParallax();
     startPortalReveal();
     initDock();
-    /* the wipes are done — drop the clips so nothing keeps a stacking
+    /* the wipes are done - drop the clips so nothing keeps a stacking
        context alive (the About knob has to stay above the moss) */
     setTimeout(function () { document.body.classList.add('intro-done'); }, REDUCED ? 0 : 2900);
   }
@@ -2152,7 +2152,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   if (!window.THREE) { ready(); return; }
 
   /* ================================================================== *
-   * deterministic noise — the same meadow grows on every reload
+   * deterministic noise - the same meadow grows on every reload
    * ================================================================== */
   var rng = (function () {
     var a = 0x3f9a1c7b;
@@ -2194,7 +2194,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   }
 
   /* ================================================================== *
-   * limbs — a tube swept along a measured centreline, its upper flank
+   * limbs - a tube swept along a measured centreline, its upper flank
    * pushed out by however deep the moss lies there
    * ================================================================== */
   var UP = new THREE.Vector3(0, 1, 0);
@@ -2230,7 +2230,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   }
 
   /* How mossy a point on the bark is. Driven by how far the surface faces the
-     light rather than by the tube's own parameters — the arch turns through
+     light rather than by the tube's own parameters - the arch turns through
      the vertical, and any "up" defined on the cross-section goes degenerate
      there. Two noise fields ride on top: a fine one that frays the moss line
      so it never reads as a stripe, and a slow one that opens bald patches of
@@ -2241,8 +2241,8 @@ window.__seek   = v => { clock = v; drawn = null; };
        reference's moss line sits ~25° above horizontal and everything below
        it is pale wood. Weight n.z any harder than that and the cushion wraps
        right around the limb.
-       On a limb standing UP there is no upward face at all — every
-       cross-section normal is horizontal — so the criterion has to roll over
+       On a limb standing UP there is no upward face at all - every
+       cross-section normal is horizontal - so the criterion has to roll over
        to "faces the light", or the arch's legs come out bald. */
     var upness = n.y + n.z * (0.10 + 0.42 * steep) - n.x * (0.05 + 0.45 * steep);
     /* Two scales on the moss line. The fine one keeps it from reading as a
@@ -2257,7 +2257,7 @@ window.__seek   = v => { clock = v; drawn = null; };
        makes the root read as wood rather than topiary */
     return c * sstep(0.10, 0.50, patch);
   }
-  /* Lumpiness of the cushion itself. Moss is never a smooth offset — without
+  /* Lumpiness of the cushion itself. Moss is never a smooth offset - without
      this the tube reads as an extruded pipe with a green stripe painted on
      it, whatever the fur does on top. Two scales: broad cushions, and a
      finer bobble inside them. */
@@ -2269,7 +2269,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   /* A limb's thickness is read off the artwork, not invented: `rt` is the
      half-height of the moss-plus-wood band measured column by column out of
      the original PNG's alpha, in local units. Splitting it 0.52 bark / 0.88
-     cushion reproduces the reference's section — moss over roughly the top
+     cushion reproduces the reference's section - moss over roughly the top
      45% of the band, bare wood under it. */
   function table(vals) {
     return function (t) {
@@ -2308,7 +2308,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     var i = Math.min(L.segs - 1, Math.floor(f)), a = f - i;
     _fp.copy(L.fr.pts[i]).lerp(L.fr.pts[i + 1], a);
     /* Control points traced off the artwork sit on the MIDLINE of the
-       silhouette, but the silhouette is asymmetric — bare wood below, wood
+       silhouette, but the silhouette is asymmetric - bare wood below, wood
        plus cushion above. The tube's own axis is half a cushion lower. */
     if (L.sink) _fp.y -= L.moss(t) * L.sink;
     _ft.copy(L.fr.tans[i]).lerp(L.fr.tans[i + 1], a).normalize();
@@ -2354,7 +2354,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     var a = new THREE.Vector3(), b = new THREE.Vector3(), du = new THREE.Vector3(), dv = new THREE.Vector3();
     function get(i2, j2, out) {
       i2 = Math.min(S, Math.max(0, i2));
-      j2 = (j2 + R) % R;                                  /* θ wraps — no seam in the normals */
+      j2 = (j2 + R) % R;                                  /* θ wraps - no seam in the normals */
       var q = (i2 * (R + 1) + j2) * 3;
       return out.set(grid[q], grid[q + 1], grid[q + 2]);
     }
@@ -2384,7 +2384,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   /* ---- blades: planted straight onto the shell grid the tessellator just
           built. Rejection-sampling the surface function instead meant three
           more evaluations of two fBm fields per accepted blade, which at this
-          density was 1.3 s of blocked main thread — right on top of the
+          density was 1.3 s of blocked main thread - right on top of the
           entrance animation. Sampling the grid is O(1) per blade, and it also
           guarantees the fur sits exactly on the surface that gets drawn.
           Cells are drawn in proportion to area x moss, so density follows the
@@ -2425,7 +2425,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       var px = grid[p0] * w0 + grid[p1] * w1 + grid[p2] * w2 + grid[p3] * w3;
       var py = grid[p0 + 1] * w0 + grid[p1 + 1] * w1 + grid[p2 + 1] * w2 + grid[p3 + 1] * w3;
       var pz = grid[p0 + 2] * w0 + grid[p1 + 2] * w1 + grid[p2 + 2] * w2 + grid[p3 + 2] * w3;
-      /* the grid normal is the CUSHION's normal, lumps and all — standing the
+      /* the grid normal is the CUSHION's normal, lumps and all - standing the
          fur on the smooth cross-section normal instead throws away every bump
          the displacement just built */
       var nx = gn[p0] * w0 + gn[p1] * w1 + gn[p2] * w2 + gn[p3] * w3;
@@ -2454,7 +2454,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   }
 
   /* ---- offshoots: a short recursive fork, two generations deep. The root
-          is a root, not a tree, so these stay stubby — they exist to break
+          is a root, not a tree, so these stay stubby - they exist to break
           the tube's silhouette, not to build a canopy. ---- */
   function growOffshoot(list, start, dir, len, r0, gen) {
     var side = new THREE.Vector3().crossVectors(dir, UP);
@@ -2538,7 +2538,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     /* the arch: lifts off the root at 55%, crowns at 73% with a deep moss
        cushion, then plants its leg through the root and off the bottom */
     /* The arch is not one bent tube. Measured column by column, the crown is
-       0.88 units wide and 1.90 tall with a 0.86 × 0.94 eye punched under it —
+       0.88 units wide and 1.90 tall with a 0.86 × 0.94 eye punched under it -
        that is two steep legs fused at the top, not a hoop. Built as two limbs
        that interpenetrate at the peak, which is also how the reference reads:
        different bark and a different moss line on each side. */
@@ -2615,7 +2615,7 @@ window.__seek   = v => { clock = v; drawn = null; };
        saturated at the crown than down in the light pool, so lift toward the
        lit-air tone as the form climbs.
        Weighted by the surface's own luminance, because a flat mix puts a
-       floor under every shadow — that one change is the difference between
+       floor under every shadow - that one change is the difference between
        moss with 9-to-67 of tonal range and moss with 22-to-37. Distant
        geometry gets uHazeLift near 1 and does lift its darks, which is what
        air actually does at that range. */
@@ -2639,7 +2639,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     '  return distance(w, uScanO) > uScanR - lag + wob;',
     '}',
     /* the far ridge has to dissolve before it reaches the cards, and into the
-       floor light below it — the same two masks the artwork build carried */
+       floor light below it - the same two masks the artwork build carried */
     'float maskAt(vec3 lp, float boxH){',
     '  if (uMaskOn < 0.5) return 1.0;',
     '  float e = 1.0 - smoothstep(uMask.x, uMask.y, lp.x);',
@@ -2705,7 +2705,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         'uniform float uAlpha; uniform float uBoxH;',
         'varying vec3 vN; varying vec3 vW; varying vec3 vInf; varying float vH; varying vec3 vL;',
 
-        /* Bark grain is strongly anisotropic — features run ten times longer
+        /* Bark grain is strongly anisotropic - features run ten times longer
            along the limb than around it, so squash the domain in v first. */
         'vec2 barkDomain(vec2 uv){ return vec2(uv.x * 7.0, uv.y * 0.62); }',
         'float barkHeight(vec2 uv){',
@@ -2882,7 +2882,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         '  vec3 lit = litSurface(N, col, mix(0.40, 1.10, smoothstep(0.0, 0.88, vT)) * (0.70 + 0.52 * vTone));',
         /* The sunlit crown is added AFTER the pile shading. Fold it into the
            albedo instead and it comes back out at the same value as
-           everything else — which is exactly the flat 22-to-37 range the
+           everything else - which is exactly the flat 22-to-37 range the
            render was stuck at. Only the last quarter of a blade is in the
            open, and it is the whole top decile of the reference's histogram. */
         '  lit += tipHi * smoothstep(0.68, 1.0, vT) * vTone',
@@ -2993,7 +2993,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         '  vec3 base = mix(vec3(0.0270, 0.0450, 0.0099), vec3(0.0690, 0.1150, 0.0253), vTint);',
         '  base *= 0.80 + 0.30 * smoothstep(0.0, 0.8, vUv.x);',
         '  vec3 lit = litSurface(N, base, 0.9);',
-        /* fronds are thin — light comes through them */
+        /* fronds are thin - light comes through them */
         '  lit += base * uKeyCol * pow(max(dot(V, -uKeyDir), 0.0), 2.0) * 1.05;',
         '  float a = uAlpha * maskAt(vL, uBoxH);',
         '  if (a < 0.004) discard;',
@@ -3116,7 +3116,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         '  vL = p;',
         '  vH = clamp(p.y / uBoxH + 0.5, 0.0, 1.0);',
         /* Billboard: offset the quad in VIEW space so it always faces the lens.
-           The offset has to be converted out of the group\'s local scale first —
+           The offset has to be converted out of the group\'s local scale first -
            the modelView transform has already been applied to the anchor. */
         '  vW = (modelMatrix * vec4(p, 1.0)).xyz;',
         '  vec4 mv = modelViewMatrix * vec4(p, 1.0);',
@@ -3150,7 +3150,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   var uWind  = { value: REDUCED ? 0.0 : 1.0 };
   var uMouseNear = { value: new THREE.Vector3(9999, 9999, 9999) };
   var uMouseFar  = { value: new THREE.Vector3(9999, 9999, 9999) };
-  /* the survey pulse — shared by every material so one write moves them all */
+  /* the survey pulse - shared by every material so one write moves them all */
   var uScanO  = { value: new THREE.Vector3(-900, -260, 240) };
   var uScanR  = { value: 0 };
   var uScanOn = { value: 0 };
@@ -3268,7 +3268,7 @@ window.__seek   = v => { clock = v; drawn = null; };
             as a frond hanging in mid-air. ---- */
     var host = limbs.slice(0, opt.mainLimbs || limbs.length);
     /* A frond keeps its outline as it fades, while the cushion behind it
-       fades to a smooth gradient — so a fern planted in the ridge's dissolve
+       fades to a smooth gradient - so a fern planted in the ridge's dissolve
        zone reads as one hanging in mid-air. Plant nothing out there. */
     var plantMaxX = opt.mask ? opt.mask[0] + 0.25 : 1e9;
     var fP = [], fQ = [], fR = [], wP = [], wR = [];
@@ -3349,7 +3349,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       }
     }
 
-    /* the shell grids were scratch for the fur — ~0.7 MB of typed array per
+    /* the shell grids were scratch for the fur - ~0.7 MB of typed array per
        root that nothing reads again */
     for (i = 0; i < limbs.length; i++) { limbs[i].grid = limbs[i].gnrm = limbs[i].gcaps = null; }
 
@@ -3425,7 +3425,7 @@ window.__seek   = v => { clock = v; drawn = null; };
 
     /* ---- far ridge: same builder, pushed back and washed into the air.
             It dissolves before it reaches the cards (local x 0.5 → 4.0) and
-            into the floor light below it (lower 0/42% of its box) — the same
+            into the floor light below it (lower 0/42% of its box) - the same
             two masks the artwork build carried in its own shader. ---- */
     farGroup = assembleRoot(buildFarRoot(), {
       aspect: FAR.aspect, haze: 0.16, fog: 0.26, alpha: 1.0, order: 0,
@@ -3451,13 +3451,13 @@ window.__seek   = v => { clock = v; drawn = null; };
 
     /* Paint once here rather than waiting on the loop. A tab that is opened
        in the background never gets a rAF, so the hero would sit empty until
-       it was looked at — and the first frame is also the one the entrance
+       it was looked at - and the first frame is also the one the entrance
        wipe is revealing. */
     renderFrame();
     startTick();
   }
 
-  /* everything that needs no geometry — shadow, light pool, pollen */
+  /* everything that needs no geometry - shadow, light pool, pollen */
   function buildAmbient() {
     var geo = new THREE.PlaneGeometry(1, 1, 1, 1);
 
@@ -3482,8 +3482,8 @@ window.__seek   = v => { clock = v; drawn = null; };
        Enough of it to read as air rather than as a handful of sprites, which
        means the drift has to leave the CPU: every mote is animated from
        uTime in the vertex shader, so the per-frame cost is one uniform write
-       no matter how many there are. Sizes follow a power law — a few big
-       soft ones near the lens, a great many specks behind them — and they
+       no matter how many there are. Sizes follow a power law - a few big
+       soft ones near the lens, a great many specks behind them - and they
        depth-test against the moss so the ones behind the root are hidden. */
     var COUNT = (NARROW.matches || (window.innerWidth * window.innerHeight) < 620000) ? 1500 : 4200;
     var pos = new Float32Array(COUNT * 3);
@@ -3519,7 +3519,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         '  float ph = seed.x, sp = seed.y, am = seed.z;',
         '  vec3 p = position;',
         '  p.x += sin(uTime * sp * 0.35 + ph) * 34.0 * am;',
-        /* one long rise, wrapped — the band fade hides the wrap */
+        /* one long rise, wrapped - the band fade hides the wrap */
         '  float climb = mod(uTime * 11.0 * sp + ph * 60.0, 1500.0) - 750.0;',
         '  p.y += climb;',
         '  p.z += cos(uTime * sp * 0.28 + ph) * 24.0 * am;',
@@ -3554,7 +3554,7 @@ window.__seek   = v => { clock = v; drawn = null; };
      trail instead of stacking a clump where the cursor happened to land,
      and a pointer that has stopped trickles instead of pumping.
      Each grain carries its own origin, velocity and birth stamp, so the CPU
-     only writes when one is respawned out of the ring — the flight itself is
+     only writes when one is respawned out of the ring - the flight itself is
      integrated in the vertex shader, same as the ambient pollen. */
   var SPRAY_N = 620, SPRAY_LIFE = 1.6;
   var spray = null, sprayPos, sprayVel, sprayBirth, sprayRnd;
@@ -3641,7 +3641,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     sprayDirty = false;
   }
 
-  /* a pill that has been pressed throws a handful of pollen off itself —
+  /* a pill that has been pressed throws a handful of pollen off itself -
      the dock calls this, and it reuses the cursor emitter's pool */
   var burstNdc = { x: 0, y: 0 }, burstAtV = new THREE.Vector3();
   function burstAt(clientX, clientY) {
@@ -3682,7 +3682,7 @@ window.__seek   = v => { clock = v; drawn = null; };
      Lifted from sakura-branch-hero: the wings are modelled to their real
      outline rather than alpha-cut from a texture, the scale pattern is baked
      once into (span, chord) rather than evaluated per fragment, and the
-     flight is a cycle — cruise, approach, settle on a nominated perch with
+     flight is a cycle - cruise, approach, settle on a nominated perch with
      the wings held open, take off, round again.
 
      Two things are different here. The blue is a morpho's structural
@@ -3690,7 +3690,7 @@ window.__seek   = v => { clock = v; drawn = null; };
      hues are re-solved while the angle-dependence that makes it read as
      diffraction rather than paint is kept. And it lives inside nearGroup, so
      it is modelled in the root's own local units and rides the branch's
-     placement, scale and parallax for free — including the perch, which is
+     placement, scale and parallax for free - including the perch, which is
      a point on the moss rather than on a blossom. */
   var bf = null;
 
@@ -3790,7 +3790,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         'varying vec2 vUv; varying vec3 vN; varying vec3 vW;',
         'void main(){',
         '  vUv = uv;',
-        /* the tip lags the stroke — a rigid flapping plate reads as paper */
+        /* the tip lags the stroke - a rigid flapping plate reads as paper */
         '  vec3 p = position;',
         '  float s = uv.x;',
         '  p.y += uBend * s * s;',
@@ -3812,7 +3812,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         '  vec3 N = normalize(vN);',
         '  if (!gl_FrontFacing) N = -N;',
         '  vec3 V = normalize(cameraPosition - vW);',
-        /* Structural colour, not pigment: the hue swings with viewing angle —
+        /* Structural colour, not pigment: the hue swings with viewing angle -
            a hot chartreuse square on, sliding to deep green at a glance.
            Albedo runs past 1 on purpose; it is HDR into ACES. */
         '  float facing = abs(dot(N, V));',
@@ -3828,7 +3828,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         '  float rows = tx.r, grain = tx.g, mottle = tx.b, shim = tx.a;',
         '  wing *= 0.78 + 0.44 * mottle;',
         /* the hue swings green to yellow across the disc rather than merely
-           brightening — that swing is what reads as diffraction */
+           brightening - that swing is what reads as diffraction */
         '  wing = mix(wing * vec3(0.46, 1.14, 0.30), wing * vec3(1.34, 1.06, 0.16), shim);',
         '  vec3 dark  = vec3(0.030, 0.026, 0.014);',
         '  vec3 cream = vec3(0.520, 0.500, 0.290);',
@@ -3944,7 +3944,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       g.setIndex(idx); g.computeVertexNormals();
       group.add(new THREE.Mesh(g, bodyMat));
 
-      /* tegulae — the scaled shoulder pads that weld wing to thorax */
+      /* tegulae - the scaled shoulder pads that weld wing to thorax */
       [1, -1].forEach(function (sx) {
         var teg = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 9), bodyMat);
         teg.position.set(0.030 * sx, 0.026, 0.020);
@@ -3967,7 +3967,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       });
     })();
 
-    /* a good deal smaller than it was on the cherry bough — that scene framed
+    /* a good deal smaller than it was on the cherry bough - that scene framed
        one branch, this one frames a whole root */
     group.scale.setScalar(0.205);
     group.renderOrder = 5;
@@ -4006,7 +4006,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     }
     pickTarget();
 
-    /* display pose: dorsal surface square to the camera, head up — the whole
+    /* display pose: dorsal surface square to the camera, head up - the whole
        point of the landing is that the open wings are seen */
     var landQ = new THREE.Quaternion();
     (function () {
@@ -4022,7 +4022,7 @@ window.__seek   = v => { clock = v; drawn = null; };
 
     /* The pointer is already carried into this group's local space every
        frame for the moss (uMouseNear), so the butterfly can read the same
-       value — no extra raycast, and it is in the units it flies in. */
+       value - no extra raycast, and it is in the units it flies in. */
     var SPOOK_R = 0.62;                 /* about one and a half wingspans */
     var spook = 0, toM = new THREE.Vector3(), away = new THREE.Vector3(0, 1, 0);
     var tmp = new THREE.Vector3(), prevVel = new THREE.Vector3();
@@ -4051,7 +4051,7 @@ window.__seek   = v => { clock = v; drawn = null; };
         near = clamp01(1 - toM.length() / SPOOK_R);
         near *= near;
       }
-      /* snaps on, lets go slowly — a startled insect does not calm instantly */
+      /* snaps on, lets go slowly - a startled insect does not calm instantly */
       spook += (near - spook) * (1 - Math.pow(near > spook ? 1e-7 : 0.22, dt));
 
       st.timer -= dt;
@@ -4083,7 +4083,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       st.flap += dt * beat * TAU;
       var raw = Math.sin(st.flap);
       var shaped = (raw < 0 ? -1 : 1) * Math.pow(Math.abs(raw), 0.72);
-      /* resting wings flare open as the cursor closes — the flick a butterfly
+      /* resting wings flare open as the cursor closes - the flick a butterfly
          gives just before it goes */
       var flyPhi = 20 + 48 * shaped, restPhi = 15 + 7 * shaped + spook * 30;
       var phi = (flyPhi + (restPhi - flyPhi) * st.settle) * Math.PI / 180;
@@ -4101,7 +4101,7 @@ window.__seek   = v => { clock = v; drawn = null; };
       var speed = Math.min(1.5, 0.22 + dist * 1.1);
       var desired = tmp.normalize().multiplyScalar(speed);
 
-      /* butterflies do not fly straight lines — but fade the wander out on
+      /* butterflies do not fly straight lines - but fade the wander out on
          final approach or it circles the perch forever without touching it */
       var wander = st.mode === 'approach' ? Math.min(1, dist * 0.8) : 1;
       desired.x += (Math.sin(t * 3.1) + 0.6 * Math.sin(t * 7.7 + 1.1)) * 0.20 * wander;
@@ -4200,7 +4200,7 @@ window.__seek   = v => { clock = v; drawn = null; };
     /* mimic three's own sizeAttenuation: gl_PointSize = size * (scale / -z)
        with scale = half the drawing buffer height */
     /* The pulse leaves from the low left of the frame, in front of the root,
-       and has to reach the far corner — resolved here because both depend on
+       and has to reach the far corner - resolved here because both depend on
        where layout() has just put everything. */
     nearGroup.updateMatrixWorld(true);
     uScanO.value.set(-5.2, -0.9, 1.8);
@@ -4289,7 +4289,7 @@ window.__seek   = v => { clock = v; drawn = null; };
   /* Kick the entrance off first. Growing the roots and compiling the
      shaders costs a few hundred ms of main thread, and doing that before
      the first wipe paints leaves the whole intro frozen on its opening
-     frame — so hand the browser two frames to start animating. */
+     frame - so hand the browser two frames to start animating. */
   ready();
   requestAnimationFrame(function () { requestAnimationFrame(function () {
     try { build(); }

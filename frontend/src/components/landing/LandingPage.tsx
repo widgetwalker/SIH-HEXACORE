@@ -115,7 +115,7 @@ export default function LandingPage() {
           </Reveal>
           <Reveal delay={260}>
             <p className={styles.sub}>
-              A gamified disaster-preparedness platform for Indian schools &amp; colleges —
+              A gamified disaster-preparedness platform for Indian schools &amp; colleges -
               immersive 3D drills, AI-generated crisis scenarios, and a real-time
               multi-agency command hub. All in the browser.
             </p>
@@ -224,7 +224,7 @@ export default function LandingPage() {
                   <p className={styles.emergencyDesc}>
                     When a real NDMA SACHET alert lands inside your campus geofence,
                     SafeZone flips from simulation to life-safety mode in under 500
-                    milliseconds — broadcasting floor-specific evacuation routes,
+                    milliseconds - broadcasting floor-specific evacuation routes,
                     opening headcount telemetry, and dispatching multi-agency SOS in
                     one motion.
                   </p>
@@ -264,10 +264,10 @@ export default function LandingPage() {
           <div className="container">
             <div className={styles.footerRow}>
               <span className={styles.footerBrand}>
-                Safe<b>Zone</b> — Team HEXACORE · SIH 2026
+                Safe<b>Zone</b> - Team HEXACORE · SIH 2026
               </span>
               <span className={styles.footerNote}>
-                Design system by Dheeraj · Built with Next.js + Three.js
+                Built with Next.js + Three.js
               </span>
             </div>
           </div>

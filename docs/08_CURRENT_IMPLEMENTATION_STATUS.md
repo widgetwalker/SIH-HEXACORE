@@ -3,7 +3,7 @@
 > **Last updated:** August 25, 2026 · Branch `design/immersive-experience`
 >
 > This document tracks what is **actually built and working** versus what remains
-> spec-only. It complements docs 01–07 (the design blueprint) — nothing here changes
+> spec-only. It complements docs 01–07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
 
 ---
@@ -13,10 +13,10 @@
 | Pillar / Module | Status | Notes |
 | :--- | :--- | :--- |
 | Landing & navigation shell | ✅ Built | `LandingPage` immersive 3D scroll (ImmersiveScene, parallax, tilt cards, ripple links), `Navbar` mode switcher with prefetched routes |
-| Pillar I — Pedagogical Engine | ✅ UI built | `LearnPage` with age-tiered curriculum, interactive sidebar nav, module selection with toast feedback, achievement badges |
-| Pillar II — Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry |
-| Pillar II — Admin Analytics | ✅ Built | `/admin` dashboard: KPIs (drills/success rate/avg escape/avg panic/top failure), canvas route & casualty heatmap, drill log table |
-| Pillar III — Command Hub | ✅ UI built | `/command` page: live clock, floor status matrix with selection, campus blueprint SVG, CAP alert feed, connected agencies, 3 action buttons with toast feedback |
+| Pillar I - Pedagogical Engine | ✅ UI built | `LearnPage` with age-tiered curriculum, interactive sidebar nav, module selection with toast feedback, achievement badges |
+| Pillar II - Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry |
+| Pillar II - Admin Analytics | ✅ Built | `/admin` dashboard: KPIs (drills/success rate/avg escape/avg panic/top failure), canvas route & casualty heatmap, drill log table |
+| Pillar III - Command Hub | ✅ UI built | `/command` page: live clock, floor status matrix with selection, campus blueprint SVG, CAP alert feed, connected agencies, 3 action buttons with toast feedback |
 | Global FX Layer | ✅ Built | Custom GPU-accelerated cursor, constellation field, RippleLink with magnetic pull & prefetch, parallax/tilt/reveal animations |
 | "Mitra" Crisis Companion | ⚠️ Rule-based | Reads live game state and coaches contextually (panic, smoke, oxygen, crouch, breathing); real LLM engine not yet wired |
 | Backend / persistence | ❌ Not started | Drill runs stored in browser `localStorage`; no server, DB, or auth yet |
@@ -33,7 +33,7 @@
 
 - Third-person follow camera with quake-shake intro; WASD/arrow movement
 - Procedural fire ignition + cell-to-cell spread; smoke layer that drains oxygen unless crawling (SHIFT); panic meter with cognitive freeze above 70; box-breathing recovery (B)
-- **Door-aware propagation:** amber door tiles (glyph `D`) block fire & smoke until the player pushes through them — doors act as player-controlled firebreaks; visually flatten to teal threshold when opened
+- **Door-aware propagation:** amber door tiles (glyph `D`) block fire & smoke until the player pushes through them - doors act as player-controlled firebreaks; visually flatten to teal threshold when opened
 - **Multiple exits:** any green assembly beacon (glyph `E`) completes the run; beacons animate with pulsing rings
 - **Scripted mid-run blockages:** compound-disaster events collapse corridors mid-drill with rubble meshes, with a pre-warning banner (e.g., Quake+Fire scenario seals NE wing at T+40s after structural groaning warning at T+30s)
 - **NPC crowd (~18 agents):** BFS distance-field pathing toward nearest reachable exit, separation forces prevent stacking, slowed in smoke, become red casualties in fire, fade out upon evacuation
@@ -43,7 +43,7 @@
 
 ### 2.2 Data-Driven Scenarios (`frontend/src/data/scenarios.json`)
 
-Scenarios are fully data-driven — maps are ASCII grids (`#` wall, `.` floor, `P` spawn,
+Scenarios are fully data-driven - maps are ASCII grids (`#` wall, `.` floor, `P` spawn,
 `E` exit, `F` fire seed, `D` door) parsed by `game/floorplan.ts`, which pads ragged
 rows so malformed JSON cannot crash the sim. Four scenarios ship today:
 
@@ -56,7 +56,7 @@ rows so malformed JSON cannot crash the sim. Four scenarios ship today:
 
 Each scenario defines: `id`, `name`, `badge`, `hazardLabel`, `difficulty`, `brief`, `timeLimit`, `spreadInterval`, `spreadChance`, `fogDensity`, `colors` (flame/glow/smoke hex), `map[]`, and optional `blockages[]` with `t`, `warnT`, `cells`, `warnMessage`, `message`.
 
-**New scenarios require no code changes** — only a new JSON entry.
+**New scenarios require no code changes** - only a new JSON entry.
 
 ### 2.3 Run Telemetry & Generated Debriefs (`game/telemetry.ts`)
 
@@ -64,15 +64,15 @@ Every run records: route heat (4 Hz grid sampling), fire-cell entries, standing 
 crawling smoke exposure seconds, panic freeze duration, breath count, distance moved,
 violations with timestamps, death/exit cells, scenario ID, and creation timestamp.
 
-- Post-run debriefs are **generated from actual behavior** (e.g., "Spent 14s standing in smoke (lost ~63% O₂) — hold SHIFT to crawl low") instead of static text arrays
+- Post-run debriefs are **generated from actual behavior** (e.g., "Spent 14s standing in smoke (lost ~63% O₂) - hold SHIFT to crawl low") instead of static text arrays
 - Violation types tracked: `entered_fire`, `smoke_exposure`, `panic_freeze`, `route_blocked`, `breathed`, `exit_reached`
 - Runs persist to `localStorage` (`safezone_drill_runs_v1`, capped at 500) via two
-  functions — `saveRun()` / `loadRuns()` — deliberately isolated so a backend can
+  functions - `saveRun()` / `loadRuns()` - deliberately isolated so a backend can
   replace storage without touching game or dashboard code
 
 ### 2.4 Admin Analytics Dashboard (`frontend/src/app/admin/`)
 
-`AdminDashboard.tsx` — Pillar 2 → Pillar 3 telemetry flow:
+`AdminDashboard.tsx` - Pillar 2 → Pillar 3 telemetry flow:
 
 - **KPI cards:** total drills, success rate (color-coded ≥70% teal, <70% amber), avg escape time, avg peak panic (red if >70), top failure mode with count
 - **Canvas route & casualty heatmap:** teal traffic density (aggregated per-cell visit heat across runs), red casualty dots at death cells, green exit markers, amber spawn marker; per-scenario filter dropdown
@@ -107,7 +107,7 @@ violations with timestamps, death/exit cells, scenario ID, and creation timestam
 - Campus blueprint SVG: interactive floor labels, animated fire indicator on 4F, animated evac route dashes
 - CAP alert feed: clickable alerts with source detail toast
 - Connected agencies: clickable rows with ping feedback toast
-- Action bar: ⚡ Emergency Broadcast, 📱 QR Headcount Scan, 📊 Generate NDMA Report — all with simulated feedback toasts
+- Action bar: ⚡ Emergency Broadcast, 📱 QR Headcount Scan, 📊 Generate NDMA Report - all with simulated feedback toasts
 
 ### 2.9 Navigation & Performance
 
@@ -171,18 +171,18 @@ frontend/src/
 | AI services | GenAI scenarios, GNN routing, CV posture | None yet; Mitra is rule-based |
 | Audio | Asset-based | Fully synthesized WebAudio (zero external assets) |
 | Styling | Design system (var tokens) | CSS Modules + global design tokens (vars, utilities, animations) |
-| Build | — | Turbopack dev, Next.js production build |
+| Build | - | Turbopack dev, Next.js production build |
 
 ---
 
 ## 5. Known Gaps vs. Blueprint
 
-- Vertical multi-floor evacuation (Ground–5th hierarchy, doc 02 §2.3) — current drills are single-floor grids
-- Multiplayer drill battles, WebSocket transport, CAP/SACHET ingestion, EOC headcount — spec-only
-- GenAI scenario synthesis, GNN dynamic rerouting, DDA adaptive difficulty, CV posture validation — spec-only
-- Offline-first service worker / IndexedDB caching — not started
-- Backend API, database, authentication — not started (telemetry in localStorage)
-- Mobile / touch input for simulation — keyboard-only currently
+- Vertical multi-floor evacuation (Ground–5th hierarchy, doc 02 §2.3) - current drills are single-floor grids
+- Multiplayer drill battles, WebSocket transport, CAP/SACHET ingestion, EOC headcount - spec-only
+- GenAI scenario synthesis, GNN dynamic rerouting, DDA adaptive difficulty, CV posture validation - spec-only
+- Offline-first service worker / IndexedDB caching - not started
+- Backend API, database, authentication - not started (telemetry in localStorage)
+- Mobile / touch input for simulation - keyboard-only currently
 
 ---
 
@@ -200,17 +200,17 @@ frontend/src/
 
 ## 7. Next Steps & Developer Task Breakdown
 
-### 👨‍💻 Frontend Dev 1: Touch / Mobile Controls, Curriculum Mini-Games & PWA
+### 👨‍💻 Frontend Dev 1 (Sravya / Manha): Touch / Mobile Controls, Curriculum Mini-Games & PWA
 1. **Mobile Virtual Touch Joystick:** Add virtual on-screen joystick and touch buttons (Crouch / Box-Breathe) to `EvacuationGame.tsx` so 3D drills are 100% playable on smartphones and tablets.
 2. **Interactive Curriculum Mini-Games:** Implement Tier 1 "Drop, Cover, Hold On" reflex game, Tier 2 "Go-Bag Builder" drag-and-drop, and Tier 3 "Fire Extinguisher PASS Protocol" sequence simulator in `/learn`.
 3. **PWA Offline Service Worker:** Set up Web App Manifest and Service Worker caching (IndexedDB + Workbox) so lessons, 3D assets, and scenarios function fully offline during school lab network disconnects.
 
-### 👨‍💻 Frontend Dev 2: Incident Command Hub, 3D Multi-Floor & Mitra AI
+### 👨‍💻 Frontend Dev 2 (Sravya / Manha): Incident Command Hub, 3D Multi-Floor & Mitra AI
 1. **Live Telemetry in `/command`:** Wire `CommandPage.tsx` to real-time WebSocket events from active student drill sessions to update the Floor Status Matrix (safe/trapped/missing) live.
-2. **Isometric Multi-Floor 3D Visualizer:** Upgrade the 2D SVG campus blueprint into an interactive Three.js 3D stacked floor viewer (Ground–5th Floor) with real-time hazard markers and evacuation paths.
+2. **Isometric Multi-Floor 3D Visualizer:** Upgrade the 2D SVG campus blueprint into an interactive Three.js 3D stacked floor viewer (Ground-5th Floor) with real-time hazard markers and evacuation paths.
 3. **Voice-Enabled "Mitra" Crisis Assistant:** Connect browser Web Speech API (SpeechRecognition + SpeechSynthesis) to the Mitra assistant drawer for hands-free voice coaching during evacuation drills.
 
-### ⚙️ Backend Dev: FastAPI Server, WebSockets & NDMA SACHET Ingestion
+### ⚙️ Backend Dev (Venkat): FastAPI Server, WebSockets & NDMA SACHET Ingestion
 1. **FastAPI & PostgreSQL Backend:** Build the REST API (`POST /api/v1/telemetry/runs`, `GET /api/v1/telemetry/analytics`, `GET /api/v1/scenarios`) with SQLAlchemy models to persist drill telemetry and replace browser `localStorage`.
 2. **WebSocket Session Hub:** Implement a real-time room broker (FastAPI WebSockets + Redis Pub/Sub) for multi-occupant campus drill synchronisation and instantaneous emergency broadcasts (<50ms).
 3. **NDMA SACHET / CAP v1.2 Ingestion Engine:** Build an automated XML feed poller/parser for Common Alerting Protocol (CAP v1.2) emergency warnings from NDMA/IMD to push geofenced alerts to campus hubs.

@@ -38,7 +38,7 @@
       "badge": "SCENARIO 12 · COMPOUND QUAKE + FIRE · NORTH BLOCK",
       "hazardLabel": "FIRE",
       "difficulty": 2,
-      "brief": "An earthquake has triggered fires across the north block. Amber doorways slow the flames — but aftershocks will seal the north-east wing mid-drill. Two assembly beacons are active; pick your exit early and stay flexible.",
+      "brief": "An earthquake has triggered fires across the north block. Amber doorways slow the flames - but aftershocks will seal the north-east wing mid-drill. Two assembly beacons are active; pick your exit early and stay flexible.",
       "timeLimit": 140,
       "spreadInterval": 2.8,
       "spreadChance": 0.42,
@@ -67,8 +67,8 @@
           "t": 40,
           "warnT": 30,
           "cells": [[17, 5], [16, 3]],
-          "warnMessage": "Structural groaning — NE wing unstable, brace for aftershock!",
-          "message": "AFTERSHOCK! North-east wing sealed — reroute to the south-west beacon!"
+          "warnMessage": "Structural groaning - NE wing unstable, brace for aftershock!",
+          "message": "AFTERSHOCK! North-east wing sealed - reroute to the south-west beacon!"
         }
       ]
     },
@@ -78,7 +78,7 @@
       "badge": "SCENARIO 19 · TOXIC GAS RELEASE · SCIENCE WING",
       "hazardLabel": "TOXIC GAS",
       "difficulty": 3,
-      "brief": "A chemical reaction in the prep room is venting toxic gas that spreads faster than fire. Gas masks are not available — minimize exposure time, keep moving, and use either the east or south assembly point.",
+      "brief": "A chemical reaction in the prep room is venting toxic gas that spreads faster than fire. Gas masks are not available - minimize exposure time, keep moving, and use either the east or south assembly point.",
       "timeLimit": 100,
       "spreadInterval": 2.0,
       "spreadChance": 0.55,
@@ -108,7 +108,7 @@
       "badge": "SCENARIO 23 · NIGHT FIRE · POWER FAILURE",
       "hazardLabel": "FIRE",
       "difficulty": 2,
-      "brief": "Night shift. The fire has tripped the mains — visibility is near zero and the fire moves slowly but steadily in the dark. Memorize landmarks fast: you cannot see the smoke until you are inside it.",
+      "brief": "Night shift. The fire has tripped the mains - visibility is near zero and the fire moves slowly but steadily in the dark. Memorize landmarks fast: you cannot see the smoke until you are inside it.",
       "timeLimit": 150,
       "spreadInterval": 3.2,
       "spreadChance": 0.38,

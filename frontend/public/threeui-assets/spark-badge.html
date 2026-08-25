@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Spark Badge — credential in rain</title>
+<title>Spark Badge - credential in rain</title>
 <link rel="icon" href="data:,">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
@@ -83,15 +83,15 @@ function curlAt(x, y, out){
 }
 
 /* ------------------------------------------------------------------ *
- *  figure — authored in art space (0..1 square), rasterised to a mask
+ *  figure - authored in art space (0..1 square), rasterised to a mask
  * ------------------------------------------------------------------ */
 const MW = 768;                      // mask width == one art unit
 const AY0 = -0.55, AH = 1.55;        // slab covers art y from -0.55 to 1.00, so
 const MH = Math.round(MW * AH);      // the lanyard has somewhere to exist above
 
 /* Per-region emission: [ink, drift].
-   ink   — share of the frame's light this edge gets.
-   drift — how far its embers travel. The card and its printing stay pinned so
+   ink   - share of the frame's light this edge gets.
+   drift - how far its embers travel. The card and its printing stay pinned so
            the manufactured edges read razor-crisp; only the straps and the
            card's outer rim are allowed to plume.                            */
 const EMPH = {
@@ -378,7 +378,7 @@ function spawnFur(i, seeded){
   const em = EM.e[e], eb = Math.sqrt(em), dr = EM.dr[e];
   // pin = how strongly this edge holds its embers in place. A pinned ember
   // barely moves and lies along the contour tangent, so successive marks chain
-  // into a thin bright line — that is how the reference draws the shield and
+  // into a thin bright line - that is how the reference draws the shield and
   // robe edges. An unpinned one launches outward and plumes into fur.
   const pin = Math.max(0, Math.min(1, 1 - dr/0.85));
   FUR.pin[i] = pin;
@@ -391,7 +391,7 @@ function spawnFur(i, seeded){
   FUR.nx[i] = FUR.rx[i]; FUR.ny[i] = FUR.ry[i];
   FUR.spd[i] = ART.s * (0.010 + Math.pow(rnd(), 1.8)*0.098) * (0.24 + dr*0.90) * (1 - pin*0.90);
   // Embers stay flecks. Anything long enough to read as a line has to belong to
-  // the rain and fall with it — stray long sparks at other angles break the read.
+  // the rain and fall with it - stray long sparks at other angles break the read.
   FUR.len[i] = ART.s * (0.0022 + Math.pow(rnd(), 2.3)*0.0110) * (1 - pin*0.28);
   FUR.br[i] = (0.74 + rnd()*0.94) * eb * (1 + pin*0.30);
   FUR.max[i] = (0.17 + rnd()*0.74) * (1 - pin*0.55) * (0.75 + dr*0.42);
@@ -473,7 +473,7 @@ function layout(){
   LW = Math.max(0.85, s/1280 * 1.05);
 
   // Mark length AND line width both scale with the stage, so coverage only
-  // needs a fractional boost — exponent fitted by measuring lit-pixel fraction
+  // needs a fractional boost - exponent fitted by measuring lit-pixel fraction
   // at 900@1 against 1440@2.
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const D = clamp(Math.pow(s/REF_S, 0.55), 0.6, 1.9);
@@ -705,7 +705,7 @@ if (params.get('debug') === 'mask'){                  // silhouette check while 
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH);
   ctx.drawImage(MASKS.detail, ART.x, ART.y + AY0*ART.s, ART.s, AH*ART.s);
 } else {
-  // paint once up front — a backgrounded tab throttles rAF, and the page
+  // paint once up front - a backgrounded tab throttles rAF, and the page
   // should never be sitting on an empty canvas when it comes into view
   prewarm();
   render();

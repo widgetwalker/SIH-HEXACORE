@@ -11,9 +11,9 @@ const ConstellationField = dynamic(
 );
 
 const ALERTS = [
-  { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 — Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
-  { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", msg: "Flash flood warning — Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
-  { id: 3, time: "22:42:05", severity: "Alert", source: "Campus IoT", msg: "Smoke detector triggered — Building A, Floor 4, Room 402.", color: "amber" },
+  { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
+  { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", msg: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
+  { id: 3, time: "22:42:05", severity: "Alert", source: "Campus IoT", msg: "Smoke detector triggered - Building A, Floor 4, Room 402.", color: "amber" },
   { id: 4, time: "22:42:30", severity: "Info", source: "System", msg: "Automatic mode switch: Learning → Emergency Mode activated.", color: "blue" },
 ];
 
@@ -128,7 +128,7 @@ export default function CommandPage() {
           {/* Center: Campus map placeholder */}
           <div className={styles.panel}>
             <div className={styles.panelHeader}>
-              <span className="hud-label">CAMPUS BLUEPRINT — LIVE</span>
+              <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
               <span className="badge badge-red badge-pulse" style={{ fontSize: "0.6rem" }}>LIVE</span>
             </div>
             <div className={styles.mapArea}>
@@ -223,7 +223,7 @@ export default function CommandPage() {
           <button
             className="btn btn-ghost"
             id="cmd-scan"
-            onClick={() => showToast("📱 QR Scanner Initiated — 48 Verified Safe on 2F")}
+            onClick={() => showToast("📱 QR Scanner Initiated - 48 Verified Safe on 2F")}
           >
             📱 QR Headcount Scan
           </button>

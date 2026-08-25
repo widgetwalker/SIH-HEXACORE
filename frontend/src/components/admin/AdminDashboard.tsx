@@ -117,7 +117,7 @@ export default function AdminDashboard() {
           <span className="badge badge-teal">PILLAR 2 → PILLAR 3 TELEMETRY</span>
           <h1 className="heading-xl">Command Analytics</h1>
           <p className={styles.sub}>
-            Aggregated drill performance across all local runs — the evidence base admins pay for.
+            Aggregated drill performance across all local runs - the evidence base admins pay for.
           </p>
         </header>
 

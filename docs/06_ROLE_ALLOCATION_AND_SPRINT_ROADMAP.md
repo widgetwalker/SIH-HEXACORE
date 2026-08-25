@@ -35,7 +35,7 @@ Based on the core research document and team composition, this blueprint specifi
 
 ## 1. Individual Member Work Breakdown Structure (WBS)
 
-### 1. Dheeraj — AI + Design
+### 1. Dheeraj - AI + Design
 
 - **Generative Scenario Engine:** Build the LLM structured scenario generation pipeline with Pydantic JSON schemas, outputting realistic dynamic disaster scenarios (hazards, cascading triggers, room blockages).
 - **GNN & Dynamic Pathfinding:** Implement real-time dynamic graph routing (Dynamic A* / Dijkstra with hazard weight penalty function) for sub-15ms recalculation during corridor blockages.
@@ -43,7 +43,7 @@ Based on the core research document and team composition, this blueprint specifi
 - **Adaptive DDA Engine:** Model student panic telemetry and reaction latency to tailor dynamic simulation difficulty.
 - **UI/UX Design System & Visual Assets:** Lead the visual design identity, Figma design tokens, HUD overlay styling (Panic Meter, Oxygen gauge, Heart-rate animation), 3D level layout aesthetics, badge artwork, and visual slides for the SIH submission deck.
 
-### 2. Venkataraman C.V — Backend
+### 2. Venkataraman C.V - Backend
 
 - **FastAPI Microservices:** Scaffold asynchronous REST endpoints for authentication, student progress, campus registry, and drill orchestration.
 - **Real-Time WebSocket Gateway:** Build high-throughput Socket.io / Redis Pub-Sub server to broadcast sub-50ms hazard state changes to 5,000+ concurrent clients.
@@ -51,28 +51,28 @@ Based on the core research document and team composition, this blueprint specifi
 - **CAP / SACHET Ingestion Pipeline:** Create automated polling & webhook worker to ingest NDMA SACHET / IMD CAP v1.2 XML/JSON emergency feeds.
 - **Security & RBAC:** Implement JWT authentication with role-based policies (Student, Warden, Admin, NDRF, Fire/Police).
 
-### 3. Manha AK — AI + Frontend
+### 3. Manha AK - AI + Frontend
 
 - **3D Simulation Canvas (Three.js / React Three Fiber):** Build procedural 3D school building renderer (Ground to 5th Floor), camera controls, and character movement physics (`@react-three/rapier`).
 - **Hazard Particle Shaders:** Write custom GLSL shaders for realistic volumetric smoke dissipation, fire propagation, and thermal warning zones.
 - **"Mitra" AI Crisis Companion:** Integrate speech-to-text / text-to-speech conversational frontend with low-latency AI crisis counseling agent for trapped students.
 - **Canvas-to-State Bridge:** Connect real-time WebSocket telemetry to Three.js scene state for dynamic multiplayer drill rendering.
 
-### 4. I.Sravya — Frontend
+### 4. I.Sravya - Frontend
 
 - **PWA Architecture:** Scaffold Next.js 15 App Router structure, Workbox service worker caching strategy, and IndexedDB offline lesson persistence.
 - **Student Learning & Gamification Portal:** Build responsive UI for age-tiered curriculum, PASS fire extinguisher interactive module, badge showcase, and live leaderboards.
 - **Campus EOC & Multi-Agency Dashboard:** Build high-density command visualizer displaying live floor plans, real-time student headcount tally, and hazard heatmaps.
 - **Headcount QR/NFC Scanner:** Develop camera-based QR code scanner and manual roll-call interface for floor wardens at assembly zones.
 
-### 5. Trinayani D — Research
+### 5. Trinayani D - Research
 
 - **NDMA & International Standard Mapping:** Codify NDMA School Safety Guidelines, NFPA 10/101 fire codes, OSHA lab safety rules, and CDC heatwave standards into structured lesson matrices.
 - **Age-Tiered Educational Content:** Author interactive lessons, animations scripts, and storylines across all 5 age cohorts (5-7, 8-10, 11-13, 14-17, 18+).
 - **Comprehensive Question & Scenario Bank:** Develop 150+ validated decision-tree questions, hazard-spotting challenges, and extinguisher identification puzzles.
 - **Educational Impact Metrics:** Formulate pre-drill vs post-drill retention rubrics and certification scoring benchmarks.
 
-### 6. Rahul Nayak — Research
+### 6. Rahul Nayak - Research
 
 - **Multi-Agency Command SOPs:** Map real-world emergency response workflows between School Administration, NDRF, SDMA, Fire Stations, and Ambulance services.
 - **CAP v1.2 Protocol Schema Verification:** Validate alert data formats and geofencing parameters against official NDMA SACHET standards.

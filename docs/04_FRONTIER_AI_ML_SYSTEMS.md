@@ -139,7 +139,7 @@ During classroom physical drills, our lightweight edge Computer Vision model (Me
 
 ---
 
-## 4. "Mitra" — Conversational Crisis Companion (Multilingual NLP)
+## 4. "Mitra" - Conversational Crisis Companion (Multilingual NLP)
 
 ### 4.1 Crisis Psychological Support & Triage Chatbot
 When students or individuals are isolated or trapped during a drill or emergency, panic induces hyperventilation and erratic actions. **"Mitra" (Friend)** is an ultra-low-latency, multi-lingual conversational agent (Hindi, English, Tamil, Telugu, Bengali, Marathi, etc.) embedded directly into the PWA.
