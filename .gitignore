@@ -45,6 +45,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Logs
+# Logs & Local Tools
 logs/
 *.log
+.freebuff/
+.agents/

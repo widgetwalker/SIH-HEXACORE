@@ -80,11 +80,17 @@
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  touch-action: manipulation;
 }
 .modeTab:hover {
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+.modeTab:active {
+  transform: scale(0.95);
 }
 .modeTabActive {
   background: rgba(0, 212, 170, 0.12);
@@ -125,7 +131,19 @@
   background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   color: var(--text-faint);
-  transition: all 0.25s;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+.alertIndicator:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+  transform: translateY(-1px);
+}
+.alertIndicator:active {
+  transform: scale(0.95);
 }
 .alertActive {
   background: var(--accent-red-dim);
@@ -147,10 +165,16 @@
   color: #0A0F1E;
   cursor: pointer;
   box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.3);
-  transition: box-shadow 0.2s;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  user-select: none;
+  touch-action: manipulation;
 }
 .avatar:hover {
   box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.5);
+  transform: scale(1.05);
+}
+.avatar:active {
+  transform: scale(0.92);
 }
 
 /* ── Mobile menu button ── */

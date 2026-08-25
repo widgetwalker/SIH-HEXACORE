@@ -27,7 +27,7 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
     >
       <div className={styles.inner}>
         {/* Logo */}
-        <Link href="/" className={styles.logo} aria-label="SafeZone Home">
+        <Link href="/" prefetch={true} className={styles.logo} aria-label="SafeZone Home">
           <span className={styles.logoIcon} aria-hidden="true">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <path
@@ -69,6 +69,7 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
         <div className={styles.modeSwitcher}>
           <Link
             href="/learn"
+            prefetch={true}
             className={`${styles.modeTab} ${mode === "learning" ? styles.modeTabActive : ""}`}
             id="nav-learn"
           >
@@ -77,6 +78,7 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           </Link>
           <Link
             href="/simulate"
+            prefetch={true}
             className={`${styles.modeTab} ${mode === "simulation" ? styles.modeTabActive : ""}`}
             id="nav-simulate"
           >
@@ -85,6 +87,7 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           </Link>
           <Link
             href="/command"
+            prefetch={true}
             className={`${styles.modeTab} ${mode === "command" ? styles.modeTabActive : ""}`}
             id="nav-command"
           >
@@ -95,17 +98,29 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
 
         {/* Right actions */}
         <div className={styles.actions}>
-          <div className={`${styles.alertIndicator} ${mode === "emergency" ? styles.alertActive : ""}`}>
+          <Link
+            href="/command"
+            prefetch={true}
+            className={`${styles.alertIndicator} ${mode === "emergency" ? styles.alertActive : ""}`}
+            style={{ textDecoration: "none" }}
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
               <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
             <span>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
-          </div>
+          </Link>
 
-          <div className={styles.avatar} aria-label="Dheeraj (AI + Design)" title="Dheeraj">
+          <Link
+            href="/learn"
+            prefetch={true}
+            className={styles.avatar}
+            aria-label="Dheeraj (AI + Design)"
+            title="Dheeraj (AI + Design) - View Profile"
+            style={{ textDecoration: "none" }}
+          >
             D
-          </div>
+          </Link>
 
           <button
             className={styles.menuBtn}
@@ -121,9 +136,9 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className={styles.mobileMenu}>
-          <Link href="/learn" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Learn</Link>
-          <Link href="/simulate" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Simulate</Link>
-          <Link href="/command" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Command Hub</Link>
+          <Link href="/learn" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Learn</Link>
+          <Link href="/simulate" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Simulate</Link>
+          <Link href="/command" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Command Hub</Link>
         </div>
       )}
     </nav>

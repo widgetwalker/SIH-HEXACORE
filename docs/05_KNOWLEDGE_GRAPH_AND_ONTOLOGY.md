@@ -1,5 +1,8 @@
 # 05. Enterprise Knowledge Graph & Disaster Domain Ontology
 
+> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+
+
 This document specifies the formal **Knowledge Graph (KG) and Domain Ontology** powering the platform. The knowledge graph encodes the semantic relationships between disasters, campus physical infrastructure, dynamic hazards, safety procedures, critical prohibitions (Do's & Don'ts), age-tiered pedagogical cohorts, multi-agency response hierarchies, and real-time alert protocols.
 
 ```

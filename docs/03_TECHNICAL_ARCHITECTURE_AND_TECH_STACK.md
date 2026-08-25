@@ -1,5 +1,8 @@
 # 03. Technical Architecture & Tech Stack Strategy
 
+> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+
+
 ## 1. Web App vs. Website: Architectural Recommendation
 
 For the Smart India Hackathon (SIH) and nationwide school/college deployment, we explicitly recommend a **High-Performance Progressive Web Application (PWA)** rather than a static website or a heavy native app.

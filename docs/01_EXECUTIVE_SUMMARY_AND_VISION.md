@@ -1,5 +1,8 @@
 # 01. Executive Summary & Strategic Vision
 
+> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+
+
 ## Project Metadata
 - **Project Title:** Gamified Disaster Preparedness and Response Education System for Schools and Colleges
 - **SIH Track / Theme:** Miscellaneous / Disaster Management & EdTech
