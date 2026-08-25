@@ -88,7 +88,8 @@ export default function ImmersiveScene({
     terrain.rotation.x = -Math.PI / 2;
     terrain.position.y = -6;
     scene.add(terrain);
-    const tBase = (tGeo.attributes.position.array as Float32Array).slice();
+    const tPosAttr = tGeo.attributes.position as THREE.BufferAttribute;
+    const tBase = (tPosAttr.array as Float32Array).slice();
 
     /* Wireframe campus tower */
     const tower = new THREE.Group();
@@ -164,7 +165,7 @@ export default function ImmersiveScene({
       core.rotation.y = t * 0.55;
       core.position.y = 4.6 + Math.sin(t * 1.4) * 0.25;
 
-      const arr = tGeo.attributes.position.array as Float32Array;
+      const arr = (tGeo.attributes.position as THREE.BufferAttribute).array as Float32Array;
       for (let i = 0; i < arr.length; i += 3) {
         const x = tBase[i];
         const y = tBase[i + 1];
