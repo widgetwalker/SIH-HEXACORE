@@ -1,191 +1,175 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
+import type { GameState } from "./game/EvacuationGame";
 import styles from "./SimulatePage.module.css";
 
-const EmberStorm = dynamic(
-  () => import("@designcodeio/threeui/components/EmberStorm").then((mod) => mod.EmberStorm),
-  { ssr: false }
-);
+const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });
+
+type Phase = "briefing" | "running" | "ended";
+
+const WIN_DEBRIEF = [
+  "✓ Crawled under smoke and conserved oxygen (NDMA 4.2)",
+  "✓ Rerouted around spreading fire cells",
+  "✓ Box-breathing kept panic below cognitive freeze",
+  "Next: attempt the compound Quake + Fire scenario",
+];
+
+const LOSE_DEBRIEF = [
+  "✗ Oxygen depleted — hold SHIFT to crawl low in smoke",
+  "Never cross a burning cell; reroute via the alternate corridor",
+  "When vision tunnels (panic > 70), stop and hold B to box-breathe",
+  "Fire roughly doubles every minute — commit to a route early",
+];
 
 export default function SimulatePage() {
-  const [timer, setTimer] = useState(90);
-  const [panicLevel, setPanicLevel] = useState(42);
-  const [oxygenLevel, setOxygenLevel] = useState(78);
-  const [currentFloor, setCurrentFloor] = useState(4);
-  const [drillActive, setDrillActive] = useState(false);
+  const [phase, setPhase] = useState<Phase>("briefing");
+  const [runId, setRunId] = useState(0);
+  const [gs, setGs] = useState<GameState | null>(null);
   const [mitraOpen, setMitraOpen] = useState(false);
 
-  // Simulate countdown + degrading conditions
-  useEffect(() => {
-    if (!drillActive) return;
-    const interval = setInterval(() => {
-      setTimer((t) => Math.max(0, t - 1));
-      setPanicLevel((p) => Math.min(100, p + Math.random() * 2));
-      setOxygenLevel((o) => Math.max(0, o - Math.random() * 0.8));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [drillActive]);
+  const onState = (s: GameState) => {
+    setGs(s);
+    if (s.status !== "running") setPhase("ended");
+  };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  const start = () => {
+    setGs(null);
+    setRunId((r) => r + 1);
+    setPhase("running");
+  };
 
-  const floorStatus = [
-    { floor: "5F", status: "clear", label: "Clear" },
-    { floor: "4F", status: "danger", label: "🔥 Active Fire" },
-    { floor: "3F", status: "warning", label: "Smoke" },
-    { floor: "2F", status: "clear", label: "Clear" },
-    { floor: "1F", status: "clear", label: "Clear" },
-    { floor: "GF", status: "safe", label: "✓ Exit" },
-  ];
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+  const vignette = gs && gs.panic > 60 ? Math.min((gs.panic - 60) / 40, 1) : 0;
 
   return (
     <div className={styles.page}>
       <Navbar mode="simulation" />
 
-      {/* 3D Canvas area (EmberStorm background + placeholder for Three.js scene) */}
-      <div className={styles.canvasArea}>
-        <div className={styles.embers}>
-          <EmberStorm style={{ width: "100%", height: "100%" }} />
-        </div>
+      <div className={styles.stage}>
+        {(phase === "running" || phase === "ended") && (
+          <EvacuationGame key={runId} onState={onState} />
+        )}
 
-        {/* Placeholder 3D building viewport */}
-        <div className={styles.viewport}>
-          <div className={styles.buildingPlaceholder}>
-            <div className={styles.buildingWire}>
-              {[5, 4, 3, 2, 1, 0].map((f) => (
-                <div key={f} className={`${styles.wireFloor} ${f === currentFloor ? styles.wireFloorActive : ""} ${f === 4 ? styles.wireFloorFire : ""}`}>
-                  <span className={styles.wireLabel}>{f === 0 ? "GF" : `${f}F`}</span>
-                  {f === 4 && <span className={styles.fireIndicator}>🔥</span>}
-                  {f === currentFloor && <span className={styles.playerDot} />}
-                </div>
-              ))}
-            </div>
-            <div className={styles.viewportOverlay}>
-              {!drillActive ? (
-                <div className={styles.startOverlay}>
-                  <h2 className="display-lg" style={{ marginBottom: 8 }}>Crisis Simulation</h2>
-                  <p className="body-md" style={{ color: "var(--text-muted)", marginBottom: 24, maxWidth: 400, textAlign: "center" }}>
-                    Fire detected on Floor 4. Navigate to safety. You have 90 seconds.
-                  </p>
-                  <button className="btn btn-primary" onClick={() => setDrillActive(true)} id="start-drill-btn" style={{ padding: "16px 40px", fontSize: "1rem" }}>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><polygon points="5,2 17,10 5,18" fill="currentColor"/></svg>
-                    Launch Drill
-                  </button>
-                </div>
-              ) : (
-                <p className={`mono ${styles.simRunning}`}>SIMULATION ACTIVE — NAVIGATE TO EXIT</p>
-              )}
+        {/* panic vignette */}
+        <div className={styles.vignette} style={{ opacity: vignette }} aria-hidden="true" />
+
+        {/* ── BRIEFING ── */}
+        {phase === "briefing" && (
+          <div className={styles.overlay}>
+            <div className={`hud-panel ${styles.card}`}>
+              <span className="badge badge-red badge-pulse">SCENARIO 07 · LAB FIRE · EAST WING</span>
+              <h1 className={styles.cardTitle}>EVACUATION DRILL</h1>
+              <p className={styles.cardDesc}>
+                A fire has ignited somewhere in the building and is spreading cell by
+                cell. Smoke drains your oxygen. Panic slows your legs. Reach the green
+                assembly beacon before conditions overwhelm you.
+              </p>
+              <div className={styles.controls}>
+                <div className={styles.controlItem}><kbd>W A S D</kbd><span>Move</span></div>
+                <div className={styles.controlItem}><kbd>SHIFT</kbd><span>Crawl low under smoke</span></div>
+                <div className={styles.controlItem}><kbd>B</kbd><span>Box-breathe (recover panic)</span></div>
+              </div>
+              <button className="btn btn-danger" onClick={start}>Start Drill →</button>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* ── HUD OVERLAYS ── */}
-        {drillActive && (
+        {/* ── LIVE HUD ── */}
+        {phase !== "briefing" && gs && (
           <>
-            {/* Top-left: Timer + Panic */}
-            <div className={`${styles.hudTopLeft} hud-panel`}>
+            <div className={`hud-panel ${styles.hudTop}`}>
               <div className={styles.hudBlock}>
-                <span className="hud-label">TIME LEFT</span>
-                <span className={`hud-value ${styles.hudTimer} ${timer <= 15 ? styles.hudCritical : ""}`}>{formatTime(timer)}</span>
+                <span className="hud-label">Time</span>
+                <span className={`hud-value ${styles.hudTime}`}>{fmt(Math.max(0, 120 - gs.time))}</span>
               </div>
               <div className="hud-separator" />
               <div className={styles.hudBlock}>
-                <span className="hud-label">PANIC LEVEL</span>
-                <div className={styles.panicBar}>
-                  <div className={styles.panicFill} style={{ width: `${panicLevel}%`, background: panicLevel > 70 ? "var(--accent-red)" : panicLevel > 40 ? "var(--accent-amber)" : "var(--accent-teal)" }} />
-                </div>
-                <span className={`mono caption ${panicLevel > 70 ? styles.hudCritical : ""}`}>{Math.round(panicLevel)}%</span>
-              </div>
-            </div>
-
-            {/* Top-right: Oxygen + Floor */}
-            <div className={`${styles.hudTopRight} hud-panel`}>
-              <div className={styles.hudBlock}>
-                <span className="hud-label">O₂ LEVEL</span>
-                <div className={styles.oxygenGauge}>
-                  <svg viewBox="0 0 60 60" className={styles.gaugeSvg}>
-                    <circle cx="30" cy="30" r="24" fill="none" stroke="var(--border-subtle)" strokeWidth="4" />
-                    <circle cx="30" cy="30" r="24" fill="none"
-                      stroke={oxygenLevel > 50 ? "var(--accent-teal)" : oxygenLevel > 25 ? "var(--accent-amber)" : "var(--accent-red)"}
-                      strokeWidth="4" strokeDasharray={`${2 * Math.PI * 24}`}
-                      strokeDashoffset={`${2 * Math.PI * 24 * (1 - oxygenLevel / 100)}`}
-                      strokeLinecap="round" transform="rotate(-90 30 30)"
-                      style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s" }} />
-                  </svg>
-                  <span className={`mono ${styles.gaugeVal}`}>{Math.round(oxygenLevel)}%</span>
+                <span className="hud-label">Oxygen</span>
+                <div className={styles.meter}>
+                  <div
+                    className={styles.meterFill}
+                    style={{
+                      width: `${gs.oxygen}%`,
+                      background: gs.oxygen > 50 ? "var(--accent-teal)" : gs.oxygen > 25 ? "var(--accent-amber)" : "var(--accent-red)",
+                    }}
+                  />
                 </div>
               </div>
               <div className="hud-separator" />
               <div className={styles.hudBlock}>
-                <span className="hud-label">CURRENT FLOOR</span>
-                <span className="hud-value" style={{ fontSize: "1.5rem", color: "var(--accent-amber)" }}>{currentFloor === 0 ? "GF" : `${currentFloor}F`}</span>
-              </div>
-            </div>
-
-            {/* Bottom: Floor status strip */}
-            <div className={`${styles.hudBottom} hud-panel`}>
-              {floorStatus.map((f) => (
-                <div key={f.floor} className={`${styles.floorChip} ${styles[`floor-${f.status}`]}`}>
-                  <span className={styles.floorId}>{f.floor}</span>
-                  <span className={styles.floorLabel}>{f.label}</span>
+                <span className="hud-label">Panic</span>
+                <div className={styles.meter}>
+                  <div
+                    className={styles.meterFill}
+                    style={{
+                      width: `${gs.panic}%`,
+                      background: gs.panic < 40 ? "var(--accent-blue)" : gs.panic < 70 ? "var(--accent-amber)" : "var(--accent-red)",
+                    }}
+                  />
                 </div>
-              ))}
+              </div>
+              <div className="hud-separator" />
+              <div className={styles.hudBlock}>
+                <span className="hud-label">Score</span>
+                <span className="hud-value" style={{ color: "var(--accent-teal)" }}>{gs.score}</span>
+              </div>
+              {gs.crouching && <span className="badge badge-blue">CRAWLING</span>}
+              {gs.breathing && <span className="badge badge-teal badge-pulse">BREATHING</span>}
             </div>
 
-            {/* Heartbeat line */}
-            <div className={styles.heartbeatWrap}>
-              {[...Array(12)].map((_, i) => (
-                <div key={i} className={styles.heartbeatBar} style={{ animationDelay: `${i * 80}ms` }} />
-              ))}
-            </div>
+            <div className={`hud-panel ${styles.ticker}`}>{gs.message}</div>
           </>
         )}
+
+        {/* ── DEBRIEF ── */}
+        {phase === "ended" && gs && (
+          <div className={styles.overlay}>
+            <div className={`hud-panel ${styles.card}`}>
+              {gs.status === "won" ? (
+                <span className="badge badge-teal">DRILL COMPLETE</span>
+              ) : (
+                <span className="badge badge-red badge-pulse">VIRTUAL CASUALTY</span>
+              )}
+              <h1
+                className={styles.cardTitle}
+                style={{ color: gs.status === "won" ? "var(--accent-teal)" : "var(--accent-red)" }}
+              >
+                {gs.status === "won" ? "EVACUATED ✓" : "DRILL FAILED ✗"}
+              </h1>
+              <div className={styles.resultStats}>
+                <div><span className="hud-label">Time</span><b>{fmt(gs.time)}</b></div>
+                <div><span className="hud-label">O₂ left</span><b>{Math.round(gs.oxygen)}%</b></div>
+                <div><span className="hud-label">Panic</span><b>{Math.round(gs.panic)}%</b></div>
+                <div><span className="hud-label">Score</span><b>{gs.status === "won" ? gs.score : 0}</b></div>
+              </div>
+              <ul className={styles.debrief}>
+                {(gs.status === "won" ? WIN_DEBRIEF : LOSE_DEBRIEF).map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+              <div className={styles.resultActions}>
+                <button className="btn btn-primary" onClick={start}>Retry Drill</button>
+                <button className="btn btn-ghost" onClick={() => setPhase("briefing")}>Back to Briefing</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MITRA DOCK (UI stub — conversational engine is Manha's module) ── */}
+        <button className={styles.mitraBtn} onClick={() => setMitraOpen(!mitraOpen)} data-cursor>
+          🎙 Mitra
+        </button>
+        {mitraOpen && (
+          <div className={`hud-panel ${styles.mitraPanel}`}>
+            <span className="hud-label">Mitra · Crisis Companion</span>
+            <p className={styles.mitraMsg}>Stay low and keep moving. I&apos;m tracking your route.</p>
+            <div className={styles.typing}><span /><span /><span /></div>
+          </div>
+        )}
       </div>
-
-      {/* Floor navigation controls */}
-      {drillActive && (
-        <div className={styles.floorNav}>
-          <button className={styles.floorBtn} onClick={() => setCurrentFloor((f) => Math.min(5, f + 1))} disabled={currentFloor >= 5}>↑ Up</button>
-          <span className="mono" style={{ color: "var(--text-muted)" }}>Floor {currentFloor === 0 ? "G" : currentFloor}</span>
-          <button className={`${styles.floorBtn} ${styles.floorBtnDown}`} onClick={() => setCurrentFloor((f) => Math.max(0, f - 1))} disabled={currentFloor <= 0}>↓ Down</button>
-        </div>
-      )}
-
-      {/* Mitra AI Chat */}
-      <button className={styles.mitraFab} onClick={() => setMitraOpen(!mitraOpen)} id="mitra-fab" aria-label="Open Mitra AI assistant">
-        <div className={styles.mitraOrb} />
-        <span className={styles.mitraLabel}>Mitra</span>
-      </button>
-
-      {mitraOpen && (
-        <div className={styles.mitraDrawer}>
-          <div className={styles.mitraHeader}>
-            <div className={styles.mitraOrb} style={{ width: 28, height: 28 }} />
-            <div>
-              <span className={styles.mitraName}>Mitra AI</span>
-              <span className={styles.mitraStatus}>Crisis Companion</span>
-            </div>
-            <button className="btn-icon" onClick={() => setMitraOpen(false)} style={{ marginLeft: "auto" }}>✕</button>
-          </div>
-          <div className={styles.mitraMessages}>
-            <div className={styles.mitraMsgBot}>
-              <p>🔥 Fire detected on <strong>Floor 4</strong>. Do NOT use the main staircase — it is blocked by smoke.</p>
-            </div>
-            <div className={styles.mitraMsgBot}>
-              <p>📍 Your safest route: <strong>East service stairwell → Floor 1 → Main courtyard exit</strong>.</p>
-            </div>
-            <div className={styles.mitraMsgBot}>
-              <p>Remember: <strong>Stay low, cover your mouth</strong>. I&apos;ve sent your location to the campus EOC.</p>
-            </div>
-          </div>
-          <div className={styles.mitraInput}>
-            <input type="text" className="input-base" placeholder="Ask Mitra for help..." />
-            <button className="btn btn-primary" style={{ padding: "10px 16px" }}>Send</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
