@@ -389,7 +389,7 @@ export default function EvacuationGame({ onState }: Props) {
       }
 
       renderer.render(scene, camera);
-      raf = requestAnimationFrame(tick);
+      if (status === "running") raf = requestAnimationFrame(tick);
     };
 
     camera.position.set(spawn.x, 13, spawn.z + 9.5);
