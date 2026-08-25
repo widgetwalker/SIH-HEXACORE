@@ -36,7 +36,7 @@ const PILLARS = [
     index: "01",
     tag: "PEDAGOGY",
     title: "Age-Tiered Learning",
-    desc: "NDMA / NFPA-mapped curriculum for five age cohorts (5\u201318+). Interactive PASS extinguisher drills, micro-certifications, badges and campus leaderboards.",
+    desc: "NDMA / NFPA-mapped curriculum for five age cohorts (5–18+). Interactive PASS extinguisher drills, micro-certifications, badges and campus leaderboards.",
     href: "/learn",
     cta: "Enter the classroom",
     accent: "teal",
@@ -65,7 +65,7 @@ const STACK = [
   "GenAI Scenario Synthesizer",
   "GNN Dynamic A* Routing",
   "MediaPipe Posture CV",
-  "\u201CMitra\u201D Crisis Companion",
+  "“Mitra” Crisis Companion",
   "Adaptive Difficulty Engine",
   "Offline-First PWA",
 ];
@@ -103,7 +103,7 @@ export default function LandingPage() {
         <section className={styles.hero}>
           <Reveal>
             <span className={`badge badge-teal badge-pulse ${styles.kicker}`}>
-              SIH 2026 \u00B7 FRONTIER AI \u00B7 LIVE PROTOTYPE
+              SIH 2026 · FRONTIER AI · LIVE PROTOTYPE
             </span>
           </Reveal>
           <Reveal delay={120}>
@@ -115,7 +115,7 @@ export default function LandingPage() {
           </Reveal>
           <Reveal delay={260}>
             <p className={styles.sub}>
-              A gamified disaster-preparedness platform for Indian schools &amp; colleges \u2014
+              A gamified disaster-preparedness platform for Indian schools &amp; colleges —
               immersive 3D drills, AI-generated crisis scenarios, and a real-time
               multi-agency command hub. All in the browser.
             </p>
@@ -123,7 +123,7 @@ export default function LandingPage() {
           <Reveal delay={380}>
             <div className={styles.ctaRow}>
               <RippleLink href="/simulate" className="btn btn-primary">
-                Launch the Simulation \u2192
+                Launch the Simulation →
               </RippleLink>
               <RippleLink href="/learn" className="btn btn-ghost">
                 Explore the Curriculum
@@ -134,19 +134,19 @@ export default function LandingPage() {
           <Parallax speed={0.22} className={`${styles.chip} ${styles.chipA}`}>
             <div className={`hud-panel ${styles.chipInner}`}>
               <span className="hud-label">Panic Index</span>
-              <span className="hud-value" style={{ color: "#00D4AA" }}>12% \u00B7 STABLE</span>
+              <span className="hud-value" style={{ color: "#00D4AA" }}>12% · STABLE</span>
             </div>
           </Parallax>
           <Parallax speed={0.3} className={`${styles.chip} ${styles.chipB}`}>
             <div className={`hud-panel ${styles.chipInner}`}>
               <span className="hud-label">Evac Route B</span>
-              <span className="hud-value" style={{ color: "#3B82F6" }}>RECALC 14ms \u2713</span>
+              <span className="hud-value" style={{ color: "#3B82F6" }}>RECALC 14ms ✓</span>
             </div>
           </Parallax>
           <Parallax speed={0.18} className={`${styles.chip} ${styles.chipC}`}>
             <div className={`hud-panel ${styles.chipInner}`}>
               <span className="hud-label">SACHET Feed</span>
-              <span className="hud-value" style={{ color: "#F59E0B" }}>LISTENING\u2026</span>
+              <span className="hud-value" style={{ color: "#F59E0B" }}>LISTENING…</span>
             </div>
           </Parallax>
 
@@ -203,7 +203,7 @@ export default function LandingPage() {
                       <span className={styles.pillarTag}>{p.tag}</span>
                       <h3 className={styles.pillarTitle}>{p.title}</h3>
                       <p className={styles.pillarDesc}>{p.desc}</p>
-                      <span className={styles.pillarCta}>{p.cta} \u2192</span>
+                      <span className={styles.pillarCta}>{p.cta} →</span>
                     </RippleLink>
                   </TiltCard>
                 </Reveal>
@@ -224,7 +224,7 @@ export default function LandingPage() {
                   <p className={styles.emergencyDesc}>
                     When a real NDMA SACHET alert lands inside your campus geofence,
                     SafeZone flips from simulation to life-safety mode in under 500
-                    milliseconds \u2014 broadcasting floor-specific evacuation routes,
+                    milliseconds — broadcasting floor-specific evacuation routes,
                     opening headcount telemetry, and dispatching multi-agency SOS in
                     one motion.
                   </p>
@@ -264,10 +264,10 @@ export default function LandingPage() {
           <div className="container">
             <div className={styles.footerRow}>
               <span className={styles.footerBrand}>
-                Safe<b>Zone</b> \u2014 Team HEXACORE \u00B7 SIH 2026
+                Safe<b>Zone</b> — Team HEXACORE · SIH 2026
               </span>
               <span className={styles.footerNote}>
-                Design system by Dheeraj \u00B7 Built with Next.js + Three.js
+                Design system by Dheeraj · Built with Next.js + Three.js
               </span>
             </div>
           </div>
