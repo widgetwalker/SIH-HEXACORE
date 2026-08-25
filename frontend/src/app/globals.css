@@ -546,10 +546,39 @@ body {
   font-weight: 500;
 }
 
-/* ── RESPONSIVE ───────────────────────────────────────────────────────── */
+/* ── RESPONSIVE ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .container, .container-wide, .container-narrow { padding: 0 16px; }
   .display-2xl { font-size: 2.75rem; }
   .display-xl  { font-size: 2.25rem; }
   .display-lg  { font-size: 2rem; }
+}
+
+/* ── FX LAYER (immersive interactions) ──────────────────────── */
+::selection {
+  background: rgba(0, 212, 170, 0.35);
+  color: #fff;
+}
+
+.fx-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 70%);
+  transform: scale(0);
+  animation: fx-ripple 0.7s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes fx-ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@media (pointer: fine) {
+  body.fx-cursor,
+  body.fx-cursor a,
+  body.fx-cursor button {
+    cursor: none;
+  }
 }

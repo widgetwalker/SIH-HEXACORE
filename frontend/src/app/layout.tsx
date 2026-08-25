@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Viewport } from "next";
 import "@designcodeio/threeui/style.css";
 import "./globals.css";
+import CustomCursor from "@/components/fx/CustomCursor";
 
 export const metadata: Metadata = {
   title: "SafeZone — Gamified Disaster Preparedness | SIH 2026",
@@ -44,11 +45,14 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <CustomCursor />
+      </body>
     </html>
   );
 }
