@@ -1,0 +1,14 @@
+# Core API framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+
+# Added now, used starting Day 2 (database + Redis setup).
+# Installing them today avoids a second round of "pip install" and
+# dependency-conflict debugging in the middle of tomorrow's work.
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.29.0
+alembic==1.13.2
+redis==5.0.8
