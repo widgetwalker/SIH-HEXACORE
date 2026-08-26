@@ -11,11 +11,12 @@ interface ImmersiveSceneProps {
 
 /**
  * Full-viewport WebGL backdrop:
- *  - drifting additive particle field
- *  - waving wireframe terrain
+ *  - drifting additive particle field with scroll-responsive colors
+ *  - waving wireframe terrain with depth-based animation
  *  - 6-storey wireframe campus tower + rotating icosahedron core
- *  - expanding hazard pulse rings
- *  - mouse parallax + scroll-driven camera dolly
+ *  - expanding hazard pulse rings with pulsation
+ *  - mouse parallax + scroll-driven camera dolly + color fader
+ *  - subtle distant-orbit ring for atmosphere
  */
 export default function ImmersiveScene({
   accent = "#00D4AA",
@@ -49,15 +50,18 @@ export default function ImmersiveScene({
     const cAccent = new THREE.Color(accent);
     const cSecondary = new THREE.Color(secondary);
 
-    /* Particle field */
+    /* Particle field — per-particle mix factor stored for scroll-tint */
     const COUNT = 2400;
     const pos = new Float32Array(COUNT * 3);
     const col = new Float32Array(COUNT * 3);
+    const mixFactors = new Float32Array(COUNT);
     for (let i = 0; i < COUNT; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 80;
       pos[i * 3 + 1] = Math.random() * 34 - 5;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 80;
-      const c = Math.random() > 0.45 ? cAccent : cSecondary;
+      const u = Math.random();
+      mixFactors[i] = u;
+      const c = new THREE.Color().lerpColors(cAccent, cSecondary, u);
       col[i * 3] = c.r;
       col[i * 3 + 1] = c.g;
       col[i * 3 + 2] = c.b;
@@ -90,6 +94,19 @@ export default function ImmersiveScene({
     scene.add(terrain);
     const tPosAttr = tGeo.attributes.position as THREE.BufferAttribute;
     const tBase = (tPosAttr.array as Float32Array).slice();
+
+    /* Depth: distant orbit ring */
+    const distRingGeo = new THREE.RingGeometry(25, 27, 64);
+    const distRingMat = new THREE.MeshBasicMaterial({
+      color: cAccent,
+      transparent: true,
+      opacity: 0.04,
+      side: THREE.DoubleSide,
+    });
+    const distRing = new THREE.Mesh(distRingGeo, distRingMat);
+    distRing.rotation.x = -Math.PI / 2;
+    distRing.position.y = -10;
+    scene.add(distRing);
 
     /* Wireframe campus tower */
     const tower = new THREE.Group();
@@ -161,23 +178,49 @@ export default function ImmersiveScene({
 
       particles.rotation.y = t * 0.015;
       tower.rotation.y = t * 0.12 + scrollP * Math.PI * 0.75;
-      core.rotation.x = t * 0.4;
-      core.rotation.y = t * 0.55;
-      core.position.y = 4.6 + Math.sin(t * 1.4) * 0.25;
+      core.rotation.x = t * (0.4 + scrollP * 0.1);
+      core.rotation.y = t * (0.55 + scrollP * 0.2);
+      core.position.y = 4.6 + Math.sin(t * (1.4 + scrollP * 0.3)) * 0.25;
+
+      /* Scroll-tint particles + opacity fade (inspired by scrolltide.co / neuform.io depth) */
+      // subtle opacity fade on scroll so foreground stays legible
+      (particles.material as THREE.PointsMaterial).opacity = 0.75 - scrollP * 0.18;
+      // re-tint ~10x/sec to avoid per-frame cost
+      if (Math.floor(t * 10) % 3 === 0) {
+        const colAttr = pGeo.getAttribute("color") as THREE.BufferAttribute;
+        const arr = colAttr.array as Float32Array;
+        const tint = scrollP * 0.4; // 0..0.4 shift toward secondary
+        for (let i = 0; i < COUNT; i++) {
+          const u = mixFactors[i];
+          // base mix + scroll bias toward secondary
+          const bias = Math.min(1, u + tint * (1 - u) * 0.6);
+          const c = new THREE.Color().lerpColors(cAccent, cSecondary, bias);
+          arr[i * 3] = c.r;
+          arr[i * 3 + 1] = c.g;
+          arr[i * 3 + 2] = c.b;
+        }
+        colAttr.needsUpdate = true;
+      }
+
+      /* Distant orbit ring rotation */
+      distRing.rotation.y = t * 0.08 + scrollP * 0.3;
+      distRing.rotation.x = Math.sin(t * 0.5) * 0.1;
 
       const arr = (tGeo.attributes.position as THREE.BufferAttribute).array as Float32Array;
       for (let i = 0; i < arr.length; i += 3) {
         const x = tBase[i];
         const y = tBase[i + 1];
-        arr[i + 2] = Math.sin(x * 0.28 + t * 0.7) * Math.cos(y * 0.24 + t * 0.5) * 1.15;
+        const wave = Math.sin(x * 0.28 + t * 0.7 + scrollP * 2) * Math.cos(y * 0.24 + t * 0.5 - scrollP * 1.5);
+        arr[i + 2] = wave * (1 + scrollP * 0.2) * 1.15;
       }
       tGeo.attributes.position.needsUpdate = true;
 
       rings.forEach((ring, i) => {
         const p = (t * 0.35 + i / 3) % 1;
-        const s = 1 + p * 14;
+        const s = 1 + Math.sin(t * 2 + i) * 0.3 + p * 12;
         ring.scale.set(s, s, s);
-        (ring.material as THREE.MeshBasicMaterial).opacity = 0.45 * (1 - p);
+        const baseOpacity = 0.45 * (1 - p);
+        (ring.material as THREE.MeshBasicMaterial).opacity = baseOpacity * (0.7 + Math.sin(t * 3 + i) * 0.3);
       });
 
       renderer.render(scene, camera);

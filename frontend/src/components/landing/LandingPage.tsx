@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
-import ImmersiveScene from "@/components/fx/ImmersiveScene";
+import HazardScrollScene from "@/components/fx/HazardScrollScene";
+// Fallback: import ImmersiveScene from "@/components/fx/ImmersiveScene"; // keep as low-level fallback — see HazardScrollScene.tsx:1
 import Reveal from "@/components/fx/Reveal";
 import Parallax from "@/components/fx/Parallax";
 import TiltCard from "@/components/fx/TiltCard";
@@ -95,7 +96,8 @@ export default function LandingPage() {
       <Navbar />
 
       <div className={styles.scene}>
-        <ImmersiveScene />
+        <HazardScrollScene />
+        {/* Fallback (wireframe low-level) kept: src/components/fx/ImmersiveScene.tsx — switch back if ScrollTrigger pin conflicts */}
       </div>
 
       <main className={styles.main}>
