@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import { SCENARIOS } from "./game/floorplan";
 import { generateDebrief, saveRun, fmtTime, type DebriefLine, type RunTelemetry } from "./game/telemetry";
 import type { GameState } from "./game/EvacuationGame";
+import ScenarioEffects from "./game/ScenarioEffects";
 import styles from "./SimulatePage.module.css";
 
 const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });
@@ -69,22 +70,6 @@ export default function SimulatePage() {
   };
 
   const fmt = fmtTime;
-  const vignette = gs && gs.panic > 60 ? Math.min((gs.panic - 60) / 40, 1) : 0;
-  const vignetteRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!vignetteRef.current) return;
-    gsap.killTweensOf(vignetteRef.current);
-    gsap.to(vignetteRef.current, {
-      opacity: vignette,
-      duration: 0.3,
-      ease: "power2.inOut",
-    });
-  }, [vignette]);
-
-  /* ── HUD meter spring feel — CSS transition with motion.dev-style bezier
-     (keeps 60fps tick cheap; GSAP drives vignette/Mitra, CSS drives bars) ── */
-  // values are read directly from gs; transition is declared inline below
 
   return (
     <div className={styles.page}>
@@ -100,8 +85,8 @@ export default function SimulatePage() {
           />
         )}
 
-        {/* panic vignette */}
-        <div ref={vignetteRef} className={styles.vignette} style={{ opacity: vignette }} aria-hidden="true" />
+        {/* scenario-specific effects — per-hazard visual language */}
+        <ScenarioEffects scenario={scenario} gs={gs} phase={phase} />
 
         {/* ── BRIEFING ── */}
         {phase === "briefing" && (
@@ -161,7 +146,7 @@ export default function SimulatePage() {
                     style={{
                       width: `${gs.oxygen}%`,
                       background: gs.oxygen > 50 ? "var(--accent-teal)" : gs.oxygen > 25 ? "var(--accent-amber)" : "var(--accent-red)",
-                      transition: "width 700ms cubic-bezier(0.16,1,0.3,1), background 300ms ease",
+                      transition: "width 400ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms ease",
                     }}
                   />
                 </div>
@@ -175,7 +160,7 @@ export default function SimulatePage() {
                     style={{
                       width: `${gs.panic}%`,
                       background: gs.panic < 40 ? "var(--accent-blue)" : gs.panic < 70 ? "var(--accent-amber)" : "var(--accent-red)",
-                      transition: "width 700ms cubic-bezier(0.16,1,0.3,1), background 300ms ease",
+                      transition: "width 220ms cubic-bezier(0.23, 1, 0.32, 1), background 180ms ease",
                     }}
                   />
                 </div>
