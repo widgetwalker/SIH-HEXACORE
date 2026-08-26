@@ -18,15 +18,9 @@
   overflow: hidden;
 }
 
-/* panic tunnel-vision vignette — GSAP drives opacity (SimulatePage.tsx: gsap.to 0.3s power2.inOut); CSS is fallback */
+/* panic vignette — now driven by ScenarioEffects.tsx (per-hazard colored), hidden here */
 .vignette {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 34%, rgba(120, 0, 0, 0.55) 78%, rgba(60, 0, 0, 0.85) 100%);
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  opacity: 0;
+  display: none;
 }
 
 /* ── overlays ── */
@@ -38,9 +32,9 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(5, 8, 16, 0.6);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(5, 8, 16, 0.7);
+  backdrop-filter: blur(2px) saturate(1.2);
+  -webkit-backdrop-filter: blur(2px) saturate(1.2);
 }
 .card {
   display: flex;
@@ -122,8 +116,7 @@
 .meterFill {
   height: 100%;
   border-radius: var(--radius-full);
-  /* spring feel (motion.dev preset) — inline style in SimulatePage.tsx overrides with 700ms for live HUD; this is the base */
-  transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1), background 300ms ease;
+  transition: width 220ms cubic-bezier(0.23, 1, 0.32, 1), background 180ms ease;
 }
 
 .ticker {

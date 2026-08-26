@@ -16,6 +16,7 @@ export interface GameState {
   breathing: boolean;
   message: string;
   score: number;
+  hazardLabel: string;
 }
 
 interface Props {
@@ -605,7 +606,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       else if (panic > 70) message = "PANIC HIGH - hold B to box-breathe";
       else if (smokeSet.has(pIdx) && !crouching) message = `${scen.hazardLabel === "TOXIC GAS" ? "Gas!" : "Smoke!"} Hold SHIFT to crawl low`;
       else if (nearExit) message = "Assembly point ahead!";
-      onStateRef.current({ status, time, oxygen, panic, crouching, breathing, message, score });
+      onStateRef.current({ status, time, oxygen, panic, crouching, breathing, message, score, hazardLabel: scen.hazardLabel });
     };
 
     const tick = () => {
