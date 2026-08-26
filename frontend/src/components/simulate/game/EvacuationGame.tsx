@@ -80,25 +80,40 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
     /* beacon meshes registered here so the tick loop can animate them */
     const animBeacons: { beacon: THREE.Mesh; ring: THREE.Mesh }[] = [];
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const sun = new THREE.DirectionalLight(0xffffff, 0.7);
-    sun.position.set(10, 24, 8);
+    // Cinematic lighting — key + rim + ambient (scifi sim, not flat Lambert)
+    scene.add(new THREE.AmbientLight(0xdbe8ff, 0.42));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.05);
+    sun.position.set(10, 18, 8);
     scene.add(sun);
+    const rimLight = new THREE.DirectionalLight(0x3b82f6, 0.55);
+    rimLight.position.set(-12, 12, -10);
+    scene.add(rimLight);
+    // Dynamic fire point lights pool — moved to nearest fires each tick
+    const fireLights: THREE.PointLight[] = [];
+    for (let i = 0; i < 4; i++) {
+      const pl = new THREE.PointLight(0xff7a1a, 0, 9, 1.8);
+      pl.position.set(999, 999, 999);
+      scene.add(pl);
+      fireLights.push(pl);
+    }
 
-    /* ── floor + grid ── */
+    /* ── floor + grid — PBR concrete, not flat Lambert ── */
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(cols * CELL, rows * CELL),
-      new THREE.MeshLambertMaterial({ color: 0x0d1426 })
+      new THREE.MeshStandardMaterial({ color: 0x0d1426, roughness: 0.92, metalness: 0.06 })
     );
     floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = false;
     scene.add(floor);
-    const grid = new THREE.GridHelper(cols * CELL, cols, 0x1b2745, 0x141d36);
-    grid.position.y = 0.01;
+    const grid = new THREE.GridHelper(cols * CELL, cols, 0x1e2d55, 0x152040);
+    (grid.material as THREE.LineBasicMaterial).transparent = true;
+    (grid.material as THREE.LineBasicMaterial).opacity = 0.35;
+    grid.position.y = 0.02;
     scene.add(grid);
 
-    /* ── walls / doors ── */
+    /* ── walls / doors — PBR walls + emissive edge, metal doors ── */
     const wallGeo = new THREE.BoxGeometry(CELL, 2.6, CELL);
-    const wallMat = new THREE.MeshLambertMaterial({ color: 0x1c2a4d });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a2544, roughness: 0.88, metalness: 0.08, emissive: 0x0a1020, emissiveIntensity: 0.18 });
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (!walls.has(idxOf(c, r))) continue;
@@ -107,9 +122,9 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         scene.add(w);
       }
     }
-    /* door meshes: closed = amber slab; opened = flat teal threshold */
+    /* door meshes: closed = amber PBR slab with emissive; opened = flat teal threshold */
     const doorMeshes = new Map<number, THREE.Mesh>();
-    const doorMatClosed = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
+    const doorMatClosed = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.45, metalness: 0.22, emissive: 0x3a1f00, emissiveIntensity: 0.45 });
     doors.forEach((idx) => {
       const c = idx % cols;
       const r = Math.floor(idx / cols);
@@ -120,18 +135,22 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       doorMeshes.set(idx, d);
     });
 
-    /* ── exit beacons (multiple supported) ── */
+    /* ── exit beacons (multiple supported) — cinematic emissive pillars ── */
     const exitWorlds = exits.map((e) => cellToWorld(e.c, e.r));
     for (const ew of exitWorlds) {
       const beacon = new THREE.Mesh(
         new THREE.CylinderGeometry(0.55, 0.55, 6, 24, 1, true),
-        new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+        new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 1.15, transparent: true, opacity: 0.42, side: THREE.DoubleSide })
       );
       beacon.position.copy(ew).setY(3);
       scene.add(beacon);
+      // soft point light at beacon — cheap, 1 per exit
+      const bl = new THREE.PointLight(0x10b981, 2.2, 10);
+      bl.position.copy(ew).setY(1.2);
+      scene.add(bl);
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.7, 0.95, 32),
-        new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
       );
       ring.rotation.x = -Math.PI / 2;
       ring.position.copy(ew).setY(0.05);
@@ -139,47 +158,92 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       animBeacons.push({ beacon, ring });
     }
 
-    /* ── player ── */
+    /* ── player — PBR capsule + rim glow + point light ── */
     const player = new THREE.Group();
     const body = new THREE.Mesh(
       new THREE.CapsuleGeometry(0.42, 0.8, 6, 14),
-      new THREE.MeshLambertMaterial({ color: 0x00d4aa, emissive: 0x0a4438 })
+      new THREE.MeshStandardMaterial({ color: 0x00d4aa, emissive: 0x0a4438, emissiveIntensity: 0.65, roughness: 0.45, metalness: 0.18 })
     );
     body.position.y = 0.85;
     player.add(body);
+    const playerLight = new THREE.PointLight(0x00d4aa, 1.2, 6);
+    playerLight.position.set(0, 0.9, 0);
+    player.add(playerLight);
     player.position.copy(cellToWorld(spawn.c, spawn.r));
     scene.add(player);
 
-    /* ── fire & smoke visuals ── */
-    const flameHex = new THREE.Color(scen.colors.flame).getHex();
-    const glowHex = new THREE.Color(scen.colors.glow).getHex();
-    const smokeHex = new THREE.Color(scen.colors.smoke).getHex();
+    /* ── fire & smoke visuals — hyper-real shader-driven, not block planes
+       flame uses canvas gradient texture + 3-plane cross + emissive flicker;
+       smoke uses soft puff texture + slow drift + opacity tied to density      ── */
+    const flameCol = new THREE.Color(scen.colors.flame);
+    const glowCol = new THREE.Color(scen.colors.glow);
+    const smokeCol = new THREE.Color(scen.colors.smoke);
+
+    // Procedural flame texture — radial soft flame (no external asset)
+    const makeFlameTex = () => {
+      const s = 128;
+      const c = document.createElement("canvas");
+      c.width = s; c.height = s;
+      const ctx = c.getContext("2d")!;
+      const g = ctx.createRadialGradient(s/2, s*0.72, 6, s/2, s*0.72, s*0.62);
+      // inner white-yellow -> orange -> red -> transparent
+      g.addColorStop(0, "#fffbe6");
+      g.addColorStop(0.22, flameCol.getStyle());
+      g.addColorStop(0.48, glowCol.getStyle());
+      g.addColorStop(0.78, "rgba(120,20,0,0.0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,s,s);
+      // vertical stretch so flame is teardrop, not circle
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    };
+    const makeSmokeTex = () => {
+      const s = 128;
+      const c = document.createElement("canvas");
+      c.width = s; c.height = s;
+      const ctx = c.getContext("2d")!;
+      const g = ctx.createRadialGradient(s/2, s/2, 8, s/2, s/2, s*0.62);
+      g.addColorStop(0, "rgba(255,255,255,0.95)");
+      g.addColorStop(0.35, "rgba(180,185,195,0.55)");
+      g.addColorStop(0.7, "rgba(90,95,105,0.18)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,s,s);
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    };
+    const flameTex = makeFlameTex();
+    const smokeTex = makeSmokeTex();
 
     const fireSet = new Set<number>();
     const smokeSet = new Set<number>();
     const fireMeshes = new Map<number, THREE.Group>();
     const smokeMeshes = new Map<number, THREE.Mesh>();
     const fireMat = new THREE.MeshBasicMaterial({
-      color: flameHex,
+      map: flameTex,
+      color: 0xffffff,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.96,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       side: THREE.DoubleSide,
+      alphaTest: 0.02,
     });
     const glowMat = new THREE.MeshBasicMaterial({
-      color: glowHex,
+      color: glowCol.getHex(),
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.28,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const smokeMat = new THREE.MeshBasicMaterial({
-      color: smokeHex,
+      map: smokeTex,
+      color: smokeCol.getHex(),
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.42,
       depthWrite: false,
       side: THREE.DoubleSide,
+      alphaTest: 0.01,
     });
 
     const isOpenForSpread = (c: number, r: number) => {
@@ -198,16 +262,27 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       const c = idx % cols;
       const r = Math.floor(idx / cols);
       const g = new THREE.Group();
-      const flameGeo = new THREE.PlaneGeometry(CELL * 0.9, 2.2);
+      // 3-plane cross + diagonal for volumetric flame, not flat block
+      const flameGeo = new THREE.PlaneGeometry(CELL * 0.95, 2.35);
       const f1 = new THREE.Mesh(flameGeo, fireMat);
-      f1.position.y = 1.1;
+      f1.position.y = 1.18;
       const f2 = f1.clone();
       f2.rotation.y = Math.PI / 2;
-      const glow = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 1.4, CELL * 1.4), glowMat);
+      const f3 = f1.clone();
+      f3.rotation.y = Math.PI / 4;
+      // inner bright core
+      const coreGeo = new THREE.PlaneGeometry(CELL * 0.52, 1.45);
+      const coreMat = new THREE.MeshBasicMaterial({ map: flameTex, color: 0xfff2a0, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      core.position.y = 1.05;
+      core.rotation.y = Math.PI / 2;
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 1.55, CELL * 1.55), glowMat);
       glow.rotation.x = -Math.PI / 2;
       glow.position.y = 0.04;
-      g.add(f1, f2, glow);
+      g.add(f1, f2, f3, core, glow);
       g.position.copy(cellToWorld(c, r));
+      // subtle random tilt for organic
+      g.rotation.y = (Math.random() - 0.5) * 0.4;
       scene.add(g);
       fireMeshes.set(idx, g);
     };
@@ -224,9 +299,12 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
             const nIdx = idxOf(nc, nr);
             if (smokeSet.has(nIdx)) continue;
             smokeSet.add(nIdx);
-            const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL, CELL), smokeMat);
+            const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL * (0.92 + Math.random()*0.18), CELL * (0.92 + Math.random()*0.18)), smokeMat);
             m.rotation.x = -Math.PI / 2;
-            m.position.copy(cellToWorld(nc, nr)).setY(1.7);
+            m.rotation.z = (Math.random()-0.5)*0.6;
+            m.position.copy(cellToWorld(nc, nr)).setY(1.65 + Math.random()*0.18);
+            // store drift phase for tick
+            (m as unknown as { drift: number }).drift = Math.random()*Math.PI*2;
             scene.add(m);
             smokeMeshes.set(nIdx, m);
           }
@@ -288,7 +366,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
     /* ── scripted mid-run blockages ── */
     const blockages = [...(scen.blockages ?? [])].sort((a, b) => a.t - b.t);
     let nextBlockage = 0;
-    const rubbleMat = new THREE.MeshLambertMaterial({ color: 0x3a3f4a });
+    const rubbleMat = new THREE.MeshStandardMaterial({ color: 0x3a3f4a, roughness: 0.96, metalness: 0.04 });
     const applyBlockage = (cells: [number, number][], message: string) => {
       for (const [c, r] of cells) {
         const idx = idxOf(c, r);
@@ -372,9 +450,10 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         const idx = idxOf(c, r);
         if (walls.has(idx) || doors.has(idx) || fireSeeds.includes(idx)) continue;
         if (exits.some((e) => Math.abs(e.c - c) + Math.abs(e.r - r) < 6)) continue;
+        const hueVar = 0xd97706 + Math.floor((Math.random() - 0.5) * 0x0a0a0a);
         const mesh = new THREE.Mesh(
           npcGeo,
-          new THREE.MeshLambertMaterial({ color: 0xd97706, transparent: true })
+          new THREE.MeshStandardMaterial({ color: hueVar, roughness: 0.68, metalness: 0.08, transparent: true, opacity: 0.96 })
         );
         const w = cellToWorld(c, r);
         mesh.position.set(
@@ -589,9 +668,11 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           fieldDirty = true;
           const dm = doorMeshes.get(pIdx);
           if (dm) {
-            (dm.material as THREE.MeshLambertMaterial).color.set(0x00d4aa);
-            (dm.material as THREE.MeshLambertMaterial).opacity = 0.25;
-            (dm.material as THREE.MeshLambertMaterial).transparent = true;
+            (dm.material as THREE.MeshStandardMaterial).color.set(0x00d4aa);
+            (dm.material as THREE.MeshStandardMaterial).emissive.set(0x00d4aa);
+            (dm.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.45;
+            (dm.material as THREE.MeshStandardMaterial).opacity = 0.32;
+            (dm.material as THREE.MeshStandardMaterial).transparent = true;
             dm.scale.y = 0.12;
             dm.position.y = 0.12;
           }
@@ -690,11 +771,48 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         updateAudio(dt, pc, pr, pIdx);
       }
 
-      /* visuals: flames flicker */
+      /* visuals: flames flicker — 3 planes + core + dynamic point lights */
       fireMeshes.forEach((g, idx) => {
         const s = 1 + 0.18 * Math.sin(t * 13 + idx);
         g.children[0].scale.y = s;
         g.children[1].scale.y = 1 + 0.18 * Math.cos(t * 11 + idx);
+        if (g.children[2]) g.children[2].scale.y = 1 + 0.14 * Math.sin(t * 9 + idx * 0.7);
+        if (g.children[3]) { // core
+          const c = g.children[3] as THREE.Mesh;
+          c.scale.y = 1 + 0.22 * Math.sin(t * 15 + idx);
+          (c.material as THREE.MeshBasicMaterial).opacity = 0.78 + 0.12 * Math.sin(t * 16 + idx);
+        }
+        // subtle sway
+        g.rotation.z = Math.sin(t * 2.2 + idx) * 0.06;
+      });
+      // move 4 fire point lights to 4 nearest fires to player (hyper-real without 100 lights)
+      {
+        const fires = Array.from(fireSet);
+        fires.sort((a,b)=>{
+          const ac = a%cols, ar=Math.floor(a/cols), bc=b%cols, br=Math.floor(b/cols);
+          const da=Math.hypot(ac - Math.floor(player.position.x/CELL+cols/2), ar - Math.floor(player.position.z/CELL+rows/2));
+          const db=Math.hypot(bc - Math.floor(player.position.x/CELL+cols/2), br - Math.floor(player.position.z/CELL+rows/2));
+          return da-db;
+        });
+        for(let i=0;i<4;i++){
+          const pl = fireLights[i];
+          const idx = fires[i];
+          if(idx!==undefined){
+            const c=idx%cols, r=Math.floor(idx/cols);
+            const w=cellToWorld(c,r);
+            pl.position.set(w.x, 1.35 + Math.sin(t*4+i)*0.18, w.z);
+            const flick = 1.6 + Math.sin(t*12+i*1.7)*0.6 + Math.random()*0.25;
+            pl.intensity = flick;
+            pl.distance = 9 + Math.sin(t*3+i)*1.2;
+          } else pl.intensity = 0;
+        }
+      }
+      // smoke drift
+      smokeMeshes.forEach((m)=>{
+        const drift = (m as unknown as { drift: number }).drift ?? 0;
+        m.position.y = 1.7 + Math.sin(t*0.9+drift)*0.12;
+        m.rotation.z += 0.0018 * Math.sin(t*0.7+drift);
+        (m.material as THREE.MeshBasicMaterial).opacity = 0.36 + 0.08*Math.sin(t*1.1+drift);
       });
       for (const b of animBeacons) {
         b.beacon.rotation.y = t * 0.8;
@@ -737,7 +855,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           npc.deadTimer -= dt;
           if (npc.deadTimer <= 0 && npc.fade > 0) {
             npc.fade = Math.max(0, npc.fade - dt);
-            (npc.mesh.material as THREE.MeshLambertMaterial).opacity = npc.fade * 0.9;
+            (npc.mesh.material as THREE.MeshStandardMaterial).opacity = npc.fade * 0.9;
           }
           continue;
         }
@@ -751,7 +869,9 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           npc.deadTimer += dt;
           if (npc.deadTimer > 1.2) {
             npc.dead = true;
-            (npc.mesh.material as THREE.MeshLambertMaterial).color.set(0xef4444);
+            (npc.mesh.material as THREE.MeshStandardMaterial).color.set(0xef4444);
+            (npc.mesh.material as THREE.MeshStandardMaterial).emissive.set(0x331111);
+            (npc.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.5;
             continue;
           }
         }
@@ -761,7 +881,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           /* evacuated */
           npc.fade -= dt * 2;
           npc.mesh.scale.setScalar(Math.max(0.01, npc.fade));
-          (npc.mesh.material as THREE.MeshLambertMaterial).opacity = Math.max(0, npc.fade);
+          (npc.mesh.material as THREE.MeshStandardMaterial).opacity = Math.max(0, npc.fade);
           if (npc.fade <= 0) npc.mesh.visible = false;
           continue;
         }

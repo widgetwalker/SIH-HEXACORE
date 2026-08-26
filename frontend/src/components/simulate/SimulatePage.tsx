@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { gsap } from "gsap";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
@@ -34,6 +35,17 @@ export default function SimulatePage() {
   const [debrief, setDebrief] = useState<DebriefLine[] | null>(null);
   const [lastRun, setLastRun] = useState<RunTelemetry | null>(null);
   const [mitraOpen, setMitraOpen] = useState(false);
+  const mitraPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mitraPanelRef.current) return;
+    const el = mitraPanelRef.current;
+    if (mitraOpen) {
+      gsap.fromTo(el, { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" });
+    } else {
+      gsap.to(el, { opacity: 0, duration: 0.2, ease: "power2.in" });
+    }
+  }, [mitraOpen]);
 
   const scenario = SCENARIOS[selIdx];
 
@@ -58,6 +70,21 @@ export default function SimulatePage() {
 
   const fmt = fmtTime;
   const vignette = gs && gs.panic > 60 ? Math.min((gs.panic - 60) / 40, 1) : 0;
+  const vignetteRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!vignetteRef.current) return;
+    gsap.killTweensOf(vignetteRef.current);
+    gsap.to(vignetteRef.current, {
+      opacity: vignette,
+      duration: 0.3,
+      ease: "power2.inOut",
+    });
+  }, [vignette]);
+
+  /* ── HUD meter spring feel — CSS transition with motion.dev-style bezier
+     (keeps 60fps tick cheap; GSAP drives vignette/Mitra, CSS drives bars) ── */
+  // values are read directly from gs; transition is declared inline below
 
   return (
     <div className={styles.page}>
@@ -74,7 +101,7 @@ export default function SimulatePage() {
         )}
 
         {/* panic vignette */}
-        <div className={styles.vignette} style={{ opacity: vignette }} aria-hidden="true" />
+        <div ref={vignetteRef} className={styles.vignette} style={{ opacity: vignette }} aria-hidden="true" />
 
         {/* ── BRIEFING ── */}
         {phase === "briefing" && (
@@ -125,7 +152,7 @@ export default function SimulatePage() {
                 <span className="hud-label">Time</span>
                 <span className={`hud-value ${styles.hudTime}`}>{fmt(Math.max(0, scenario.timeLimit - gs.time))}</span>
               </div>
-              <div className="hud-separator" />
+<div className="hud-separator" />
               <div className={styles.hudBlock}>
                 <span className="hud-label">Oxygen</span>
                 <div className={styles.meter}>
@@ -134,6 +161,7 @@ export default function SimulatePage() {
                     style={{
                       width: `${gs.oxygen}%`,
                       background: gs.oxygen > 50 ? "var(--accent-teal)" : gs.oxygen > 25 ? "var(--accent-amber)" : "var(--accent-red)",
+                      transition: "width 700ms cubic-bezier(0.16,1,0.3,1), background 300ms ease",
                     }}
                   />
                 </div>
@@ -147,6 +175,7 @@ export default function SimulatePage() {
                     style={{
                       width: `${gs.panic}%`,
                       background: gs.panic < 40 ? "var(--accent-blue)" : gs.panic < 70 ? "var(--accent-amber)" : "var(--accent-red)",
+                      transition: "width 700ms cubic-bezier(0.16,1,0.3,1), background 300ms ease",
                     }}
                   />
                 </div>
@@ -204,7 +233,7 @@ export default function SimulatePage() {
           🎙 Mitra
         </button>
         {mitraOpen && (
-          <div className={`hud-panel ${styles.mitraPanel}`}>
+          <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
             <span className="hud-label">Mitra · Crisis Companion</span>
             <p className={styles.mitraMsg}>{getMitraTip(gs)}</p>
             {phase === "running" && <div className={styles.typing}><span /><span /><span /></div>}

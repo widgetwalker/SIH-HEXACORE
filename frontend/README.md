@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SafeZone Frontend — SIH 2026 (HEXACORE)
 
-## Getting Started
+> Gamified disaster-preparedness for Indian campuses: landing + learn + 3D simulate + command + admin. `npm run dev` → http://localhost:3000
 
-First, run the development server:
-
+## Quick Start
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd frontend
+npm install
+npm run dev      # Turbopack @ http://localhost:3000
+npm run build    # production check (must stay green)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Requires Node 18.17+ / 20+ · Next.js 16.3.2 (App Router, Turbopack) · React 19 · Three.js r149
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
+| Route | File | What lives there |
+|-------|------|------------------|
+| `/` | `src/app/page.tsx` → `LandingPage` | ImmersiveScene WebGL backdrop, hero, stats, pillars, radar CTA |
+| `/learn` | `src/app/learn/page.tsx` | 5 age tiers + modules + badges |
+| `/simulate` | `src/app/simulate/page.tsx` | Briefing → playable drill (`EvacuationGame`) → generated debrief |
+| `/command` | `src/app/command/page.tsx` | Floor matrix + blueprint SVG + CAP feed |
+| `/admin` | `src/app/admin/page.tsx` | KPIs + canvas heatmap + drill log |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Simulation controls (`/simulate`)
+WASD/Arrows move · SHIFT crawl (saves O₂ in smoke) · B hold box-breathe (drops panic) · walk into amber **D**oor to open (doors block fire/smoke until opened) · reach any green **E** beacon to evacuate.
 
-## Learn More
+## Design system
+`src/app/globals.css` is the source of truth: CSS vars (`--accent-*`, `--bg-*`, `--border-*`), `.hud-panel`, `.btn-*`, `.badge-*`, `noise-overlay`, keyframes. Prefer vars over hardcoded hex so scenarios can theme.
 
-To learn more about Next.js, take a look at the following resources:
+## FX & animation layer (updated Aug 26 v3 — 360° slow, shader cover)
+| Technique | Where | Inspo from `~/Desktop/design.inspo` |
+|-----------|-------|--------------------------------------|
+| **GSAP** `gsap.to / fromTo` | `SimulatePage.tsx: vignette` (panic>60 opacity 0.3s power2.inOut) + `Mitra` panel slide/fade | GSAP benchmark for timelines |
+| **GSAP ScrollTrigger** pin scrub 300% | `HazardScrollScene.tsx` 3-act (collapse→tsunami→fire) pinned `.scene`, scrub 1 | scrolltide.co + GSAP |
+| **CSS spring** `cubic-bezier(0.16,1,0.3,1)` 700ms | HUD oxygen/panic meter `width` — motion.dev spring feel, cheap at 60fps | motion.dev + react-spring preset |
+| **react-spring** installed | kept as asset for future `animated.div` meters (currently CSS-driven to stay TS-clean) | React Spring physics |
+| **ImmersiveScene** (fallback) scroll-tint | `ImmersiveScene.tsx` particles `mixFactors[]` + tint, terrain wave, orbit ring — kept intact | scrolltide.co / neuform.io / horizonX depth |
+| **HazardScrollScene** cinematic scifi (360° slow) | **Slow 360° orbit 0→0.33 (camera circles as building collapses, single purposeful motion — emil), PBR glass tower 7 floors `BoxGeometry 8,3,8 clearcoat 1.0`, emissive `InstancedMesh` windows, water `ShaderMaterial 140×140 Gerstner + foam`, fire `ShaderMaterial embers 1400 + curtain` covering screen before hero — all from `design.inspo` | neuform.io / podium-studios / recent.design / GSAP ScrollTrigger |
+| **Reveal / Parallax / Tilt / Ripple / CountUp / CustomCursor** | `src/components/fx/` | existing FX layer |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> **Why 360° slow + cinematic cover?** Per `emilkowalski` (one decisive motion, not spin-soup) and `impeccable`/`tasteskill` — single slow 360° as building collapses (0→0.33) feels deliberate, tsunami lifts debris (0.33→0.66), fire+smoke curtain covers lens (0.74→0.96) before hero `TRAIN TODAY` reveals — judges feel disaster arc, not decoration. `prefers-reduced-motion` falls back to `ImmersiveScene`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scenarios
+`src/data/scenarios.json` → `floorplan.ts` parses `#` wall `.` floor `P` spawn `E` exit `F` fire seed `D` door. Add a new entry, no code change. See `docs/08_CURRENT_IMPLEMENTATION_STATUS.md §2.2` for full legend + 4 shipped maps.
 
-## Deploy on Vercel
+## Telemetry
+`telemetry.ts` → `saveRun/loadRuns` → `localStorage` key `safezone_drill_runs_v1` (cap 500). `generateDebrief(run)` builds ✓/✗ lines from real behavior. Admin heatmap aggregates `routeHeat[]` per cell.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Conventions (read `AGENTS.md` before coding)
+- Check `node_modules/next/dist/docs/` for this Next.js version — APIs may differ from training data.
+- All `<Link>` use `prefetch` where possible.
+- `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent` globally; `:active scale(0.95)` on interactives.
+- Cleanup Three.js: dispose geometries/materials, `cancelAnimationFrame`, remove listeners, `renderer.dispose()`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Useful files
+`src/components/fx/ImmersiveScene.tsx` · `src/components/simulate/game/EvacuationGame.tsx` (856 lines) · `src/components/simulate/SimulatePage.tsx` · `src/data/scenarios.json` · `src/app/globals.css`
