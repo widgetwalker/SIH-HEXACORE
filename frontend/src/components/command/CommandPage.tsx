@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
-import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
-import MultiFloorVisualizer from "./MultiFloorVisualizer";
 import styles from "./CommandPage.module.css";
 
 const ConstellationField = dynamic(
@@ -19,6 +17,15 @@ const ALERTS = [
   { id: 4, time: "22:42:30", severity: "Info", source: "System", msg: "Automatic mode switch: Learning → Emergency Mode activated.", color: "blue" },
 ];
 
+const FLOORS = [
+  { id: "5F", students: 45, safe: 38, trapped: 2, missing: 5, status: "warning" },
+  { id: "4F", students: 52, safe: 12, trapped: 8, missing: 32, status: "danger" },
+  { id: "3F", students: 60, safe: 55, trapped: 0, missing: 5, status: "warning" },
+  { id: "2F", students: 48, safe: 48, trapped: 0, missing: 0, status: "clear" },
+  { id: "1F", students: 55, safe: 55, trapped: 0, missing: 0, status: "clear" },
+  { id: "GF", students: 40, safe: 40, trapped: 0, missing: 0, status: "safe" },
+];
+
 const AGENCIES = [
   { name: "Campus EOC", status: "Active", role: "Principal / Wardens", color: "teal" },
   { name: "NDRF Unit", status: "Dispatched", role: "Search & Rescue", color: "blue" },
@@ -30,7 +37,6 @@ export default function CommandPage() {
   const [clock, setClock] = useState("22:42:30");
   const [toast, setToast] = useState<string | null>(null);
   const [selectedFloor, setSelectedFloor] = useState<string | null>("4F");
-  const [telemetry, setTelemetry] = useState<CommandTelemetry>(getInitialCommandTelemetry);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -45,12 +51,10 @@ export default function CommandPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => createMockTelemetryStream(setTelemetry), []);
-
-  const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
-  const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);
-  const totalTrapped = telemetry.floors.reduce((a, f) => a + f.trapped, 0);
-  const totalMissing = telemetry.floors.reduce((a, f) => a + f.missing, 0);
+  const totalStudents = FLOORS.reduce((a, f) => a + f.students, 0);
+  const totalSafe = FLOORS.reduce((a, f) => a + f.safe, 0);
+  const totalTrapped = FLOORS.reduce((a, f) => a + f.trapped, 0);
+  const totalMissing = FLOORS.reduce((a, f) => a + f.missing, 0);
 
   return (
     <div className={styles.page}>
@@ -91,13 +95,12 @@ export default function CommandPage() {
         {/* 3-column grid */}
         <div className={styles.grid}>
           {/* Left: Floor status */}
-          <div className={`${styles.panel} ${styles.floorMatrixPanel} crt-effect`}>
+          <div className={`${styles.panel} crt-effect`}>
             <div className={styles.panelHeader}>
               <span className="hud-label">FLOOR STATUS MATRIX</span>
-              <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{telemetry.source.toUpperCase()} LINK</span>
             </div>
             <div className={styles.floorList}>
-              {telemetry.floors.map((f) => (
+              {FLOORS.map((f) => (
                 <div
                   key={f.id}
                   className={`${styles.floorRow} ${styles[`row-${f.status}`]} ${selectedFloor === f.id ? styles.floorRowSelected : ""}`}
@@ -122,20 +125,8 @@ export default function CommandPage() {
             </div>
           </div>
 
-          <div className={`${styles.panel} ${styles.visualizerPanel}`}>
-            <div className={styles.panelHeader}>
-              <span className="hud-label">MULTI-FLOOR 3D VIEW</span>
-              <span className="mono caption" style={{ color: "var(--text-faint)" }}>GROUND - 5F</span>
-            </div>
-            <MultiFloorVisualizer
-              floors={telemetry.floors}
-              selectedFloor={selectedFloor}
-              onSelectFloor={(floorId) => setSelectedFloor(floorId)}
-            />
-          </div>
-
           {/* Center: Campus map placeholder */}
-          <div className={`${styles.panel} ${styles.blueprintPanel}`}>
+          <div className={styles.panel}>
             <div className={styles.panelHeader}>
               <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
               <span className="badge badge-red badge-pulse" style={{ fontSize: "0.6rem" }}>LIVE</span>
@@ -168,10 +159,8 @@ export default function CommandPage() {
             </div>
           </div>
 
-        </div>
-
-        {/* Bottom: Alert feed + Agencies */}
-        <div className={styles.rightCol}>
+          {/* Right: Alert feed + Agencies */}
+          <div className={styles.rightCol}>
             <div className={`${styles.panel} ${styles.alertPanel}`}>
               <div className={styles.panelHeader}>
                 <span className="hud-label">CAP ALERT FEED</span>
@@ -219,6 +208,7 @@ export default function CommandPage() {
                 ))}
               </div>
             </div>
+          </div>
         </div>
 
         {/* Bottom action bar */}
