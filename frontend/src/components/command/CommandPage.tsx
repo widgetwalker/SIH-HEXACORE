@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
+import MultiFloorVisualizer from "./MultiFloorVisualizer";
 import styles from "./CommandPage.module.css";
 
 const ConstellationField = dynamic(
@@ -90,7 +91,7 @@ export default function CommandPage() {
         {/* 3-column grid */}
         <div className={styles.grid}>
           {/* Left: Floor status */}
-          <div className={`${styles.panel} crt-effect`}>
+          <div className={`${styles.panel} ${styles.floorMatrixPanel} crt-effect`}>
             <div className={styles.panelHeader}>
               <span className="hud-label">FLOOR STATUS MATRIX</span>
               <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{telemetry.source.toUpperCase()} LINK</span>
@@ -121,8 +122,20 @@ export default function CommandPage() {
             </div>
           </div>
 
+          <div className={`${styles.panel} ${styles.visualizerPanel}`}>
+            <div className={styles.panelHeader}>
+              <span className="hud-label">MULTI-FLOOR 3D VIEW</span>
+              <span className="mono caption" style={{ color: "var(--text-faint)" }}>GROUND - 5F</span>
+            </div>
+            <MultiFloorVisualizer
+              floors={telemetry.floors}
+              selectedFloor={selectedFloor}
+              onSelectFloor={(floorId) => setSelectedFloor(floorId)}
+            />
+          </div>
+
           {/* Center: Campus map placeholder */}
-          <div className={styles.panel}>
+          <div className={`${styles.panel} ${styles.blueprintPanel}`}>
             <div className={styles.panelHeader}>
               <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
               <span className="badge badge-red badge-pulse" style={{ fontSize: "0.6rem" }}>LIVE</span>
@@ -155,8 +168,10 @@ export default function CommandPage() {
             </div>
           </div>
 
-          {/* Right: Alert feed + Agencies */}
-          <div className={styles.rightCol}>
+        </div>
+
+        {/* Bottom: Alert feed + Agencies */}
+        <div className={styles.rightCol}>
             <div className={`${styles.panel} ${styles.alertPanel}`}>
               <div className={styles.panelHeader}>
                 <span className="hud-label">CAP ALERT FEED</span>
@@ -204,7 +219,6 @@ export default function CommandPage() {
                 ))}
               </div>
             </div>
-          </div>
         </div>
 
         {/* Bottom action bar */}
