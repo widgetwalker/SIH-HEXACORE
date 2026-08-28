@@ -77,11 +77,11 @@ function nextSnapshot(previous: CommandTelemetry): CommandTelemetry {
       ...floor,
       safe: nextSafe,
       missing: nextMissing,
-      status: floor.trapped > 0 ? "danger" : "warning",
+      status: (floor.trapped > 0 ? "danger" : "warning") as FloorStatus,
     };
   });
 
-  return { floors, receivedAt: Date.now(), source: "mock" };
+  return { ...previous, floors, receivedAt: Date.now(), source: "mock" };
 }
 
 export function createMockTelemetryStream(onUpdate: (snapshot: CommandTelemetry) => void): () => void {

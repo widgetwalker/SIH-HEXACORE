@@ -425,25 +425,31 @@ _dummyUpdate(dummy, inst, idx, true);
     camera.add(curtain);
     scene.add(camera); // ensure camera is in scene graph for add
 
-    // Scroll progress (0..1) driven by ScrollTrigger pin
+    // Scroll progress (0..1) driven by page scroll
     let scrollP = 0;
     let raf = 0;
     const clock = new THREE.Clock();
 
-    // --- GSAP ScrollTrigger timeline (pinned) ---
-    // We pin the mount's parent .scene section via ScrollTrigger; fallback if no trigger element found
-    const triggerEl = mount.closest<HTMLElement>(".scene") ?? mount.parentElement ?? mount;
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: triggerEl,
-        start: "top top",
-        end: "+=300%",
-        pin: true,
-        scrub: 1,
-        anticipatePin: 1,
-        onUpdate: (self) => {
-          scrollP = self.progress;
-        },
+    // --- GSAP Timeline driven by full page scroll ---
+    const tl = gsap.timeline({ paused: true });
+
+    const updateScrollProgress = () => {
+      const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+      const p = Math.min(1, Math.max(0, window.scrollY / max));
+      scrollP = p;
+      tl.progress(p, false);
+    };
+
+    window.addEventListener("scroll", updateScrollProgress, { passive: true });
+
+    ScrollTrigger.create({
+      trigger: document.body,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 0.5,
+      onUpdate: (self) => {
+        scrollP = self.progress;
+        tl.progress(self.progress, false);
       },
     });
 
@@ -569,6 +575,7 @@ _dummyUpdate(dummy, inst, idx, true);
       tl.scrollTrigger?.kill(true);
       tl.kill();
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", updateScrollProgress);
       scene.traverse((o) => {
         const obj = o as THREE.Mesh;
         if (obj.geometry) obj.geometry.dispose();
