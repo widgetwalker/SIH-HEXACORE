@@ -1,11 +1,11 @@
 # 08. Current Implementation Status
 
-> **Last updated:** August 26, 2026 v3 · Branch `design/immersive-experience` · **Build green (Next 16.3.2 + TS + ShaderMaterials)**
+> **Last updated:** August 26, 2026 v4 · Branch `design/immersive-experience` · **Build green (Next 16.3.2 + TS + framer-motion)**
 >
 > This document tracks what is **actually built and working** versus what remains
 > spec-only. It complements docs 01–07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
-> **Aug 26 v3 delta:** HazardScrollScene slow 360° orbit by tsunami, tsunami lifts debris, fire+smoke full-screen curtain before hero, shader upgrades (water 140×140 + Gerstner, fire 1400 ShaderMaterial), spin-soup removed per emil/impeccable — build green.
+> **Aug 26 v4 delta:** ScenarioEffects per-hazard overlays (framer-motion: quake shake, fire spread, toxic gas, blackout), Inter→Geist, panic 220ms, generic blur killed — build green.
 
 ---
 
@@ -15,10 +15,10 @@
 | :--- | :--- | :--- |
 | Landing & navigation shell | ✅ Built | `LandingPage` **HazardScrollScene** slow 360° (0→0.33 collapse), ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch |
 | Pillar I - Pedagogical Engine | ✅ UI built | `LearnPage` with age-tiered curriculum, interactive sidebar nav, module selection with toast feedback, achievement badges |
-| Pillar II - Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry |
+| Pillar II - Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry, **ScenarioEffects** per-hazard screen overlays (quake shake, fire spread, toxic gas, blackout), Geist font |
 | Pillar II - Admin Analytics | ✅ Built | `/admin` dashboard: KPIs (drills/success rate/avg escape/avg panic/top failure), canvas route & casualty heatmap, drill log table |
 | Pillar III - Command Hub | ✅ UI built | `/command` page: live clock, floor status matrix with selection, campus blueprint SVG, CAP alert feed, connected agencies, 3 action buttons with toast feedback |
-| Global FX Layer | ✅ Built | Custom cursor, RippleLink, parallax/tilt/reveal · **Upgraded Aug 26 v3:** GSAP 3.13 + ScrollTrigger 300% pin, slow 360° orbit, shader water/fire, CSS spring HUD, `prefers-reduced-motion` fallback |
+| Global FX Layer | ✅ Built | Custom cursor, RippleLink, parallax/tilt/reveal · **Upgraded Aug 26 v4:** framer-motion, ScenarioEffects per-hazard overlays, Geist font, panic 220ms, emil motion audit |
 | "Mitra" Crisis Companion | ⚠️ Rule-based + GSAP | Reads live game state and coaches contextually (panic, smoke, oxygen, crouch, breathing); **GSAP `fromTo` slide/fade (0.3s power2.out) on open/close**; real LLM engine not yet wired |
 | Backend / persistence | ❌ Not started | Drill runs stored in browser `localStorage`; no server, DB, or auth yet |
 | Multiplayer drill battles | ❌ Not started | Spec-only (docs 01/02) |
