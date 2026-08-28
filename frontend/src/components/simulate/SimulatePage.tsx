@@ -16,11 +16,17 @@ const ScenarioEffects = dynamic(
 
 import styles from "./SimulatePage.module.css";
 
+const BUBBLE_TONE_CLASS = {
+  warn: "mitraBubbleWarn",
+  good: "mitraBubbleGood",
+  info: "mitraBubbleInfo",
+} as const;
+
 const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });
 
 type Phase = "briefing" | "running" | "ended";
 
-/* Mitra: live context-aware coaching driven by real game state */
+/* Mitra: deterministic opening line, seeded from real game state before the AI takes over */
 function getMitraTip(gs: GameState | null): string {
   if (!gs) return "I'm tracking your route. Amber doorways block fire & smoke until you push through them.";
   if (gs.status === "won") return "Clean evacuation logged ✓ Your run is on the command analytics dashboard.";
@@ -30,7 +36,33 @@ function getMitraTip(gs: GameState | null): string {
   if (gs.oxygen < 35 && !gs.crouching) return "Oxygen critical. Crawl (SHIFT) straight to the nearest beacon - no detours.";
   if (gs.crouching) return "Smart crawling. Doorways slow the spread - use them as firebreaks.";
   if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go.";
-  return "Stay low, keep moving. I'm tracking your route and logging every decision.";
+  return "Stay low, keep moving. I'm tracking your route and logging every decision. Ask me anything.";
+}
+
+interface MitraTurn {
+  role: "user" | "mitra";
+  text: string;
+}
+
+interface MitraBubble {
+  text: string;
+  tone: "warn" | "good" | "info";
+}
+
+const GOOD_LINES = [
+  "Nice — you're getting closer!",
+  "Good instincts, keep going!",
+  "That's the way — you're doing great!",
+];
+
+function dirText(dir: GameState["guideDir"]): string {
+  switch (dir) {
+    case "forward": return "forward";
+    case "back": return "back the way you came";
+    case "left": return "left";
+    case "right": return "right";
+    default: return "toward the beacon";
+  }
 }
 
 export default function SimulatePage() {
@@ -41,7 +73,24 @@ export default function SimulatePage() {
   const [debrief, setDebrief] = useState<DebriefLine[] | null>(null);
   const [lastRun, setLastRun] = useState<RunTelemetry | null>(null);
   const [mitraOpen, setMitraOpen] = useState(false);
+  const [mitraMessages, setMitraMessages] = useState<MitraTurn[]>([]);
+  const [mitraInput, setMitraInput] = useState("");
+  const [mitraLoading, setMitraLoading] = useState(false);
+  const [mitraBubble, setMitraBubble] = useState<MitraBubble | null>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
+  const mitraLogRef = useRef<HTMLDivElement>(null);
+  const lastDistRef = useRef<number | null>(null);
+  const nextBubbleAtRef = useRef(0);
+  const lastUrgentAtRef = useRef(0);
+  const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const goodLineIdxRef = useRef(0);
+  const scenario = SCENARIOS[selIdx];
+
+  useEffect(() => {
+    return () => {
+      if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!mitraPanelRef.current) return;
@@ -53,11 +102,106 @@ export default function SimulatePage() {
     }
   }, [mitraOpen]);
 
-  const scenario = SCENARIOS[selIdx];
+  useEffect(() => {
+    if (mitraLogRef.current) {
+      mitraLogRef.current.scrollTop = mitraLogRef.current.scrollHeight;
+    }
+  }, [mitraMessages, mitraLoading]);
+
+  const openMitra = () => {
+    setMitraOpen((open) => {
+      const next = !open;
+      if (next) {
+        setMitraBubble(null);
+        if (mitraMessages.length === 0) {
+          setMitraMessages([{ role: "mitra", text: getMitraTip(gs) }]);
+        }
+      }
+      return next;
+    });
+  };
+
+  const sendMitra = async (raw: string) => {
+    const text = raw.trim();
+    if (!text || mitraLoading) return;
+    const history = [...mitraMessages, { role: "user" as const, text }];
+    setMitraMessages(history);
+    setMitraInput("");
+    setMitraLoading(true);
+    try {
+      const res = await fetch("/api/mitra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history: history.slice(0, -1),
+          context: {
+            phase,
+            scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
+            gameState: gs
+              ? {
+                  status: gs.status,
+                  time: Math.round(gs.time),
+                  oxygen: Math.round(gs.oxygen),
+                  panic: Math.round(gs.panic),
+                  crouching: gs.crouching,
+                  breathing: gs.breathing,
+                  score: gs.score,
+                }
+              : null,
+          },
+        }),
+      });
+      const data = await res.json();
+      const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
+      setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
+    } catch {
+      setMitraMessages((m) => [...m, { role: "mitra", text: "Connection lost — try again once you're back online." }]);
+    } finally {
+      setMitraLoading(false);
+    }
+  };
+
+  const showBubble = (text: string, tone: MitraBubble["tone"]) => {
+    setMitraBubble({ text, tone });
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    bubbleTimerRef.current = setTimeout(() => setMitraBubble(null), 4500);
+  };
+
+  /* proactive live coaching — direction + urgent nudges, floated above the Mitra icon */
+  const updateBubble = (s: GameState) => {
+    const now = Date.now();
+
+    if (s.panic > 75 && !s.breathing && now - lastUrgentAtRef.current > 6000) {
+      lastUrgentAtRef.current = now;
+      showBubble("Panic spiking — hold B to box-breathe!", "warn");
+      return;
+    }
+    if (s.oxygen < 25 && !s.crouching && now - lastUrgentAtRef.current > 6000) {
+      lastUrgentAtRef.current = now;
+      showBubble("Oxygen critical — crawl (SHIFT) to the beacon!", "warn");
+      return;
+    }
+
+    if (now < nextBubbleAtRef.current) return;
+
+    const prevDist = lastDistRef.current;
+    lastDistRef.current = s.distToExit;
+    if (prevDist == null || s.distToExit < 0) return;
+
+    if (s.distToExit > prevDist) {
+      nextBubbleAtRef.current = now + 3500;
+      showBubble(`Wrong way — head ${dirText(s.guideDir)}.`, "warn");
+    } else if (s.distToExit < prevDist) {
+      nextBubbleAtRef.current = now + 4000;
+      showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good");
+    }
+  };
 
   const onState = (s: GameState) => {
     setGs(s);
     if (s.status !== "running") setPhase("ended");
+    else updateBubble(s);
   };
 
   const onEnd = (run: RunTelemetry) => {
@@ -72,6 +216,11 @@ export default function SimulatePage() {
     setLastRun(null);
     setRunId((r) => r + 1);
     setPhase("running");
+    setMitraBubble(null);
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    lastDistRef.current = null;
+    nextBubbleAtRef.current = 0;
+    lastUrgentAtRef.current = 0;
   };
 
   const fmt = fmtTime;
@@ -218,15 +367,52 @@ export default function SimulatePage() {
           </div>
         )}
 
-        {/* ── MITRA DOCK - live crisis companion, reads real game state ── */}
-        <button className={styles.mitraBtn} onClick={() => setMitraOpen(!mitraOpen)} data-cursor>
+        {/* ── MITRA DOCK - AI crisis companion (Gemini), grounded in real game state ── */}
+        {mitraBubble && !mitraOpen && (
+          <div key={mitraBubble.text} className={`${styles.mitraBubble} ${styles[BUBBLE_TONE_CLASS[mitraBubble.tone]]}`}>
+            {mitraBubble.text}
+          </div>
+        )}
+        <button className={styles.mitraBtn} onClick={openMitra} data-cursor>
           🎙 Mitra
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
             <span className="hud-label">Mitra · Crisis Companion</span>
-            <p className={styles.mitraMsg}>{getMitraTip(gs)}</p>
-            {phase === "running" && <div className={styles.typing}><span /><span /><span /></div>}
+            <div ref={mitraLogRef} className={styles.mitraLog}>
+              {mitraMessages.map((m, i) => (
+                <p key={i} className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
+                  {m.text}
+                </p>
+              ))}
+              {mitraLoading && (
+                <div className={styles.typing}><span /><span /><span /></div>
+              )}
+            </div>
+            <form
+              className={styles.mitraInputRow}
+              onSubmit={(e) => {
+                e.preventDefault();
+                sendMitra(mitraInput);
+              }}
+            >
+              <input
+                className={styles.mitraInput}
+                value={mitraInput}
+                onChange={(e) => setMitraInput(e.target.value)}
+                placeholder="Ask Mitra..."
+                disabled={mitraLoading}
+                data-cursor
+              />
+              <button
+                type="submit"
+                className={styles.mitraSend}
+                disabled={mitraLoading || !mitraInput.trim()}
+                data-cursor
+              >
+                →
+              </button>
+            </form>
           </div>
         )}
       </div>
