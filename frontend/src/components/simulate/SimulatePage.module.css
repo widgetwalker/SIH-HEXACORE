@@ -269,7 +269,8 @@
   max-width: 88%;
   padding: 8px 12px;
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 2px;
-  background: var(--bg-glass);
+  background: rgba(10, 14, 26, 0.92);
+  border: 1px solid var(--border-subtle);
   font-size: 0.88rem;
   line-height: 1.4;
   color: var(--text-secondary);
@@ -279,7 +280,7 @@
   max-width: 88%;
   padding: 8px 12px;
   border-radius: var(--radius-md) var(--radius-md) 2px var(--radius-md);
-  background: var(--accent-teal-dim);
+  background: rgba(0, 32, 27, 0.92);
   border: 1px solid var(--border-teal);
   font-size: 0.88rem;
   line-height: 1.4;
@@ -296,7 +297,7 @@
   padding: 8px 12px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-default);
-  background: var(--bg-glass);
+  background: rgba(10, 14, 26, 0.92);
   color: var(--text-primary);
   font-size: 0.85rem;
   outline: none;
@@ -313,7 +314,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid var(--border-teal);
-  background: var(--accent-teal-dim);
+  background: rgba(0, 32, 27, 0.92);
   color: var(--accent-teal);
   font-size: 1rem;
   cursor: pointer;
