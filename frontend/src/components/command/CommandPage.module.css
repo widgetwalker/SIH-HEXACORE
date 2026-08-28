@@ -40,10 +40,13 @@
 .statWarning .statNum { color: var(--accent-amber); }
 
 /* Grid */
-.grid { display: grid; grid-template-columns: 260px 1fr 320px; gap: 12px; flex: 1; }
+.grid { display: grid; grid-template-columns: minmax(210px, 0.8fr) minmax(260px, 1.2fr) minmax(440px, 2.4fr); grid-template-areas: "floor blueprint visualizer"; gap: 12px; align-items: stretch; min-width: 0; }
+.floorMatrixPanel { grid-area: floor; min-width: 0; }
+.blueprintPanel { grid-area: blueprint; min-width: 0; }
+.visualizerPanel { grid-area: visualizer; min-width: 0; }
 
 /* Panel */
-.panel { background: rgba(5,8,16,0.85); border: 1px solid var(--border-default); border-radius: var(--radius-lg); backdrop-filter: blur(16px); overflow: hidden; }
+.panel { background: rgba(5,8,16,0.85); border: 1px solid var(--border-default); border-radius: var(--radius-lg); backdrop-filter: blur(16px); overflow: hidden; min-width: 0; }
 .panelHeader { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
 
 /* Floor list */
@@ -64,12 +67,24 @@
 .floorCount { font-size: 0.65rem; color: var(--text-faint); min-width: 36px; text-align: right; }
 
 /* Map */
-.mapArea { padding: 16px; height: calc(100% - 44px); display: flex; align-items: center; justify-content: center; }
+.mapArea { padding: 16px; min-height: 360px; height: calc(100% - 44px); display: flex; align-items: center; justify-content: center; }
 .mapPlaceholder { width: 100%; height: 100%; position: relative; }
 .mapSvg { width: 100%; height: 100%; }
 
+/* Multi-floor visualizer */
+.visualizerWrap { padding: 12px 16px 14px; }
+.visualizerCanvas { height: clamp(330px, 35vw, 460px); width: 100%; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+.visualizerCanvas canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+.visualizerLegend { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 10px; color: var(--text-faint); font-size: 0.65rem; }
+.visualizerLegend span { display: inline-flex; align-items: center; gap: 5px; }
+.visualizerLegend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.legendSafe { background: var(--accent-teal); }
+.legendWarning { background: var(--accent-amber); }
+.legendDanger { background: var(--accent-red); }
+.visualizerHint { margin-left: auto; color: var(--accent-teal); }
+
 /* Right column */
-.rightCol { display: flex; flex-direction: column; gap: 12px; }
+.rightCol { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr); gap: 12px; min-width: 0; }
 .alertPanel { flex: 1; }
 .alertFeed { padding: 8px; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
 .alertItem { padding: 10px 12px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 4px; border-left: 3px solid; }
@@ -93,5 +108,6 @@
 /* Action bar */
 .actionBar { display: flex; gap: 12px; padding-top: 8px; }
 
-@media (max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .statStrip { flex-wrap: wrap; } .statChip { min-width: 80px; } .actionBar { flex-wrap: wrap; } }
+@media (max-width: 1180px) { .grid { grid-template-columns: minmax(190px, 0.75fr) minmax(230px, 1fr) minmax(360px, 1.7fr); } }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(180px, 0.8fr) minmax(300px, 1.7fr); grid-template-areas: "floor blueprint" "floor visualizer"; } .blueprintPanel .mapArea { justify-content: center; } .rightCol { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .dashboard { padding: 72px 12px 16px; } .topLeft { align-items: flex-start; flex-direction: column; gap: 6px; } .statStrip { flex-wrap: wrap; } .statChip { min-width: 80px; flex: 1 1 calc(50% - 5px); } .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "floor" "blueprint" "visualizer"; } .actionBar { flex-wrap: wrap; } .actionBar > button { flex: 1 1 100%; } .visualizerCanvas { height: 330px; } .mapArea { min-height: 280px; } .visualizerHint { margin-left: 0; width: 100%; } }
