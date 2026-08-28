@@ -8,7 +8,12 @@ import Navbar from "@/components/Navbar";
 import { SCENARIOS } from "./game/floorplan";
 import { generateDebrief, saveRun, fmtTime, type DebriefLine, type RunTelemetry } from "./game/telemetry";
 import type { GameState } from "./game/EvacuationGame";
-import ScenarioEffects from "./game/ScenarioEffects";
+
+const ScenarioEffects = dynamic(
+  () => import("./game/ScenarioEffects"),
+  { ssr: false }
+);
+
 import styles from "./SimulatePage.module.css";
 
 const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });

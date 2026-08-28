@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
-import HazardScrollScene from "@/components/fx/HazardScrollScene";
+
+const HazardScrollScene = dynamic(
+  () => import("@/components/fx/HazardScrollScene"),
+  { ssr: false }
+);
 // Fallback: import ImmersiveScene from "@/components/fx/ImmersiveScene"; // keep as low-level fallback — see HazardScrollScene.tsx:1
 import Reveal from "@/components/fx/Reveal";
 import Parallax from "@/components/fx/Parallax";
