@@ -178,8 +178,7 @@ function DebrisParticles({ intensity }: { intensity: number }) {
   );
 }
 
-export default function ScenarioEffects({ scenario, gs, phase }: Props) {
-  const stageRef = useRef<HTMLDivElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const reduced = useMemo(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     []
@@ -225,37 +224,22 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
 
   /* ── apply shake to stage container ── */
   useEffect(() => {
-    if (!stageRef.current) return;
-    const el = stageRef.current.closest(".stage");
-    if (!el) return;
-    stageRef.current = el as HTMLDivElement;
-  }, []);
-
-  // Find the .stage element on mount
-  const findStage = useCallback(() => {
-    if (stageRef.current) return stageRef.current;
-    const el = document.querySelector(".stage");
-    if (el) stageRef.current = el as HTMLDivElement;
-    return el as HTMLDivElement | null;
-  }, []);
-
-  useEffect(() => {
     if (!isQuake || !isRunning || reduced) return;
+    const stage = wrapperRef.current?.parentElement as HTMLElement | null;
+    if (!stage) return;
+
     const unsubX = springX.on("change", (v) => {
-      const el = findStage();
-      if (el) el.style.transform = `translate(${v}px, ${springY.get()}px)`;
+      stage.style.transform = `translate3d(${v}px, ${springY.get()}px, 0)`;
     });
     const unsubY = springY.on("change", (v) => {
-      const el = findStage();
-      if (el) el.style.transform = `translate(${springX.get()}px, ${v}px)`;
+      stage.style.transform = `translate3d(${springX.get()}px, ${v}px, 0)`;
     });
     return () => {
       unsubX();
       unsubY();
-      const el = findStage();
-      if (el) el.style.transform = "";
+      stage.style.transform = "";
     };
-  }, [isQuake, isRunning, reduced, springX, springY, findStage]);
+  }, [isQuake, isRunning, reduced, springX, springY]);
 
   /* ── fire spread intensity (0→1 over scenario time) ── */
   const fireProgress = isRunning ? Math.min(time / scenario.timeLimit, 1) : 0;
@@ -276,6 +260,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
 
   return (
     <div
+      ref={wrapperRef}
       style={{
         position: "absolute",
         inset: 0,
@@ -309,7 +294,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
               }}
             />
             {/* falling debris */}
-            <DebrisParticles intensity={isRunning ? 1 : 0} />
+            {!reduced && <DebrisParticles intensity={isRunning ? 1 : 0} />}
             {/* crack lines — CSS pseudo via SVG filter */}
             {time > 30 && time < 50 && (
               <svg
@@ -350,7 +335,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
               }}
             />
             {/* embers floating up */}
-            <EmberParticles intensity={fireIntensity} color={scenario.colors.flame} />
+            {!reduced && <EmberParticles intensity={fireIntensity} color={scenario.colors.flame} />}
             {/* smoke veil — thickens with panic */}
             <div
               style={{
@@ -400,7 +385,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
               }}
             />
             {/* gas cloud particles */}
-            <GasClouds intensity={gasIntensity} />
+            {!reduced && <GasClouds intensity={gasIntensity} />}
             {/* visibility reduction — opacity overlay darkens with exposure */}
             <div
               style={{
@@ -429,7 +414,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
                   inset: 0,
                   border: `2px solid rgba(34,197,94,${(gasIntensity - 0.5) * 0.3})`,
                   borderRadius: 0,
-                  animation: "toxicPulse 3s ease-in-out infinite",
+                  animation: reduced ? "none" : "toxicPulse 3s ease-in-out infinite",
                 }}
               />
             )}
@@ -469,7 +454,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
                 height: 120,
                 borderRadius: "50%",
                 background: "radial-gradient(circle, rgba(255,140,40,0.15) 0%, transparent 70%)",
-                animation: "flickerLight 0.15s steps(2) infinite",
+                animation: reduced ? "none" : "flickerLight 0.15s steps(2) infinite",
                 opacity: 0.7,
               }}
             />
@@ -482,7 +467,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
                 height: 80,
                 borderRadius: "50%",
                 background: "radial-gradient(circle, rgba(255,100,20,0.1) 0%, transparent 70%)",
-                animation: "flickerLight 0.12s steps(3) infinite 0.05s",
+                animation: reduced ? "none" : "flickerLight 0.12s steps(3) infinite 0.05s",
                 opacity: 0.5,
               }}
             />
