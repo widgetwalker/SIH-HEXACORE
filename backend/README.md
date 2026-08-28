@@ -30,10 +30,14 @@ This starts the backend, Postgres (with PostGIS, auto-loaded from
 
 ```
 backend/
+  alembic/              # database migration files
+    versions/
   app/
     main.py           # wires the FastAPI app together
     core/
       config.py        # all environment-based settings
+      database.py      # database connection setup
+      redis_client.py  # Redis connection setup
     api/
       v1/
         health.py       # health check endpoint
