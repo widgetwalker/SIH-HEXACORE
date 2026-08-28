@@ -178,6 +178,7 @@ function DebrisParticles({ intensity }: { intensity: number }) {
   );
 }
 
+export default function ScenarioEffects({ scenario, gs, phase }: Props) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const reduced = useMemo(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
