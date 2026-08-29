@@ -96,6 +96,7 @@ class Floor(Base):
     blueprint_svg_url: Mapped[str | None] = mapped_column(String, nullable=True)
     graph_nodes_json: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
     graph_edges_json: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
+    floor_grid: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     is_accessible: Mapped[bool] = mapped_column(Boolean, default=True)
     risk_level: Mapped[str] = mapped_column(String(20), default="SAFE")
     created_at: Mapped[datetime] = mapped_column(
