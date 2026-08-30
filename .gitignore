@@ -23,6 +23,11 @@ ENV/
 .coverage
 htmlcov/
 
+# Backend-specific
+backend/__pycache__/
+backend/*.pyc
+backend/.venv/
+
 # Environment Variables & Secrets
 .env
 .env.local
