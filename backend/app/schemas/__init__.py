@@ -25,6 +25,7 @@ from app.schemas.websocket import (
     DrillTelemetryMessage,
     WebSocketMessage,
 )
+from app.schemas.scenarios import Scenario, ScenarioListResponse
 
 __all__ = [
     "RunTelemetryRequest",
@@ -40,4 +41,6 @@ __all__ = [
     "JoinCampusMessage",
     "DrillTelemetryMessage",
     "WebSocketMessage",
+    "Scenario",
+    "ScenarioListResponse",
 ]

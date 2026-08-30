@@ -17,7 +17,7 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 # side effects on the API itself.
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
-from app.api.v1 import buildings, health
+from app.api.v1 import buildings, health, scenarios
 from app.services.websocket_manager import ws_manager
 
 app = FastAPI(
@@ -55,3 +55,4 @@ async def on_shutdown() -> None:
 # instead of having to search through the codebase for route definitions.
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(buildings.router, prefix="/api/v1", tags=["buildings"])
+app.include_router(scenarios.router, prefix="/api/v1", tags=["scenarios"])
