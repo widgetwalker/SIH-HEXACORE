@@ -259,8 +259,61 @@ export default function CommandPage() {
 
         </div>
 
-        {/* Bottom: Alert feed + Agencies */}
+        {/* Bottom: floor inspector + alert feed + agencies */}
         <div className={styles.rightCol}>
+            <div className={`${styles.panel} ${styles.floorInspector}`}>
+              <div className={styles.panelHeader}>
+                <span className="hud-label">FLOOR INSPECTOR</span>
+                <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{selectedFloorData.id}</span>
+              </div>
+
+              <div className={styles.inspectorBody}>
+                <div className={styles.inspectorSummary}>
+                  <div>
+                    <span className="hud-label">Selected zone</span>
+                    <h3>{selectedInspector.label}</h3>
+                  </div>
+                  <div className={styles.summaryBadge}>
+                    {selectedFloorData.trapped} trapped
+                  </div>
+                </div>
+
+                <p className={styles.inspectorText}>{selectedInspector.summary}</p>
+
+                <div className={styles.roomList}>
+                  {selectedInspector.rooms.map((room) => (
+                    <div key={room.room} className={`${styles.roomCard} ${styles[`room-${room.status}`]}`}>
+                      <div className={styles.roomHeader}>
+                        <span className={styles.roomName}>{room.room}</span>
+                        <span className={styles.roomHazard}>{room.hazard}</span>
+                      </div>
+                      <div className={styles.roomMeta}>
+                        <span>{room.trapped} trapped students</span>
+                        <span>{room.agency}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.assignmentWrap}>
+                  <span className="hud-label">Active agency assignments</span>
+                  <div className={styles.assignmentList}>
+                    {selectedInspector.assignments.map((assignment) => (
+                      <div key={assignment.name} className={styles.assignmentItem}>
+                        <div>
+                          <span className={styles.assignmentName}>{assignment.name}</span>
+                          <span className={styles.assignmentRole}>{assignment.role}</span>
+                        </div>
+                        <span className={`badge badge-${assignment.status === "Active" ? "teal" : assignment.status === "Dispatched" ? "blue" : assignment.status === "En Route" ? "amber" : "violet"}`}>
+                          {assignment.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className={`${styles.panel} ${styles.alertPanel}`}>
               <div className={styles.panelHeader}>
                 <span className="hud-label">CAP ALERT FEED</span>
@@ -308,59 +361,6 @@ export default function CommandPage() {
                 ))}
               </div>
             </div>
-        </div>
-
-        <div className={`${styles.panel} ${styles.floorInspector}`}>
-          <div className={styles.panelHeader}>
-            <span className="hud-label">FLOOR INSPECTOR</span>
-            <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{selectedFloorData.id}</span>
-          </div>
-
-          <div className={styles.inspectorBody}>
-            <div className={styles.inspectorSummary}>
-              <div>
-                <span className="hud-label">Selected zone</span>
-                <h3>{selectedInspector.label}</h3>
-              </div>
-              <div className={styles.summaryBadge}>
-                {selectedFloorData.trapped} trapped
-              </div>
-            </div>
-
-            <p className={styles.inspectorText}>{selectedInspector.summary}</p>
-
-            <div className={styles.roomList}>
-              {selectedInspector.rooms.map((room) => (
-                <div key={room.room} className={`${styles.roomCard} ${styles[`room-${room.status}`]}`}>
-                  <div className={styles.roomHeader}>
-                    <span className={styles.roomName}>{room.room}</span>
-                    <span className={styles.roomHazard}>{room.hazard}</span>
-                  </div>
-                  <div className={styles.roomMeta}>
-                    <span>{room.trapped} trapped students</span>
-                    <span>{room.agency}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.assignmentWrap}>
-              <span className="hud-label">Active agency assignments</span>
-              <div className={styles.assignmentList}>
-                {selectedInspector.assignments.map((assignment) => (
-                  <div key={assignment.name} className={styles.assignmentItem}>
-                    <div>
-                      <span className={styles.assignmentName}>{assignment.name}</span>
-                      <span className={styles.assignmentRole}>{assignment.role}</span>
-                    </div>
-                    <span className={`badge badge-${assignment.status === "Active" ? "teal" : assignment.status === "Dispatched" ? "blue" : assignment.status === "En Route" ? "amber" : "violet"}`}>
-                      {assignment.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Bottom action bar */}
