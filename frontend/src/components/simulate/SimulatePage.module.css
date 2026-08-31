@@ -259,6 +259,43 @@
   font-size: 0.9rem;
   color: var(--text-secondary);
 }
+.voiceControls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.voiceBtn,
+.voiceBtnSecondary {
+  border: 1px solid var(--border-teal);
+  border-radius: var(--radius-full);
+  padding: 8px 12px;
+  background: rgba(8, 16, 24, 0.8);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+.voiceBtn {
+  background: rgba(0, 212, 170, 0.12);
+  color: var(--accent-teal);
+}
+.voiceBtnActive {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: var(--accent-red);
+}
+.voiceBtnSecondary {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+.voiceStatus {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  min-height: 16px;
+}
 .typing {
   display: flex;
   gap: 5px;

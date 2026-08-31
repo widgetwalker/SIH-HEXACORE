@@ -26,6 +26,93 @@ const AGENCIES = [
   { name: "Ambulance EMS", status: "Standby", role: "Medical Triage", color: "violet" },
 ];
 
+const FLOOR_INSPECTOR_DATA: Record<string, {
+  label: string;
+  summary: string;
+  rooms: Array<{ room: string; hazard: string; trapped: number; agency: string; status: "critical" | "warning" | "clear" }>;
+  assignments: Array<{ name: string; role: string; status: string }>;
+}> = {
+  "5F": {
+    label: "Fifth Floor",
+    summary: "Low occupancy, smoke pockets, and one blocked stairwell near the library wing.",
+    rooms: [
+      { room: "501 Lab", hazard: "Smoke drift", trapped: 2, agency: "NDRF Unit", status: "warning" },
+      { room: "510 Studio", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "514 Hall", hazard: "Blocked exit", trapped: 3, agency: "Fire Station #4", status: "critical" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Wardens", status: "Active" },
+      { name: "Fire Station #4", role: "Suppression", status: "En Route" },
+    ],
+  },
+  "4F": {
+    label: "Fourth Floor",
+    summary: "Highest risk floor: heat buildup, trapped students concentrated in the east wing, and a narrow evacuation route.",
+    rooms: [
+      { room: "402 Lab", hazard: "Fire plume", trapped: 12, agency: "Fire Station #4", status: "critical" },
+      { room: "410 Corridor B", hazard: "Smoke-heavy", trapped: 8, agency: "NDRF Unit", status: "warning" },
+      { room: "418 Seminar", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+    ],
+    assignments: [
+      { name: "NDRF Unit", role: "Rescue team", status: "Dispatched" },
+      { name: "Fire Station #4", role: "Fire suppression", status: "En Route" },
+      { name: "Ambulance EMS", role: "Triage", status: "Standby" },
+    ],
+  },
+  "3F": {
+    label: "Third Floor",
+    summary: "Stable occupancy, minor smoke trace, and available alternate route near the service stairs.",
+    rooms: [
+      { room: "302 Admin", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "311 Workshop", hazard: "Smoke trace", trapped: 1, agency: "Campus EOC", status: "warning" },
+      { room: "316 Lounge", hazard: "Clear", trapped: 0, agency: "NDRF Unit", status: "clear" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Wardens", status: "Active" },
+      { name: "NDRF Unit", role: "Sweep", status: "Dispatched" },
+    ],
+  },
+  "2F": {
+    label: "Second Floor",
+    summary: "Nearly clear. Student movement is steady; no blocked primary exits.",
+    rooms: [
+      { room: "205 Lecture", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "213 Library", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "220 Hall", hazard: "Minor congestion", trapped: 2, agency: "NDRF Unit", status: "warning" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Wardens", status: "Active" },
+      { name: "Ambulance EMS", role: "Triage", status: "Standby" },
+    ],
+  },
+  "1F": {
+    label: "First Floor",
+    summary: "Public areas are stable; evacuation volume is manageable with the side exit open.",
+    rooms: [
+      { room: "105 Atrium", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "116 Canteen", hazard: "Congestion", trapped: 3, agency: "Campus EOC", status: "warning" },
+      { room: "120 Lobby", hazard: "Clear", trapped: 0, agency: "NDRF Unit", status: "clear" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Traffic control", status: "Active" },
+      { name: "NDRF Unit", role: "Sweep", status: "Dispatched" },
+    ],
+  },
+  GF: {
+    label: "Ground Floor",
+    summary: "Entry control active; most occupants are already routed to assembly zones.",
+    rooms: [
+      { room: "G02 Main Gate", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "G07 Assembly", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "G11 Service", hazard: "Blocked", trapped: 2, agency: "Fire Station #4", status: "warning" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Assembly control", status: "Active" },
+      { name: "Fire Station #4", role: "Support", status: "En Route" },
+    ],
+  },
+};
+
 export default function CommandPage() {
   const [clock, setClock] = useState("22:42:30");
   const [toast, setToast] = useState<string | null>(null);
@@ -51,6 +138,8 @@ export default function CommandPage() {
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);
   const totalTrapped = telemetry.floors.reduce((a, f) => a + f.trapped, 0);
   const totalMissing = telemetry.floors.reduce((a, f) => a + f.missing, 0);
+  const selectedFloorData = telemetry.floors.find((f) => f.id === selectedFloor) ?? telemetry.floors[0];
+  const selectedInspector = FLOOR_INSPECTOR_DATA[selectedFloorData.id] ?? FLOOR_INSPECTOR_DATA["4F"];
 
   return (
     <div className={styles.page}>
@@ -219,6 +308,59 @@ export default function CommandPage() {
                 ))}
               </div>
             </div>
+        </div>
+
+        <div className={`${styles.panel} ${styles.floorInspector}`}>
+          <div className={styles.panelHeader}>
+            <span className="hud-label">FLOOR INSPECTOR</span>
+            <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{selectedFloorData.id}</span>
+          </div>
+
+          <div className={styles.inspectorBody}>
+            <div className={styles.inspectorSummary}>
+              <div>
+                <span className="hud-label">Selected zone</span>
+                <h3>{selectedInspector.label}</h3>
+              </div>
+              <div className={styles.summaryBadge}>
+                {selectedFloorData.trapped} trapped
+              </div>
+            </div>
+
+            <p className={styles.inspectorText}>{selectedInspector.summary}</p>
+
+            <div className={styles.roomList}>
+              {selectedInspector.rooms.map((room) => (
+                <div key={room.room} className={`${styles.roomCard} ${styles[`room-${room.status}`]}`}>
+                  <div className={styles.roomHeader}>
+                    <span className={styles.roomName}>{room.room}</span>
+                    <span className={styles.roomHazard}>{room.hazard}</span>
+                  </div>
+                  <div className={styles.roomMeta}>
+                    <span>{room.trapped} trapped students</span>
+                    <span>{room.agency}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.assignmentWrap}>
+              <span className="hud-label">Active agency assignments</span>
+              <div className={styles.assignmentList}>
+                {selectedInspector.assignments.map((assignment) => (
+                  <div key={assignment.name} className={styles.assignmentItem}>
+                    <div>
+                      <span className={styles.assignmentName}>{assignment.name}</span>
+                      <span className={styles.assignmentRole}>{assignment.role}</span>
+                    </div>
+                    <span className={`badge badge-${assignment.status === "Active" ? "teal" : assignment.status === "Dispatched" ? "blue" : assignment.status === "En Route" ? "amber" : "violet"}`}>
+                      {assignment.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Bottom action bar */}

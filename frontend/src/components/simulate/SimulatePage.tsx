@@ -15,6 +15,25 @@ const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: fal
 
 type Phase = "briefing" | "running" | "ended";
 
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  }
+
+  interface SpeechRecognitionLike {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    start: () => void;
+    stop: () => void;
+    onstart: (() => void) | null;
+    onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+    onerror: ((event: { error?: string }) => void) | null;
+    onend: (() => void) | null;
+  }
+}
+
 /* Mitra: live context-aware coaching driven by real game state */
 function getMitraTip(gs: GameState | null): string {
   if (!gs) return "I'm tracking your route. Amber doorways block fire & smoke until you push through them.";
@@ -28,6 +47,41 @@ function getMitraTip(gs: GameState | null): string {
   return "Stay low, keep moving. I'm tracking your route and logging every decision.";
 }
 
+function getVoiceAnswer(query: string, gs: GameState | null, scenario: { name: string; hazardLabel: string }): string {
+  const lower = query.toLowerCase();
+
+  if (lower.includes("exit") || lower.includes("escape") || lower.includes("route")) {
+    return `The primary escape route is the marked beacon path. Stay low and move toward the nearest open exit on this floor.`;
+  }
+
+  if (lower.includes("corridor") || lower.includes("blocked") || lower.includes("obstacle") || lower.includes("hazard")) {
+    if (gs && gs.oxygen < 35) {
+      return "The corridor is compromised by smoke. use the low crawl route and move toward the nearest beacon.";
+    }
+    return "The safe route remains the beaconed corridor. Avoid any smoke-heavy choke points and keep moving.";
+  }
+
+  if (lower.includes("oxygen") || lower.includes("air")) {
+    const value = gs ? Math.round(gs.oxygen) : 100;
+    return `Oxygen level is ${value} percent. ${value < 35 ? "This is critical. Crawl to the nearest beacon now." : "You are in a healthy breathing window."}`;
+  }
+
+  if (lower.includes("panic") || lower.includes("stress")) {
+    const value = gs ? Math.round(gs.panic) : 0;
+    return `Panic is ${value} percent. ${value > 70 ? "Stop, breathe, and recover before moving again." : "Stay deliberate and keep your pace steady."}`;
+  }
+
+  if (lower.includes("help") || lower.includes("what do i do") || lower.includes("advice")) {
+    return "Follow the beacon, stay low, keep your head down, and move toward the nearest marked exit. Avoid smoke and keep breathing steady.";
+  }
+
+  if (lower.includes("safe") || lower.includes("status")) {
+    return `${scenario.hazardLabel} drill status is active. Keep moving toward the safe corridor and monitor oxygen and panic.`;
+  }
+
+  return `I heard: ${query}. Keep following the beacon and move toward the nearest marked exit.`;
+}
+
 export default function SimulatePage() {
   const [phase, setPhase] = useState<Phase>("briefing");
   const [runId, setRunId] = useState(0);
@@ -36,7 +90,24 @@ export default function SimulatePage() {
   const [debrief, setDebrief] = useState<DebriefLine[] | null>(null);
   const [lastRun, setLastRun] = useState<RunTelemetry | null>(null);
   const [mitraOpen, setMitraOpen] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("Voice ready");
   const mitraPanelRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const lastCoachRef = useRef<string | null>(null);
+  const lastCoachTimeRef = useRef(0);
+
+  const speak = (text: string) => {
+    if (typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    if (!synth || !text) return;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    synth.speak(utterance);
+  };
 
   useEffect(() => {
     if (!mitraPanelRef.current) return;
@@ -48,7 +119,91 @@ export default function SimulatePage() {
     }
   }, [mitraOpen]);
 
+  useEffect(() => {
+    if (phase !== "running" || !gs) return;
+    const tip = getMitraTip(gs);
+    const now = Date.now();
+    if (tip !== lastCoachRef.current && now - lastCoachTimeRef.current > 5000) {
+      lastCoachRef.current = tip;
+      lastCoachTimeRef.current = now;
+      speak(tip);
+    }
+  }, [phase, gs]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined") {
+        window.speechSynthesis?.cancel();
+      }
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
   const scenario = SCENARIOS[selIdx];
+
+  const handleVoiceQuery = (query: string) => {
+    const cleaned = query.trim();
+    if (!cleaned) return;
+    const answer = getVoiceAnswer(cleaned, gs, scenario);
+    setVoiceStatus(`Heard: "${cleaned}"`);
+    speak(answer);
+  };
+
+  const startListening = () => {
+    if (typeof window === "undefined") return;
+    const RecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!RecognitionCtor) {
+      setVoiceStatus("Voice input is not supported in this browser.");
+      return;
+    }
+
+    if (!recognitionRef.current) {
+      const recognition = new RecognitionCtor();
+      recognition.lang = "en-US";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setVoiceEnabled(true);
+        setVoiceStatus("Listening...");
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0]?.transcript ?? "")
+          .join(" ")
+          .trim();
+
+        if (transcript) {
+          handleVoiceQuery(transcript);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        setVoiceStatus(`Voice input error: ${event.error ?? "microphone unavailable"}`);
+      };
+
+      recognition.onend = () => {
+        setVoiceEnabled(false);
+        setVoiceStatus("Voice ready");
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    if (phase !== "running") {
+      setVoiceStatus("Start a live drill before using voice commands.");
+      return;
+    }
+
+    recognitionRef.current.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setVoiceEnabled(false);
+    setVoiceStatus("Voice ready");
+  };
 
   const onState = (s: GameState) => {
     setGs(s);
@@ -221,6 +376,19 @@ export default function SimulatePage() {
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
             <span className="hud-label">Mitra · Crisis Companion</span>
             <p className={styles.mitraMsg}>{getMitraTip(gs)}</p>
+            <div className={styles.voiceControls}>
+              <button
+                className={`${styles.voiceBtn} ${voiceEnabled ? styles.voiceBtnActive : ""}`}
+                onClick={voiceEnabled ? stopListening : startListening}
+                type="button"
+              >
+                {voiceEnabled ? "Stop listening" : "Listen"}
+              </button>
+              <button className={styles.voiceBtnSecondary} onClick={() => speak(getMitraTip(gs))} type="button">
+                Play coaching
+              </button>
+            </div>
+            <span className={styles.voiceStatus}>{voiceStatus}</span>
             {phase === "running" && <div className={styles.typing}><span /><span /><span /></div>}
           </div>
         )}

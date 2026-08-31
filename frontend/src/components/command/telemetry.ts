@@ -73,15 +73,21 @@ function nextSnapshot(previous: CommandTelemetry): CommandTelemetry {
     const movedToSafe = floor.missing > 0 && floor.safe < floor.students ? 1 : 0;
     const nextMissing = floor.missing - movedToSafe;
     const nextSafe = floor.safe + movedToSafe;
+    const nextStatus: FloorStatus = floor.trapped > 0 ? "danger" : "warning";
     return {
       ...floor,
       safe: nextSafe,
       missing: nextMissing,
-      status: (floor.trapped > 0 ? "danger" : "warning") as FloorStatus,
+      status: nextStatus,
     };
   });
 
-  return { ...previous, floors, receivedAt: Date.now(), source: "mock" };
+  return {
+    ...previous,
+    floors,
+    receivedAt: Date.now(),
+    source: "mock",
+  };
 }
 
 export function createMockTelemetryStream(onUpdate: (snapshot: CommandTelemetry) => void): () => void {
