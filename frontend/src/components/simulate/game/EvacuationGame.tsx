@@ -17,6 +17,8 @@ export interface GameState {
   message: string;
   score: number;
   hazardLabel: string;
+  distToExit: number;
+  guideDir: "forward" | "back" | "left" | "right" | null;
 }
 
 interface Props {
@@ -319,14 +321,46 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
 
     /* ── input ── */
     const keys = new Set<string>();
+    const isTypingTarget = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return; // let Mitra's chat input (and any other field) take keys normally
       const k = e.key.toLowerCase();
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
       keys.add(k);
     };
-    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase()); // always release, even if focus moved to a text field mid-press
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+
+    /* mouse-look: moving the mouse orbits/tilts the chase camera around the player
+       (movement stays on WASD, world-fixed — only the view swings with the mouse) */
+    const BASE_CAM_DIST = 9.5;
+    const MIN_CAM_DIST = 4;
+    const MAX_CAM_DIST = 18;
+    const CAM_HEIGHT = 13;
+    const MAX_YAW = 0.9;
+    const MAX_LIFT = 5;
+    let mouseYaw = 0;
+    let mouseLift = 0;
+    let camDist = BASE_CAM_DIST;
+    const onMouseMove = (e: MouseEvent) => {
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      // negated: moving the mouse left should pan the view left, not orbit the camera left
+      mouseYaw = -nx * MAX_YAW;
+      mouseLift = -ny * MAX_LIFT;
+    };
+    window.addEventListener("mousemove", onMouseMove);
+
+    /* scroll wheel zoom — only over the 3D canvas, so it doesn't hijack page/chat scroll */
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      camDist = Math.min(MAX_CAM_DIST, Math.max(MIN_CAM_DIST, camDist + e.deltaY * 0.01));
+    };
+    mount.addEventListener("wheel", onWheel, { passive: false });
 
     const onResize = () => {
       camera.aspect = mount.clientWidth / Math.max(mount.clientHeight, 1);
@@ -606,7 +640,27 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       else if (panic > 70) message = "PANIC HIGH - hold B to box-breathe";
       else if (smokeSet.has(pIdx) && !crouching) message = `${scen.hazardLabel === "TOXIC GAS" ? "Gas!" : "Smoke!"} Hold SHIFT to crawl low`;
       else if (nearExit) message = "Assembly point ahead!";
-      onStateRef.current({ status, time, oxygen, panic, crouching, breathing, message, score, hazardLabel: scen.hazardLabel });
+
+      /* live routing hint — reuses the same BFS flow-field the NPCs follow */
+      const distToExit = distField[pIdx] ?? -1;
+      let guideDir: GameState["guideDir"] = null;
+      if (distToExit > 0) {
+        let bestD = distToExit;
+        let bdc = 0, bdr = 0;
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          const nc = pc + dc;
+          const nr = pr + dr;
+          if (!passableForNpc(nc, nr)) continue;
+          const nd = distField[idxOf(nc, nr)];
+          if (nd !== -1 && nd < bestD) { bestD = nd; bdc = dc; bdr = dr; }
+        }
+        if (bdc === 1) guideDir = "right";
+        else if (bdc === -1) guideDir = "left";
+        else if (bdr === 1) guideDir = "back";
+        else if (bdr === -1) guideDir = "forward";
+      }
+
+      onStateRef.current({ status, time, oxygen, panic, crouching, breathing, message, score, hazardLabel: scen.hazardLabel, distToExit, guideDir });
     };
 
     const tick = () => {
@@ -822,12 +876,14 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         (b.ring.material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ringP);
       }
 
-      /* camera: third-person follow + quake shake intro */
+      /* camera: third-person follow + mouse-look orbit + quake shake intro */
       const shake = Math.max(0, 1 - t / 3);
+      const camX = player.position.x + Math.sin(mouseYaw) * camDist;
+      const camZ = player.position.z + Math.cos(mouseYaw) * camDist;
       const target = new THREE.Vector3(
-        player.position.x + (Math.random() - 0.5) * shake * 0.6,
-        13 + (Math.random() - 0.5) * shake * 0.8,
-        player.position.z + 9.5
+        camX + (Math.random() - 0.5) * shake * 0.6,
+        CAM_HEIGHT + mouseLift + (Math.random() - 0.5) * shake * 0.8,
+        camZ
       );
       camera.position.lerp(target, 0.08);
       camera.lookAt(player.position.x, 0.6, player.position.z);
@@ -956,6 +1012,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("mousemove", onMouseMove);
+      mount.removeEventListener("wheel", onWheel);
       window.removeEventListener("resize", onResize);
       if (alarmInterval) clearInterval(alarmInterval);
       try { audioCtx?.close(); } catch { /* already closed */ }

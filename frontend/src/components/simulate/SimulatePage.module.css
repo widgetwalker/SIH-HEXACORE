@@ -249,14 +249,30 @@
   bottom: 84px;
   right: 24px;
   z-index: 20;
-  width: 280px;
+  width: 320px;
+  max-height: 420px;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+.mitraLog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 280px;
+  padding-right: 2px;
+}
 .mitraMsg {
-  font-size: 0.9rem;
+  align-self: flex-start;
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 2px;
+  background: rgba(10, 14, 26, 0.92);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.88rem;
+  line-height: 1.4;
   color: var(--text-secondary);
 }
 .voiceControls {
@@ -296,6 +312,94 @@
   color: var(--text-muted);
   min-height: 16px;
 }
+.mitraMsgUser {
+  align-self: flex-end;
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md) var(--radius-md) 2px var(--radius-md);
+  background: rgba(0, 32, 27, 0.92);
+  border: 1px solid var(--border-teal);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.mitraInputRow {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+.mitraInput {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: rgba(10, 14, 26, 0.92);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+}
+.mitraInput:focus {
+  border-color: var(--border-teal);
+}
+.mitraInput::placeholder {
+  color: var(--text-faint);
+}
+.mitraSend {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-teal);
+  background: rgba(0, 32, 27, 0.92);
+  color: var(--accent-teal);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mitraSend:hover:not(:disabled) {
+  box-shadow: var(--glow-teal-sm);
+}
+.mitraSend:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Mitra proactive bubble — live coaching, floats above the icon ── */
+.mitraBubble {
+  position: absolute;
+  bottom: 74px;
+  right: 24px;
+  z-index: 19;
+  max-width: 240px;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  background: rgba(5, 8, 16, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  animation: mitraBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mitraBubbleWarn {
+  border: 1px solid var(--accent-red);
+  color: #fecaca;
+}
+.mitraBubbleGood {
+  border: 1px solid var(--accent-teal);
+  color: var(--text-primary);
+}
+.mitraBubbleInfo {
+  border: 1px solid var(--accent-blue);
+  color: var(--text-primary);
+}
+@keyframes mitraBubbleIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .typing {
   display: flex;
   gap: 5px;
@@ -322,4 +426,9 @@
     overflow-x: auto;
   }
   .card { padding: 28px 22px; }
+  .mitraPanel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
 }

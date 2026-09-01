@@ -1,0 +1,37 @@
+# Runs automatically on every push or pull request that touches backend/.
+# Scoped to backend/ paths so frontend changes don't trigger this,
+# and backend changes don't trigger the frontend's workflow.
+
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - "backend/**"
+  pull_request:
+    paths:
+      - "backend/**"
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Confirm the app starts up without errors
+        run: python -c "from app.main import app"
+
+      # Real automated tests get added from Sprint 2 onward, once
+      # there are actual endpoints and database logic worth testing.

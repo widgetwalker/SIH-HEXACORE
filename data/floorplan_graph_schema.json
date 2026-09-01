@@ -1,112 +1,1141 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "5-Floor Campus Building Spatial Graph Definition",
+  "title": "6-Floor Campus Building Spatial Graph Definition",
   "building_name": "SIH Demonstration High School Academic Block",
   "total_floors": 6,
+  "grid_size": {
+    "cols": 25,
+    "rows": 20
+  },
+  "legend": {
+    "#": "wall",
+    ".": "open floor",
+    "D": "door (blocks fire/smoke until opened)",
+    "E": "exit / gate",
+    "F": "fire seed",
+    "P": "player spawn"
+  },
   "floors": [
     {
       "floor_number": 5,
       "name": "Senior Wing & Terrace Access",
+      "grid": [
+        "#########################",
+        "#P....#.........#....L..#",
+        "#.....#.........#........",
+        "#.....#.........#........",
+        "####D#######D######D#####",
+        "#.....#....#....#........",
+        "#.....#....#....#........",
+        "#.....#....D....#........",
+        "#.....#....#....#........",
+        "####D#######D######D#####",
+        "#.....#.........#........",
+        "#.....#.........#........",
+        "#.....#.........#.....##.",
+        "#########################"
+      ],
       "nodes": [
-        { "id": "R501", "type": "ROOM", "x": 10, "y": 20, "capacity": 40 },
-        { "id": "R502", "type": "ROOM", "x": 30, "y": 20, "capacity": 40 },
-        { "id": "CORR_5", "type": "CORRIDOR", "x": 20, "y": 50 },
-        { "id": "STAIR_5A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_4A" },
-        { "id": "STAIR_5B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_4B" },
-        { "id": "LIFT_5", "type": "ELEVATOR", "x": 25, "y": 50, "connects_to": "LIFT_4", "prohibited_in_emergency": true }
+        {
+          "id": "R501",
+          "type": "ROOM",
+          "label": "Senior Classroom 1",
+          "x": 10,
+          "y": 20,
+          "capacity": 40
+        },
+        {
+          "id": "R502",
+          "type": "ROOM",
+          "label": "Senior Classroom 2",
+          "x": 30,
+          "y": 20,
+          "capacity": 40
+        },
+        {
+          "id": "STORE_503",
+          "type": "STORE_ROOM",
+          "label": "Senior Store",
+          "x": 25,
+          "y": 70,
+          "capacity": 8
+        },
+        {
+          "id": "TERRACE_5",
+          "type": "OPEN_TERRACE",
+          "label": "Open Terrace",
+          "x": 45,
+          "y": 70,
+          "is_external": true
+        },
+        {
+          "id": "CORR_5",
+          "type": "CORRIDOR",
+          "x": 20,
+          "y": 50
+        },
+        {
+          "id": "CORR_5_E",
+          "type": "CORRIDOR",
+          "x": 45,
+          "y": 50
+        },
+        {
+          "id": "STAIR_5A",
+          "type": "STAIRWELL_NORTH",
+          "x": 5,
+          "y": 50,
+          "connects_to": "STAIR_4A"
+        },
+        {
+          "id": "STAIR_5B",
+          "type": "STAIRWELL_SOUTH",
+          "x": 65,
+          "y": 50,
+          "connects_to": "STAIR_4B"
+        },
+        {
+          "id": "LIFT_5",
+          "type": "ELEVATOR",
+          "x": 50,
+          "y": 65,
+          "connects_to": "LIFT_4",
+          "prohibited_in_emergency": true
+        },
+        {
+          "id": "DOOR_R501",
+          "type": "DOOR",
+          "x": 18,
+          "y": 50,
+          "connects": [
+            "R501",
+            "CORR_5"
+          ]
+        },
+        {
+          "id": "DOOR_R502",
+          "type": "DOOR",
+          "x": 38,
+          "y": 50,
+          "connects": [
+            "R502",
+            "CORR_5"
+          ]
+        },
+        {
+          "id": "DOOR_STORE_503",
+          "type": "DOOR",
+          "x": 28,
+          "y": 70,
+          "connects": [
+            "STORE_503",
+            "CORR_5_E"
+          ]
+        },
+        {
+          "id": "REFUGE_5",
+          "type": "REFUGE_AREA",
+          "x": 8,
+          "y": 60,
+          "is_safe_target": false
+        }
       ],
       "edges": [
-        { "source": "R501", "target": "CORR_5", "length_meters": 6.0, "base_risk_weight": 1.0 },
-        { "source": "R502", "target": "CORR_5", "length_meters": 6.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_5", "target": "STAIR_5A", "length_meters": 15.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_5", "target": "STAIR_5B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+        {
+          "source": "R501",
+          "target": "DOOR_R501",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_R501",
+          "target": "CORR_5",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "R502",
+          "target": "DOOR_R502",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_R502",
+          "target": "CORR_5",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "STORE_503",
+          "target": "DOOR_STORE_503",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_STORE_503",
+          "target": "CORR_5_E",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_5",
+          "target": "CORR_5_E",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_5",
+          "target": "STAIR_5A",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_5",
+          "target": "STAIR_5B",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_5",
+          "target": "REFUGE_5",
+          "length_meters": 5.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_5_E",
+          "target": "LIFT_5",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        }
       ]
     },
     {
       "floor_number": 4,
       "name": "Secondary Classrooms",
+      "grid": [
+        "#########################",
+        "#P....#.........#........",
+        "#.....#.........#........",
+        "#.....#.........#........",
+        "####D#######D######D#####",
+        "#.....#....#....#........",
+        "#.....#....#....#........",
+        "#.....#....D....#........",
+        "#.....#....#....#........",
+        "####D#######D######D#####",
+        "#.....#.........#........",
+        "#.....#.........#........",
+        "#.....#.........#.....##.",
+        "#########################"
+      ],
       "nodes": [
-        { "id": "R401", "type": "ROOM", "x": 10, "y": 20, "capacity": 40 },
-        { "id": "R402", "type": "ROOM", "x": 30, "y": 20, "capacity": 40 },
-        { "id": "CORR_4", "type": "CORRIDOR", "x": 20, "y": 50 },
-        { "id": "STAIR_4A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_3A" },
-        { "id": "STAIR_4B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_3B" }
+        {
+          "id": "R401",
+          "type": "ROOM",
+          "label": "Classroom 1",
+          "x": 10,
+          "y": 20,
+          "capacity": 40
+        },
+        {
+          "id": "R402",
+          "type": "ROOM",
+          "label": "Classroom 2",
+          "x": 30,
+          "y": 20,
+          "capacity": 40
+        },
+        {
+          "id": "R403",
+          "type": "ROOM",
+          "label": "Classroom 3",
+          "x": 25,
+          "y": 80,
+          "capacity": 40
+        },
+        {
+          "id": "CORR_4",
+          "type": "CORRIDOR",
+          "x": 20,
+          "y": 50
+        },
+        {
+          "id": "CORR_4_S",
+          "type": "CORRIDOR",
+          "x": 25,
+          "y": 70
+        },
+        {
+          "id": "STAIR_4A",
+          "type": "STAIRWELL_NORTH",
+          "x": 5,
+          "y": 50,
+          "connects_to": "STAIR_3A"
+        },
+        {
+          "id": "STAIR_4B",
+          "type": "STAIRWELL_SOUTH",
+          "x": 65,
+          "y": 50,
+          "connects_to": "STAIR_3B"
+        },
+        {
+          "id": "LIFT_4",
+          "type": "ELEVATOR",
+          "x": 28,
+          "y": 80,
+          "connects_to": "LIFT_3",
+          "prohibited_in_emergency": true
+        },
+        {
+          "id": "DOOR_R401",
+          "type": "DOOR",
+          "x": 18,
+          "y": 50,
+          "connects": [
+            "R401",
+            "CORR_4"
+          ]
+        },
+        {
+          "id": "DOOR_R402",
+          "type": "DOOR",
+          "x": 38,
+          "y": 50,
+          "connects": [
+            "R402",
+            "CORR_4"
+          ]
+        },
+        {
+          "id": "DOOR_R403",
+          "type": "DOOR",
+          "x": 30,
+          "y": 80,
+          "connects": [
+            "R403",
+            "CORR_4_S"
+          ]
+        },
+        {
+          "id": "REFUGE_4",
+          "type": "REFUGE_AREA",
+          "x": 8,
+          "y": 60,
+          "is_safe_target": false
+        }
       ],
       "edges": [
-        { "source": "R401", "target": "CORR_4", "length_meters": 6.0, "base_risk_weight": 1.0 },
-        { "source": "R402", "target": "CORR_4", "length_meters": 6.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_4", "target": "STAIR_4A", "length_meters": 15.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_4", "target": "STAIR_4B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+        {
+          "source": "R401",
+          "target": "DOOR_R401",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_R401",
+          "target": "CORR_4",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "R402",
+          "target": "DOOR_R402",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_R402",
+          "target": "CORR_4",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "R403",
+          "target": "DOOR_R403",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_R403",
+          "target": "CORR_4_S",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_4",
+          "target": "CORR_4_S",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_4",
+          "target": "STAIR_4A",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_4",
+          "target": "STAIR_4B",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_4",
+          "target": "REFUGE_4",
+          "length_meters": 5.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_4_S",
+          "target": "LIFT_4",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        }
       ]
     },
     {
       "floor_number": 3,
       "name": "Central Library & Computer Laboratory",
+      "grid": [
+        "#########################",
+        "#.....#..L....#........#.",
+        "#.....#......#........#..",
+        "#.....#......#........#..",
+        "####D#######D######D#####",
+        "#.....#....#....#.....#..",
+        "#.....#....#....#.....#..",
+        "#.....#....D....#.....#..",
+        "#.....#....#....#.....#..",
+        "####D#######D######D#####",
+        "#.....#..F...#........#..",
+        "#.....#......#........#..",
+        "#.....#......#........#..",
+        "#########################"
+      ],
       "nodes": [
-        { "id": "LIB_301", "type": "LIBRARY", "x": 10, "y": 20, "capacity": 80 },
-        { "id": "COMP_302", "type": "COMPUTER_LAB", "x": 30, "y": 20, "capacity": 50, "hazard_profile": "HIGH_ELECTRICAL_LOAD" },
-        { "id": "CORR_3", "type": "CORRIDOR", "x": 20, "y": 50 },
-        { "id": "STAIR_3A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_2A" },
-        { "id": "STAIR_3B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_2B" }
+        {
+          "id": "LIB_301",
+          "type": "LIBRARY",
+          "label": "Central Library",
+          "x": 10,
+          "y": 20,
+          "capacity": 80
+        },
+        {
+          "id": "COMP_302",
+          "type": "COMPUTER_LAB",
+          "label": "Computer Lab",
+          "x": 30,
+          "y": 20,
+          "capacity": 50,
+          "hazard_profile": "HIGH_ELECTRICAL_LOAD"
+        },
+        {
+          "id": "STAFF_303",
+          "type": "STAFF_ROOM",
+          "label": "Library Staff",
+          "x": 25,
+          "y": 100,
+          "capacity": 12
+        },
+        {
+          "id": "CORR_3",
+          "type": "CORRIDOR",
+          "x": 20,
+          "y": 50
+        },
+        {
+          "id": "CORR_3_S",
+          "type": "CORRIDOR",
+          "x": 25,
+          "y": 70
+        },
+        {
+          "id": "STAIR_3A",
+          "type": "STAIRWELL_NORTH",
+          "x": 5,
+          "y": 50,
+          "connects_to": "STAIR_2A"
+        },
+        {
+          "id": "STAIR_3B",
+          "type": "STAIRWELL_SOUTH",
+          "x": 65,
+          "y": 50,
+          "connects_to": "STAIR_2B"
+        },
+        {
+          "id": "LIFT_3",
+          "type": "ELEVATOR",
+          "x": 28,
+          "y": 100,
+          "connects_to": "LIFT_2",
+          "prohibited_in_emergency": true
+        },
+        {
+          "id": "DOOR_LIB_301",
+          "type": "DOOR",
+          "x": 18,
+          "y": 50,
+          "connects": [
+            "LIB_301",
+            "CORR_3"
+          ]
+        },
+        {
+          "id": "DOOR_COMP_302",
+          "type": "DOOR",
+          "x": 38,
+          "y": 50,
+          "connects": [
+            "COMP_302",
+            "CORR_3"
+          ]
+        },
+        {
+          "id": "DOOR_STAFF_303",
+          "type": "DOOR",
+          "x": 30,
+          "y": 100,
+          "connects": [
+            "STAFF_303",
+            "CORR_3_S"
+          ]
+        },
+        {
+          "id": "REFUGE_3",
+          "type": "REFUGE_AREA",
+          "x": 8,
+          "y": 60,
+          "is_safe_target": false
+        }
       ],
       "edges": [
-        { "source": "LIB_301", "target": "CORR_3", "length_meters": 8.0, "base_risk_weight": 1.0 },
-        { "source": "COMP_302", "target": "CORR_3", "length_meters": 8.0, "base_risk_weight": 1.2 },
-        { "source": "CORR_3", "target": "STAIR_3A", "length_meters": 15.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_3", "target": "STAIR_3B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+        {
+          "source": "LIB_301",
+          "target": "DOOR_LIB_301",
+          "length_meters": 8.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_LIB_301",
+          "target": "CORR_3",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "COMP_302",
+          "target": "DOOR_COMP_302",
+          "length_meters": 8.0,
+          "base_risk_weight": 1.2
+        },
+        {
+          "source": "DOOR_COMP_302",
+          "target": "CORR_3",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.2
+        },
+        {
+          "source": "STAFF_303",
+          "target": "DOOR_STAFF_303",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_STAFF_303",
+          "target": "CORR_3_S",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_3",
+          "target": "CORR_3_S",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_3",
+          "target": "STAIR_3A",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_3",
+          "target": "STAIR_3B",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_3",
+          "target": "REFUGE_3",
+          "length_meters": 5.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_3_S",
+          "target": "LIFT_3",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        }
       ]
     },
     {
       "floor_number": 2,
       "name": "Science & Chemical Laboratories",
+      "grid": [
+        "#########################",
+        "#.....#..F....#........#.",
+        "#.....#......#........#..",
+        "#.....#......#........#..",
+        "####D#######D######D#####",
+        "#.....#....#....#.....#..",
+        "#.....#....#....#.....#..",
+        "#.....#....D....#.....#..",
+        "#.....#....#....#.....#..",
+        "####D#######D######D#####",
+        "#.....#......#........#..",
+        "#.....#......#........#..",
+        "#.....#......#........#..",
+        "#########################"
+      ],
       "nodes": [
-        { "id": "CHEM_201", "type": "CHEMISTRY_LAB", "x": 10, "y": 20, "capacity": 35, "hazard_profile": "FLAMMABLE_CHEMICALS" },
-        { "id": "PHYS_202", "type": "PHYSICS_LAB", "x": 30, "y": 20, "capacity": 35 },
-        { "id": "CORR_2", "type": "CORRIDOR", "x": 20, "y": 50 },
-        { "id": "STAIR_2A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_1A" },
-        { "id": "STAIR_2B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_1B" }
+        {
+          "id": "CHEM_201",
+          "type": "CHEMISTRY_LAB",
+          "label": "Chemistry Lab",
+          "x": 10,
+          "y": 20,
+          "capacity": 35,
+          "hazard_profile": "FLAMMABLE_CHEMICALS"
+        },
+        {
+          "id": "PHYS_202",
+          "type": "PHYSICS_LAB",
+          "label": "Physics Lab",
+          "x": 30,
+          "y": 20,
+          "capacity": 35
+        },
+        {
+          "id": "PREP_203",
+          "type": "LAB_PREP_ROOM",
+          "label": "Lab Prep / Chemical Store",
+          "x": 25,
+          "y": 80,
+          "capacity": 6,
+          "hazard_profile": "FLAMMABLE_CHEMICALS"
+        },
+        {
+          "id": "CORR_2",
+          "type": "CORRIDOR",
+          "x": 20,
+          "y": 50
+        },
+        {
+          "id": "CORR_2_S",
+          "type": "CORRIDOR",
+          "x": 25,
+          "y": 70
+        },
+        {
+          "id": "STAIR_2A",
+          "type": "STAIRWELL_NORTH",
+          "x": 5,
+          "y": 50,
+          "connects_to": "STAIR_1A"
+        },
+        {
+          "id": "STAIR_2B",
+          "type": "STAIRWELL_SOUTH",
+          "x": 65,
+          "y": 50,
+          "connects_to": "STAIR_1B"
+        },
+        {
+          "id": "LIFT_2",
+          "type": "ELEVATOR",
+          "x": 28,
+          "y": 80,
+          "connects_to": "LIFT_1",
+          "prohibited_in_emergency": true
+        },
+        {
+          "id": "DOOR_CHEM_201",
+          "type": "DOOR",
+          "x": 18,
+          "y": 50,
+          "connects": [
+            "CHEM_201",
+            "CORR_2"
+          ]
+        },
+        {
+          "id": "DOOR_PHYS_202",
+          "type": "DOOR",
+          "x": 38,
+          "y": 50,
+          "connects": [
+            "PHYS_202",
+            "CORR_2"
+          ]
+        },
+        {
+          "id": "DOOR_PREP_203",
+          "type": "DOOR",
+          "x": 30,
+          "y": 80,
+          "connects": [
+            "PREP_203",
+            "CORR_2_S"
+          ]
+        },
+        {
+          "id": "REFUGE_2",
+          "type": "REFUGE_AREA",
+          "x": 8,
+          "y": 60,
+          "is_safe_target": false
+        }
       ],
       "edges": [
-        { "source": "CHEM_201", "target": "CORR_2", "length_meters": 8.0, "base_risk_weight": 1.5 },
-        { "source": "PHYS_202", "target": "CORR_2", "length_meters": 8.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_2", "target": "STAIR_2A", "length_meters": 15.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_2", "target": "STAIR_2B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+        {
+          "source": "CHEM_201",
+          "target": "DOOR_CHEM_201",
+          "length_meters": 8.0,
+          "base_risk_weight": 1.5
+        },
+        {
+          "source": "DOOR_CHEM_201",
+          "target": "CORR_2",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.5
+        },
+        {
+          "source": "PHYS_202",
+          "target": "DOOR_PHYS_202",
+          "length_meters": 8.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_PHYS_202",
+          "target": "CORR_2",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "PREP_203",
+          "target": "DOOR_PREP_203",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.5
+        },
+        {
+          "source": "DOOR_PREP_203",
+          "target": "CORR_2_S",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.5
+        },
+        {
+          "source": "CORR_2",
+          "target": "CORR_2_S",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_2",
+          "target": "STAIR_2A",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_2",
+          "target": "STAIR_2B",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_2",
+          "target": "REFUGE_2",
+          "length_meters": 5.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_2_S",
+          "target": "LIFT_2",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        }
       ]
     },
     {
       "floor_number": 1,
       "name": "Junior Wing & Faculty Staffroom",
+      "grid": [
+        "#########################",
+        "#P....#.........#........",
+        "#.....#.........#........",
+        "#.....#.........#........",
+        "####D#######D######D#####",
+        "#.....#....#....#.....#..",
+        "#.....#....#....#.....#..",
+        "#.....#....D....#.....#..",
+        "#.....#....#....#.....#..",
+        "####D#######D######D#####",
+        "#.....#.........#........",
+        "#.....#.........#........",
+        "#.....#.........#.....##.",
+        "#########################"
+      ],
       "nodes": [
-        { "id": "R101", "type": "ROOM", "x": 10, "y": 20, "capacity": 40 },
-        { "id": "STAFF_102", "type": "STAFF_ROOM", "x": 30, "y": 20, "capacity": 25 },
-        { "id": "CORR_1", "type": "CORRIDOR", "x": 20, "y": 50 },
-        { "id": "STAIR_1A", "type": "STAIRWELL_NORTH", "x": 5, "y": 50, "connects_to": "STAIR_0A" },
-        { "id": "STAIR_1B", "type": "STAIRWELL_SOUTH", "x": 45, "y": 50, "connects_to": "STAIR_0B" }
+        {
+          "id": "R101",
+          "type": "ROOM",
+          "label": "Junior Classroom",
+          "x": 10,
+          "y": 20,
+          "capacity": 40
+        },
+        {
+          "id": "STAFF_102",
+          "type": "STAFF_ROOM",
+          "label": "Faculty Staffroom",
+          "x": 30,
+          "y": 20,
+          "capacity": 25
+        },
+        {
+          "id": "PRINCIPAL_103",
+          "type": "OFFICE",
+          "label": "Principal's Office",
+          "x": 25,
+          "y": 100,
+          "capacity": 4
+        },
+        {
+          "id": "CORR_1",
+          "type": "CORRIDOR",
+          "x": 20,
+          "y": 50
+        },
+        {
+          "id": "CORR_1_S",
+          "type": "CORRIDOR",
+          "x": 25,
+          "y": 70
+        },
+        {
+          "id": "STAIR_1A",
+          "type": "STAIRWELL_NORTH",
+          "x": 5,
+          "y": 50,
+          "connects_to": "STAIR_0A"
+        },
+        {
+          "id": "STAIR_1B",
+          "type": "STAIRWELL_SOUTH",
+          "x": 65,
+          "y": 50,
+          "connects_to": "STAIR_0B"
+        },
+        {
+          "id": "LIFT_1",
+          "type": "ELEVATOR",
+          "x": 28,
+          "y": 100,
+          "connects_to": "LIFT_0",
+          "prohibited_in_emergency": true
+        },
+        {
+          "id": "DOOR_R101",
+          "type": "DOOR",
+          "x": 18,
+          "y": 50,
+          "connects": [
+            "R101",
+            "CORR_1"
+          ]
+        },
+        {
+          "id": "DOOR_STAFF_102",
+          "type": "DOOR",
+          "x": 38,
+          "y": 50,
+          "connects": [
+            "STAFF_102",
+            "CORR_1"
+          ]
+        },
+        {
+          "id": "DOOR_PRINCIPAL_103",
+          "type": "DOOR",
+          "x": 30,
+          "y": 100,
+          "connects": [
+            "PRINCIPAL_103",
+            "CORR_1_S"
+          ]
+        },
+        {
+          "id": "REFUGE_1",
+          "type": "REFUGE_AREA",
+          "x": 8,
+          "y": 60,
+          "is_safe_target": false
+        }
       ],
       "edges": [
-        { "source": "R101", "target": "CORR_1", "length_meters": 6.0, "base_risk_weight": 1.0 },
-        { "source": "STAFF_102", "target": "CORR_1", "length_meters": 6.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_1", "target": "STAIR_1A", "length_meters": 15.0, "base_risk_weight": 1.0 },
-        { "source": "CORR_1", "target": "STAIR_1B", "length_meters": 15.0, "base_risk_weight": 1.0 }
+        {
+          "source": "R101",
+          "target": "DOOR_R101",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_R101",
+          "target": "CORR_1",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "STAFF_102",
+          "target": "DOOR_STAFF_102",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_STAFF_102",
+          "target": "CORR_1",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "PRINCIPAL_103",
+          "target": "DOOR_PRINCIPAL_103",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_PRINCIPAL_103",
+          "target": "CORR_1_S",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_1",
+          "target": "CORR_1_S",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_1",
+          "target": "STAIR_1A",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_1",
+          "target": "STAIR_1B",
+          "length_meters": 15.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_1",
+          "target": "REFUGE_1",
+          "length_meters": 5.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_1_S",
+          "target": "LIFT_1",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        }
       ]
     },
     {
       "floor_number": 0,
       "name": "Ground Floor, Courtyard & Assembly Zone",
+      "grid": [
+        "#########################",
+        "#.....#.............#....",
+        "#.....#.............#....",
+        "####D##########D######D##",
+        "#.....#....#....#.....#.#",
+        "#.....#....#....#.....#.#",
+        "#.....#....D....#.....#.#",
+        "#.....#....#....#.....#.#",
+        "####D##########D######D##",
+        "#.....#...............#.#",
+        "#.....#...............#.#",
+        "#.....#...........E....#.",
+        "#.....#...........E....#.",
+        "#########################"
+      ],
       "nodes": [
-        { "id": "MAIN_LOBBY", "type": "LOBBY", "x": 20, "y": 30 },
-        { "id": "PANEL_001", "type": "ELECTRICAL_TRANSFORMER_ROOM", "x": 40, "y": 10, "hazard_profile": "HIGH_VOLTAGE_ELECTRICAL" },
-        { "id": "STAIR_0A", "type": "STAIRWELL_NORTH_EXIT", "x": 5, "y": 50 },
-        { "id": "STAIR_0B", "type": "STAIRWELL_SOUTH_EXIT", "x": 45, "y": 50 },
-        { "id": "GATE_NORTH", "type": "MAIN_GATE", "x": 5, "y": 80 },
-        { "id": "GATE_SOUTH", "type": "EMERGENCY_GATE", "x": 45, "y": 80 },
-        { "id": "SAFE_ASSEMBLY_ZONE", "type": "OPEN_GROUND_REFUGE", "x": 25, "y": 120, "is_safe_target": true }
+        {
+          "id": "MAIN_LOBBY",
+          "type": "LOBBY",
+          "label": "Main Lobby",
+          "x": 25,
+          "y": 60
+        },
+        {
+          "id": "PANEL_001",
+          "type": "ELECTRICAL_TRANSFORMER_ROOM",
+          "label": "Electrical Panel",
+          "x": 15,
+          "y": 20,
+          "hazard_profile": "HIGH_VOLTAGE_ELECTRICAL"
+        },
+        {
+          "id": "REC_001",
+          "type": "RECEPTION",
+          "label": "Reception / Front Desk",
+          "x": 35,
+          "y": 20,
+          "capacity": 8
+        },
+        {
+          "id": "CORR_0",
+          "type": "CORRIDOR",
+          "x": 25,
+          "y": 50
+        },
+        {
+          "id": "STAIR_0A",
+          "type": "STAIRWELL_NORTH_EXIT",
+          "x": 5,
+          "y": 50,
+          "connects_to": "STAIR_1A"
+        },
+        {
+          "id": "STAIR_0B",
+          "type": "STAIRWELL_SOUTH_EXIT",
+          "x": 45,
+          "y": 50,
+          "connects_to": "STAIR_1B"
+        },
+        {
+          "id": "LIFT_0",
+          "type": "ELEVATOR",
+          "x": 30,
+          "y": 60,
+          "connects_to": "LIFT_1",
+          "prohibited_in_emergency": true
+        },
+        {
+          "id": "DOOR_PANEL_001",
+          "type": "DOOR",
+          "x": 18,
+          "y": 50,
+          "connects": [
+            "PANEL_001",
+            "CORR_0"
+          ]
+        },
+        {
+          "id": "DOOR_REC_001",
+          "type": "DOOR",
+          "x": 38,
+          "y": 50,
+          "connects": [
+            "REC_001",
+            "CORR_0"
+          ]
+        },
+        {
+          "id": "GATE_NORTH",
+          "type": "MAIN_GATE",
+          "x": 12,
+          "y": 80
+        },
+        {
+          "id": "GATE_SOUTH",
+          "type": "EMERGENCY_GATE",
+          "x": 38,
+          "y": 80
+        },
+        {
+          "id": "SAFE_ASSEMBLY_ZONE",
+          "type": "OPEN_GROUND_REFUGE",
+          "x": 25,
+          "y": 110,
+          "is_safe_target": true
+        }
       ],
       "edges": [
-        { "source": "STAIR_0A", "target": "GATE_NORTH", "length_meters": 10.0, "base_risk_weight": 1.0 },
-        { "source": "STAIR_0B", "target": "GATE_SOUTH", "length_meters": 10.0, "base_risk_weight": 1.0 },
-        { "source": "GATE_NORTH", "target": "SAFE_ASSEMBLY_ZONE", "length_meters": 20.0, "base_risk_weight": 0.1 },
-        { "source": "GATE_SOUTH", "target": "SAFE_ASSEMBLY_ZONE", "length_meters": 20.0, "base_risk_weight": 0.1 }
+        {
+          "source": "STAIR_0A",
+          "target": "CORR_0",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "STAIR_0B",
+          "target": "CORR_0",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "PANEL_001",
+          "target": "DOOR_PANEL_001",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.5
+        },
+        {
+          "source": "DOOR_PANEL_001",
+          "target": "CORR_0",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.5
+        },
+        {
+          "source": "REC_001",
+          "target": "DOOR_REC_001",
+          "length_meters": 6.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "DOOR_REC_001",
+          "target": "CORR_0",
+          "length_meters": 1.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "CORR_0",
+          "target": "MAIN_LOBBY",
+          "length_meters": 8.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "MAIN_LOBBY",
+          "target": "GATE_NORTH",
+          "length_meters": 10.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "MAIN_LOBBY",
+          "target": "GATE_SOUTH",
+          "length_meters": 10.0,
+          "base_risk_weight": 1.0
+        },
+        {
+          "source": "GATE_NORTH",
+          "target": "SAFE_ASSEMBLY_ZONE",
+          "length_meters": 20.0,
+          "base_risk_weight": 0.1
+        },
+        {
+          "source": "GATE_SOUTH",
+          "target": "SAFE_ASSEMBLY_ZONE",
+          "length_meters": 20.0,
+          "base_risk_weight": 0.1
+        },
+        {
+          "source": "MAIN_LOBBY",
+          "target": "LIFT_0",
+          "length_meters": 4.0,
+          "base_risk_weight": 1.0
+        }
       ]
     }
   ]

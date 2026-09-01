@@ -1,0 +1,47 @@
+# Local development environment. Run from the REPO ROOT with:
+#   docker compose up
+#
+# This brings up three services so every teammate has the exact same
+# setup instead of installing Postgres/Redis by hand:
+#   1. The FastAPI backend (backend/)
+#   2. PostgreSQL 16 with PostGIS - auto-loads database/schema.sql
+#      the FIRST time the container starts (empty data volume only)
+#   3. Redis (used from Day 2 onward for caching and pub/sub)
+#
+# NOTE: schema.sql only runs once, when the postgres_data volume is
+# first created. If you change schema.sql later and want it re-applied,
+# run: docker compose down -v   (this wipes local dev data - fine for
+# a hackathon, never do this against a real deployed database)
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend/app:/app/app  # live-mounts code, no rebuild needed on edits
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sih_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

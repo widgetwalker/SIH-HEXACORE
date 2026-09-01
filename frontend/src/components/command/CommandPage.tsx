@@ -4,13 +4,19 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
-import MultiFloorVisualizer from "./MultiFloorVisualizer";
-import styles from "./CommandPage.module.css";
+
+const MultiFloorVisualizer = dynamic(
+  () => import("./MultiFloorVisualizer"),
+  { ssr: false }
+);
+
 
 const ConstellationField = dynamic(
   () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
   { ssr: false }
 );
+
+import styles from "./CommandPage.module.css";
 
 const ALERTS = [
   { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
