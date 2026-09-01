@@ -18,7 +18,7 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 # side effects on the API itself.
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
-from app.api.v1 import buildings, health, scenarios
+from app.api.v1 import buildings, health, scenarios, websockets
 from app.services.websocket_manager import ws_manager
 
 app = FastAPI(
@@ -58,6 +58,10 @@ async def on_startup() -> None:
 async def on_shutdown() -> None:
     """Close the shared Redis connection cleanly on app shutdown."""
     try:
+        await ws_manager.shutdown()
+    except Exception:  # noqa: BLE001 - intentional: best-effort cleanup
+        pass
+    try:
         await redis_client.aclose()
     except Exception:  # noqa: BLE001 - intentional: best-effort cleanup
         pass
@@ -69,3 +73,4 @@ async def on_shutdown() -> None:
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(buildings.router, prefix="/api/v1", tags=["buildings"])
 app.include_router(scenarios.router, prefix="/api/v1", tags=["scenarios"])
+app.include_router(websockets.router, prefix="/api/v1", tags=["websockets"])

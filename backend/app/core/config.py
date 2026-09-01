@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # JWT auth - not used until Sprint 3, placeholder for now.
     JWT_SECRET_KEY: str = "change-me-in-env-file"
     JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str | None = None
+    JWT_AUDIENCE: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
