@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
+import GameModal from "./games/GameModal";
+import DropCoverHoldGame from "./games/DropCoverHoldGame";
+import GoBagBuilder from "./games/GoBagBuilder";
+import PassExtinguisherGame from "./games/PassExtinguisherGame";
 import styles from "./LearnPage.module.css";
 
 const TIERS = [
@@ -12,14 +16,34 @@ const TIERS = [
   { id: 5, age: "18+", label: "Wardens", color: "red", icon: "🎖️", modules: 12, completed: 0 },
 ];
 
-const MODULES = [
-  { id: "m1", title: "Earthquake: Drop, Cover, Hold On", type: "Interactive", duration: "12 min", status: "completed", score: 94, icon: "🌍" },
-  { id: "m2", title: "Fire Evacuation: PASS Method", type: "Simulation", duration: "18 min", status: "completed", score: 88, icon: "🔥" },
+type GameKey = "dch" | "pass" | "gobag";
+
+interface Module {
+  id: string;
+  title: string;
+  type: string;
+  duration: string;
+  status: "completed" | "in-progress" | "locked";
+  score: number | null;
+  icon: string;
+  game?: GameKey;
+}
+
+const INITIAL_MODULES: Module[] = [
+  { id: "m1", title: "Earthquake: Drop, Cover, Hold On", type: "Interactive", duration: "12 min", status: "completed", score: 94, icon: "🌍", game: "dch" },
+  { id: "m2", title: "Fire Evacuation: PASS Method", type: "Simulation", duration: "18 min", status: "completed", score: 88, icon: "🔥", game: "pass" },
   { id: "m3", title: "Floor-by-Floor Hazard Mapping", type: "Interactive", duration: "15 min", status: "in-progress", score: null, icon: "🗺️" },
   { id: "m4", title: "Chemical Spill: Lab Safety Protocol", type: "Video + Quiz", duration: "10 min", status: "locked", score: null, icon: "🧪" },
   { id: "m5", title: "Cyclone & Flood Shelter Procedures", type: "Interactive", duration: "14 min", status: "locked", score: null, icon: "🌊" },
   { id: "m6", title: "Multi-Hazard Compound Drill", type: "Simulation", duration: "25 min", status: "locked", score: null, icon: "⚠️" },
+  { id: "m7", title: "Emergency Go-Bag Builder", type: "Interactive", duration: "8 min", status: "in-progress", score: null, icon: "🎒", game: "gobag" },
 ];
+
+const GAME_META: Record<GameKey, { title: string; icon: string }> = {
+  dch: { title: "Drop, Cover, Hold On — Reflex Drill", icon: "🌍" },
+  pass: { title: "Fire Extinguisher — PASS Method", icon: "🔥" },
+  gobag: { title: "Emergency Go-Bag Builder", icon: "🎒" },
+};
 
 const BADGES = [
   { name: "First Responder", earned: true, icon: "🏅" },
@@ -35,6 +59,8 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
+  const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
+  const [activeGameModule, setActiveGameModule] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -150,16 +176,20 @@ export default function LearnPage() {
               <span className="badge badge-teal">Tier {activeTier}</span>
             </div>
             <div className={styles.modulesList}>
-              {MODULES.map((m) => (
+              {modules.map((m) => (
                 <div
                   key={m.id}
                   className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
                   onClick={() => {
-                    if (m.status !== "locked") {
-                      setSelectedModule(m.id);
-                      showToast(`Loaded "${m.title}"`);
-                    } else {
+                    if (m.status === "locked") {
                       showToast("🔒 Complete previous modules to unlock this drill");
+                      return;
+                    }
+                    setSelectedModule(m.id);
+                    if (m.game) {
+                      setActiveGameModule(m.id);
+                    } else {
+                      showToast(`Loaded "${m.title}"`);
                     }
                   }}
                   role="button"
@@ -180,7 +210,7 @@ export default function LearnPage() {
                         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="var(--accent-teal)" strokeWidth="1.5"/><path d="M6 9l2 2 4-4" stroke="var(--accent-teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
-                    {m.status === "in-progress" && <span className="badge badge-amber badge-pulse">In Progress</span>}
+                    {m.status === "in-progress" && <span className="badge badge-amber">In Progress</span>}
                     {m.status === "locked" && (
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={styles.lockIcon}>
                         <rect x="4" y="8" width="10" height="8" rx="2" stroke="var(--text-faint)" strokeWidth="1.5"/>
@@ -214,6 +244,25 @@ export default function LearnPage() {
           </section>
         </main>
       </div>
+
+      {activeGameModule && (() => {
+        const mod = modules.find((m) => m.id === activeGameModule);
+        if (!mod || !mod.game) return null;
+        const meta = GAME_META[mod.game];
+        const finishGame = (score: number) => {
+          setModules((prev) =>
+            prev.map((m) => (m.id === mod.id ? { ...m, status: "completed", score } : m))
+          );
+          showToast(`✓ "${mod.title}" complete — scored ${score}%`);
+        };
+        return (
+          <GameModal title={meta.title} icon={meta.icon} onClose={() => setActiveGameModule(null)}>
+            {mod.game === "dch" && <DropCoverHoldGame onComplete={finishGame} />}
+            {mod.game === "pass" && <PassExtinguisherGame onComplete={finishGame} />}
+            {mod.game === "gobag" && <GoBagBuilder onComplete={finishGame} />}
+          </GameModal>
+        );
+      })()}
     </div>
   );
 }

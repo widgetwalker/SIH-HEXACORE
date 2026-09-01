@@ -92,6 +92,62 @@ export default function SimulatePage() {
     };
   }, []);
 
+  /* ── Mitra voice — Web Speech API (doc 08 §7, Frontend Dev 2 task 3) ── */
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speechSupported, setSpeechSupported] = useState({ tts: false, stt: false });
+  const recognitionRef = useRef<InstanceType<NonNullable<typeof window.SpeechRecognition>> | null>(null);
+  const lastSpokenRef = useRef("");
+
+  useEffect(() => {
+    setSpeechSupported({
+      tts: typeof window !== "undefined" && "speechSynthesis" in window,
+      stt: typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+    });
+  }, []);
+
+  const speak = (text: string) => {
+    if (!("speechSynthesis" in window) || !text) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.pitch = 1.0;
+    window.speechSynthesis.speak(utter);
+  };
+
+  const toggleListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = "en-IN";
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const text = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      setTranscript(text);
+      const last = e.results[e.results.length - 1];
+      if (last.isFinal) {
+        const lower = text.toLowerCase();
+        if (/help|status|repeat|mitra/.test(lower)) {
+          speak(getMitraTip(gs));
+        }
+      }
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+    setTranscript("");
+  };
+
   useEffect(() => {
     if (!mitraPanelRef.current) return;
     const el = mitraPanelRef.current;
@@ -155,8 +211,11 @@ export default function SimulatePage() {
       const data = await res.json();
       const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
       setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
+      if (voiceOn) speak(replyText);
     } catch {
-      setMitraMessages((m) => [...m, { role: "mitra", text: "Connection lost — try again once you're back online." }]);
+      const failText = "Connection lost — try again once you're back online.";
+      setMitraMessages((m) => [...m, { role: "mitra", text: failText }]);
+      if (voiceOn) speak(failText);
     } finally {
       setMitraLoading(false);
     }
@@ -197,6 +256,16 @@ export default function SimulatePage() {
       showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good");
     }
   };
+
+  /* hands-free coaching: speak Mitra's tip whenever it changes, while voice is on */
+  useEffect(() => {
+    if (!voiceOn || phase === "briefing") return;
+    const tip = getMitraTip(gs);
+    if (tip === lastSpokenRef.current) return;
+    lastSpokenRef.current = tip;
+    speak(tip);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, gs, phase]);
 
   const onState = (s: GameState) => {
     setGs(s);
@@ -246,7 +315,7 @@ export default function SimulatePage() {
         {phase === "briefing" && (
           <div className={styles.overlay}>
             <div className={`hud-panel ${styles.card}`}>
-              <span className="badge badge-red badge-pulse">{scenario.badge}</span>
+              <span className="badge badge-red">{scenario.badge}</span>
               <h1 className={styles.cardTitle}>{scenario.hazardLabel} DRILL</h1>
               <p className={styles.cardDesc}>{scenario.brief}</p>
 
@@ -378,7 +447,38 @@ export default function SimulatePage() {
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
-            <span className="hud-label">Mitra · Crisis Companion</span>
+            <div className={styles.mitraHeader}>
+              <span className="hud-label">Mitra · Crisis Companion</span>
+              <div className={styles.mitraVoiceControls}>
+                {speechSupported.tts && (
+                  <button
+                    type="button"
+                    className={`${styles.mitraIconBtn} ${voiceOn ? styles.mitraIconBtnActive : ""}`}
+                    onClick={() => {
+                      const next = !voiceOn;
+                      setVoiceOn(next);
+                      if (!next) window.speechSynthesis.cancel();
+                      else speak(mitraMessages[mitraMessages.length - 1]?.text ?? getMitraTip(gs));
+                    }}
+                    title={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
+                    aria-pressed={voiceOn}
+                  >
+                    {voiceOn ? "🔊" : "🔈"}
+                  </button>
+                )}
+                {speechSupported.stt && (
+                  <button
+                    type="button"
+                    className={`${styles.mitraIconBtn} ${listening ? styles.mitraIconBtnActive : ""}`}
+                    onClick={toggleListening}
+                    title={listening ? "Stop listening" : "Say \"help\" or \"status\" for hands-free coaching"}
+                    aria-pressed={listening}
+                  >
+                    {listening ? "🎙️" : "🎤"}
+                  </button>
+                )}
+              </div>
+            </div>
             <div ref={mitraLogRef} className={styles.mitraLog}>
               {mitraMessages.map((m, i) => (
                 <p key={i} className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
@@ -389,6 +489,9 @@ export default function SimulatePage() {
                 <div className={styles.typing}><span /><span /><span /></div>
               )}
             </div>
+            {listening && (
+              <p className={styles.mitraTranscript}>{transcript || "Listening… try “help” or “status”"}</p>
+            )}
             <form
               className={styles.mitraInputRow}
               onSubmit={(e) => {

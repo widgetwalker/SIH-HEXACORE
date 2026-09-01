@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import * as THREE from "three";
 import { parseFloorplan, SCENARIOS, type BlockageEvent, type Scenario } from "./floorplan";
 import type { RunTelemetry, TelemetryEvent } from "./telemetry";
+import styles from "./EvacuationGame.module.css";
 
 type BlockageWithWarn = BlockageEvent & { warned?: boolean };
 
@@ -49,6 +51,65 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
   onStateRef.current = onState;
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
+
+  /* ── mobile touch input — virtual joystick (dx/dz) + hold-buttons for
+     crouch/box-breathe. Mutated directly by pointer handlers below and read
+     each tick alongside `keys`, so touch and keyboard combine seamlessly. ── */
+  const touchStateRef = useRef({ dx: 0, dz: 0, crouch: false, breathe: false });
+  const joystickBaseRef = useRef<HTMLDivElement>(null);
+  const joystickKnobRef = useRef<HTMLDivElement>(null);
+  const joystickPointerId = useRef<number | null>(null);
+
+  const updateJoystick = (clientX: number, clientY: number) => {
+    const base = joystickBaseRef.current;
+    const knob = joystickKnobRef.current;
+    if (!base || !knob) return;
+    const rect = base.getBoundingClientRect();
+    const maxR = rect.width / 2;
+    let dx = clientX - (rect.left + rect.width / 2);
+    let dy = clientY - (rect.top + rect.height / 2);
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxR) {
+      dx = (dx / dist) * maxR;
+      dy = (dy / dist) * maxR;
+    }
+    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    const nx = dx / maxR;
+    const ny = dy / maxR;
+    const deadzone = 0.15;
+    const mag = Math.hypot(nx, ny);
+    touchStateRef.current.dx = mag < deadzone ? 0 : nx;
+    touchStateRef.current.dz = mag < deadzone ? 0 : ny;
+  };
+
+  const onJoystickDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    joystickPointerId.current = e.pointerId;
+    updateJoystick(e.clientX, e.clientY);
+  };
+  const onJoystickMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (joystickPointerId.current !== e.pointerId) return;
+    updateJoystick(e.clientX, e.clientY);
+  };
+  const onJoystickUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (joystickPointerId.current !== e.pointerId) return;
+    joystickPointerId.current = null;
+    touchStateRef.current.dx = 0;
+    touchStateRef.current.dz = 0;
+    if (joystickKnobRef.current) {
+      joystickKnobRef.current.style.transform = "translate(-50%, -50%)";
+    }
+  };
+  const setCrouch = (v: boolean) => (e: ReactPointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    touchStateRef.current.crouch = v;
+    e.currentTarget.classList.toggle(styles.actionBtnActive, v);
+  };
+  const setBreathe = (v: boolean) => (e: ReactPointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    touchStateRef.current.breathe = v;
+    e.currentTarget.classList.toggle(styles.actionBtnActive, v);
+  };
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -321,6 +382,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
 
     /* ── input ── */
     const keys = new Set<string>();
+    const touchState = touchStateRef.current;
     const isTypingTarget = (t: EventTarget | null) => {
       const el = t as HTMLElement | null;
       return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
@@ -623,8 +685,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         0,
         Math.round(oxygen * 2 + (TIME_LIMIT - time) * 3 + (100 - panic))
       );
-      const crouching = keys.has("shift");
-      const breathing = keys.has("b");
+      const crouching = keys.has("shift") || touchState.crouch;
+      const breathing = keys.has("b") || touchState.breathe;
       const pc = Math.floor(player.position.x / CELL + cols / 2);
       const pr = Math.floor(player.position.z / CELL + rows / 2);
       const pIdx = idxOf(pc, pr);
@@ -669,8 +731,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
 
       if (status === "running") {
         time += dt;
-        const crouching = keys.has("shift");
-        const breathing = keys.has("b");
+        const crouching = keys.has("shift") || touchState.crouch;
+        const breathing = keys.has("b") || touchState.breathe;
 
         /* scripted blockage timeline (warn first, then collapse) */
         const pending = blockages[nextBlockage];
@@ -700,6 +762,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           if (keys.has("s") || keys.has("arrowdown")) dz += 1;
           if (keys.has("a") || keys.has("arrowleft")) dx -= 1;
           if (keys.has("d") || keys.has("arrowright")) dx += 1;
+          dx += touchState.dx;
+          dz += touchState.dz;
           if (dx || dz) {
             const len = Math.hypot(dx, dz);
             const step = speed * dt;
@@ -1030,5 +1094,45 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <div ref={mountRef} style={{ position: "absolute", inset: 0 }} />;
+  return (
+    <>
+      <div ref={mountRef} style={{ position: "absolute", inset: 0 }} />
+      <div className={styles.touchControls}>
+        <div
+          ref={joystickBaseRef}
+          className={styles.joystickBase}
+          onPointerDown={onJoystickDown}
+          onPointerMove={onJoystickMove}
+          onPointerUp={onJoystickUp}
+          onPointerCancel={onJoystickUp}
+        >
+          <div ref={joystickKnobRef} className={styles.joystickKnob} />
+        </div>
+        <div className={styles.actionButtons}>
+          <button
+            type="button"
+            className={styles.actionBtn}
+            onPointerDown={setCrouch(true)}
+            onPointerUp={setCrouch(false)}
+            onPointerLeave={setCrouch(false)}
+            onPointerCancel={setCrouch(false)}
+            aria-label="Crouch"
+          >
+            CROUCH
+          </button>
+          <button
+            type="button"
+            className={styles.actionBtn}
+            onPointerDown={setBreathe(true)}
+            onPointerUp={setBreathe(false)}
+            onPointerLeave={setBreathe(false)}
+            onPointerCancel={setBreathe(false)}
+            aria-label="Box-breathe"
+          >
+            BREATHE
+          </button>
+        </div>
+      </div>
+    </>
+  );
 }
