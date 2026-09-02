@@ -8,6 +8,7 @@ anyone opening it can see the whole shape of the API at a glance.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis on startup
@@ -23,6 +24,18 @@ from app.services.websocket_manager import ws_manager
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
+)
+
+# CORS — allow the Next.js dev server to reach the FastAPI backend.
+# Restrictive by default: only GET (and OPTIONS for preflight) since
+# all current endpoints are read-only.  Credentials allowed because the
+# JWT auth cookie will need to flow cross-origin.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "Authorization", "Cookie"],
 )
 
 
