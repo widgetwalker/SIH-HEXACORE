@@ -19,16 +19,19 @@ The frontend is fully self-contained: **no database, no backend, and no API keys
 - **npm**: v9+ (`npm -v`)
 - **Git**
 
-### 2. Clone, then run this one command
+### 2. Clone and run
+
+**macOS / Linux / Git Bash:**
 ```bash
 git clone https://github.com/widgetwalker/SIH-HEXACORE.git && cd SIH-HEXACORE/frontend && npm install && npm run dev
 ```
-That installs every dependency and starts the dev server (Turbopack) at **`http://localhost:3000`** — nothing else to configure.
 
-If you already cloned it, just run from inside `frontend/`:
-```bash
-npm install && npm run dev
+**Windows PowerShell** (`&&` isn't a valid separator there — use `;`, or just run each line separately):
+```powershell
+git clone https://github.com/widgetwalker/SIH-HEXACORE.git; cd SIH-HEXACORE/frontend; npm install; npm run dev
 ```
+
+Either way this installs every dependency and starts the dev server (Turbopack) at **`http://localhost:3000`**. If you already cloned it, just run the last two commands from inside `frontend/` — and make sure you're actually *inside* `frontend/` (where `package.json` lives) before running any `npm` command, not the repo root.
 
 ### 3. Production Build & Verification
 ```bash

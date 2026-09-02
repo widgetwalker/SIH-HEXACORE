@@ -3,10 +3,13 @@
 > Gamified disaster-preparedness for Indian campuses: landing + learn + 3D simulate + command + admin. `npm run dev` → http://localhost:3000
 
 ## Quick Start
+Run from inside this `frontend/` folder (where `package.json` lives):
 ```bash
-npm install && npm run dev   # Turbopack @ http://localhost:3000
-npm run build                 # production check (must stay green)
+npm install
+npm run dev     # Turbopack @ http://localhost:3000
+npm run build   # production check (must stay green)
 ```
+On PowerShell, `&&` isn't a valid separator between commands — run each line above on its own, or join with `;`.
 
 Requires Node 18.17+ / 20+ · Next.js 16.3.2 (App Router, Turbopack) · React 19 · Three.js r149
 
