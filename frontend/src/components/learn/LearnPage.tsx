@@ -5,16 +5,18 @@ import Navbar from "@/components/Navbar";
 import ModuleViewer from "./tiergame/ModuleViewer";
 import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
 import { SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6 } from "./tiergame/content/sentinels";
+import { WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6 } from "./tiergame/content/wardens";
 import type { TierModuleContent } from "./tiergame/types";
 import styles from "./LearnPage.module.css";
 
 const GUARDIANS_TIER_ID = 3;
 const SENTINELS_TIER_ID = 4;
+const WARDENS_TIER_ID = 5;
 
 /* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
    each module's own id prefix (e.g. "guardians-m1") so it can be matched
-   against the mock MODULES list's plain ids ("m1"). Add a Wardens entry the
-   same way once that content file exists - nothing else below needs to change. */
+   against the mock MODULES list's plain ids ("m1"). All 3 tiers from
+   docs/10_TIER_GAMES_SPECIFICATION.md are now wired up (18/18 modules). */
 const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleContent[] }> = {
   [GUARDIANS_TIER_ID]: {
     prefix: "guardians",
@@ -23,6 +25,10 @@ const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleCont
   [SENTINELS_TIER_ID]: {
     prefix: "sentinels",
     modules: [SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6],
+  },
+  [WARDENS_TIER_ID]: {
+    prefix: "wardens",
+    modules: [WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6],
   },
 };
 
