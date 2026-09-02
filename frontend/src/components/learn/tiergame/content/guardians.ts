@@ -144,3 +144,54 @@ export const GUARDIANS_MODULE_2: TierModuleContent = {
     },
   ],
 };
+
+export const GUARDIANS_MODULE_3: TierModuleContent = {
+  id: "guardians-m3",
+  number: 3,
+  name: "Floor-by-Floor Hazard Mapping",
+  type: "interactive",
+  estMinutes: 10,
+  icon: "🗺️",
+  sections: [
+    {
+      id: "guardians-m3-s1",
+      number: 1,
+      title: "Know Your Building Before You Need To",
+      estMinutes: 4,
+      body: [
+        "Every floor has: a primary exit, a secondary exit, and an assembly point outside. Before any emergency, you should be able to answer:",
+        "Where are both staircases on my floor?",
+        "Where do I go once outside?",
+        "Is there a spot on my floor I could shelter in if both exits were blocked?",
+      ],
+    },
+    {
+      id: "guardians-m3-s2",
+      number: 2,
+      title: "Reading a Blocked Route",
+      estMinutes: 3,
+      body: [
+        "A route counts as \"blocked\" if it has: visible fire, smoke, standing water, structural damage (cracks, collapsed sections), or a crowd that has stopped moving entirely.",
+        "If you see any of these, that route is closed to you — full stop, find the other one.",
+      ],
+    },
+    {
+      id: "guardians-m3-s3",
+      number: 3,
+      title: "Decision Checkpoint",
+      estMinutes: 3,
+      body: [],
+      checkpoint: {
+        scenario: "You're on the 2nd floor. Staircase A is clear. Staircase B has smoke drifting from underneath the door.",
+        correct: {
+          label: "Use Staircase A. Tell others near you that B is unsafe as you move.",
+          explanation: "Smoke under a door means the route is already compromised — no need to confirm further before ruling it out.",
+        },
+        wrong: {
+          label: "Check Staircase B \"just to see how bad it is\" before deciding.",
+          explanation: "Any visible smoke already meets the definition of a blocked route — there's nothing useful to learn by getting closer.",
+        },
+      },
+    },
+  ],
+};
