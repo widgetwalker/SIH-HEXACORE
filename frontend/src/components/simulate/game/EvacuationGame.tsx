@@ -408,13 +408,21 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
     let mouseYaw = 0;
     let mouseLift = 0;
     let camDist = BASE_CAM_DIST;
+    let isDragging = false;
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) isDragging = true; // left-click only
+    };
+    const onMouseUp = () => { isDragging = false; };
     const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return; // only orbit when click-dragging
       const nx = (e.clientX / window.innerWidth) * 2 - 1;
       const ny = (e.clientY / window.innerHeight) * 2 - 1;
       // negated: moving the mouse left should pan the view left, not orbit the camera left
       mouseYaw = -nx * MAX_YAW;
       mouseLift = -ny * MAX_LIFT;
     };
+    mount.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("mousemove", onMouseMove);
 
     /* scroll wheel zoom — only over the 3D canvas, so it doesn't hijack page/chat scroll */
@@ -940,7 +948,11 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         (b.ring.material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ringP);
       }
 
-      /* camera: third-person follow + mouse-look orbit + quake shake intro */
+      /* camera: third-person follow + click-drag orbit + quake shake intro */
+      if (!isDragging) {
+        mouseYaw *= 0.92; // smoothly drift back to center
+        mouseLift *= 0.92;
+      }
       const shake = Math.max(0, 1 - t / 3);
       const camX = player.position.x + Math.sin(mouseYaw) * camDist;
       const camZ = player.position.z + Math.cos(mouseYaw) * camDist;
@@ -1077,6 +1089,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("mousemove", onMouseMove);
+      mount.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
       mount.removeEventListener("wheel", onWheel);
       window.removeEventListener("resize", onResize);
       if (alarmInterval) clearInterval(alarmInterval);
