@@ -353,8 +353,9 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
     const onMouseUp = () => { isDragging = false; };
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging) return; // only orbit when click-dragging
-      const nx = (e.clientX / window.innerWidth) * 2 - 1;
-      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      const rect = mount.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1;
+      const ny = ((e.clientY - rect.top) / Math.max(rect.height, 1)) * 2 - 1;
       mouseYaw = -nx * MAX_YAW;
       mouseLift = -ny * MAX_LIFT;
     };

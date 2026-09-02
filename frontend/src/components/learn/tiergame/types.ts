@@ -3,8 +3,10 @@ export type ModuleType = "interactive" | "simulation" | "video-quiz";
 export interface DecisionCheckpoint {
   scenario: string;
   correct: { label: string; explanation: string };
-  wrong: { label: string; explanation: string };
+  wrong: { label: string; explanation: string; hazardIcon?: string };
   keyRule?: string;
+  /** layout for RouteMapChoice (interactive-type modules only); default "horizontal" */
+  mapOrientation?: "horizontal" | "vertical";
 }
 
 export interface TierSection {

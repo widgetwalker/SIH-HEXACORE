@@ -67,6 +67,7 @@ export const GUARDIANS_MODULE_1: TierModuleContent = {
           label: "Step carefully over the crack because it's the closer stair.",
           explanation:
             "Visible damage means the stair's true condition is unknown — stepping on it is a gamble, not a shortcut.",
+          hazardIcon: "🧱",
         },
         keyRule: "A damaged structure doesn't announce when it will fail completely. If it looks wrong, treat it as unsafe.",
       },
@@ -190,6 +191,7 @@ export const GUARDIANS_MODULE_3: TierModuleContent = {
         wrong: {
           label: "Check Staircase B \"just to see how bad it is\" before deciding.",
           explanation: "Any visible smoke already meets the definition of a blocked route — there's nothing useful to learn by getting closer.",
+          hazardIcon: "💨",
         },
       },
     },
@@ -246,7 +248,9 @@ export const GUARDIANS_MODULE_5: TierModuleContent = {
         wrong: {
           label: "Step outside quickly to check how bad the flooding is.",
           explanation: "Going outside during an active cyclone warning exposes you to flying debris — the exact danger the stay-inside rule exists to avoid.",
+          hazardIcon: "🌪️",
         },
+        mapOrientation: "vertical",
       },
     },
   ],
