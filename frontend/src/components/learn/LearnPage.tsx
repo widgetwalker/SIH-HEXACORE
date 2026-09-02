@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
+import ModuleViewer from "./tiergame/ModuleViewer";
+import { GUARDIANS_MODULE_1 } from "./tiergame/content/guardians";
 import styles from "./LearnPage.module.css";
+
+const GUARDIANS_TIER_ID = 3;
 
 const TIERS = [
   { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
@@ -35,6 +39,10 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [guardiansM1, setGuardiansM1] = useState<{ status: "locked" | "in-progress" | "completed"; score: number | null }>(
+    { status: "in-progress", score: null }
+  );
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -150,16 +158,23 @@ export default function LearnPage() {
               <span className="badge badge-teal">Tier {activeTier}</span>
             </div>
             <div className={styles.modulesList}>
-              {MODULES.map((m) => (
+              {MODULES.map((base) => {
+                const isGuardiansM1 = activeTier === GUARDIANS_TIER_ID && base.id === "m1";
+                const m = isGuardiansM1 ? { ...base, status: guardiansM1.status, score: guardiansM1.score } : base;
+                return (
                 <div
                   key={m.id}
                   className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
                   onClick={() => {
-                    if (m.status !== "locked") {
-                      setSelectedModule(m.id);
-                      showToast(`Loaded "${m.title}"`);
-                    } else {
+                    if (m.status === "locked") {
                       showToast("🔒 Complete previous modules to unlock this drill");
+                      return;
+                    }
+                    setSelectedModule(m.id);
+                    if (isGuardiansM1) {
+                      setViewerOpen(true);
+                    } else {
+                      showToast(`Loaded "${m.title}"`);
                     }
                   }}
                   role="button"
@@ -189,7 +204,8 @@ export default function LearnPage() {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -214,6 +230,18 @@ export default function LearnPage() {
           </section>
         </main>
       </div>
+
+      {viewerOpen && (
+        <ModuleViewer
+          module={GUARDIANS_MODULE_1}
+          onClose={() => setViewerOpen(false)}
+          onComplete={(scorePct) => {
+            setGuardiansM1({ status: "completed", score: scorePct });
+            setViewerOpen(false);
+            showToast(scorePct === 100 ? "✅ Module complete — nice work!" : "Module complete — review the checkpoint next time.");
+          }}
+        />
+      )}
     </div>
   );
 }
