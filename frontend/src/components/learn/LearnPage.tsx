@@ -3,10 +3,18 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import ModuleViewer from "./tiergame/ModuleViewer";
-import { GUARDIANS_MODULE_1 } from "./tiergame/content/guardians";
+import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2 } from "./tiergame/content/guardians";
+import type { TierModuleContent } from "./tiergame/types";
 import styles from "./LearnPage.module.css";
 
 const GUARDIANS_TIER_ID = 3;
+/* real module content, in unlock order — only Guardians is wired up so far;
+   extend this list as more tiers/modules from docs/10_TIER_GAMES_SPECIFICATION.md land */
+const GUARDIANS_REAL_MODULES: TierModuleContent[] = [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2];
+const GUARDIANS_MODULE_BY_ID: Record<string, TierModuleContent> = {
+  m1: GUARDIANS_MODULE_1,
+  m2: GUARDIANS_MODULE_2,
+};
 
 const TIERS = [
   { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
@@ -39,10 +47,18 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [guardiansM1, setGuardiansM1] = useState<{ status: "locked" | "in-progress" | "completed"; score: number | null }>(
-    { status: "in-progress", score: null }
-  );
+  const [viewerModuleId, setViewerModuleId] = useState<string | null>(null);
+  const [guardiansScores, setGuardiansScores] = useState<Record<string, number>>({});
+
+  /* first module in the list is always unlocked; each next one unlocks once
+     the previous is completed - real sequential progression, not mock data */
+  const guardiansStatus = (moduleId: string): "locked" | "in-progress" | "completed" => {
+    if (guardiansScores[moduleId] !== undefined) return "completed";
+    const idx = GUARDIANS_REAL_MODULES.findIndex((m) => m.id === `guardians-${moduleId}`);
+    if (idx <= 0) return "in-progress";
+    const prevId = GUARDIANS_REAL_MODULES[idx - 1].id.replace("guardians-", "");
+    return guardiansScores[prevId] !== undefined ? "in-progress" : "locked";
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -159,8 +175,10 @@ export default function LearnPage() {
             </div>
             <div className={styles.modulesList}>
               {MODULES.map((base) => {
-                const isGuardiansM1 = activeTier === GUARDIANS_TIER_ID && base.id === "m1";
-                const m = isGuardiansM1 ? { ...base, status: guardiansM1.status, score: guardiansM1.score } : base;
+                const isRealGuardians = activeTier === GUARDIANS_TIER_ID && base.id in GUARDIANS_MODULE_BY_ID;
+                const m = isRealGuardians
+                  ? { ...base, status: guardiansStatus(base.id), score: guardiansScores[base.id] ?? null }
+                  : base;
                 return (
                 <div
                   key={m.id}
@@ -171,8 +189,8 @@ export default function LearnPage() {
                       return;
                     }
                     setSelectedModule(m.id);
-                    if (isGuardiansM1) {
-                      setViewerOpen(true);
+                    if (isRealGuardians) {
+                      setViewerModuleId(m.id);
                     } else {
                       showToast(`Loaded "${m.title}"`);
                     }
@@ -231,13 +249,13 @@ export default function LearnPage() {
         </main>
       </div>
 
-      {viewerOpen && (
+      {viewerModuleId && GUARDIANS_MODULE_BY_ID[viewerModuleId] && (
         <ModuleViewer
-          module={GUARDIANS_MODULE_1}
-          onClose={() => setViewerOpen(false)}
+          module={GUARDIANS_MODULE_BY_ID[viewerModuleId]}
+          onClose={() => setViewerModuleId(null)}
           onComplete={(scorePct) => {
-            setGuardiansM1({ status: "completed", score: scorePct });
-            setViewerOpen(false);
+            setGuardiansScores((prev) => ({ ...prev, [viewerModuleId]: scorePct }));
+            setViewerModuleId(null);
             showToast(scorePct === 100 ? "✅ Module complete — nice work!" : "Module complete — review the checkpoint next time.");
           }}
         />
