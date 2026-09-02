@@ -302,3 +302,59 @@ export const GUARDIANS_MODULE_4: TierModuleContent = {
     },
   ],
 };
+
+export const GUARDIANS_MODULE_6: TierModuleContent = {
+  id: "guardians-m6",
+  number: 6,
+  name: "Multi-Hazard Compound Drill",
+  type: "simulation",
+  estMinutes: 12,
+  icon: "⚠️",
+  sections: [
+    {
+      id: "guardians-m6-s1",
+      number: 1,
+      title: "Why Combined Scenarios Matter",
+      estMinutes: 2,
+      body: [
+        "Real emergencies don't always come one at a time. An earthquake can trigger a gas leak. A fire can start during a flood evacuation. This module trains you to re-check your plan when conditions change mid-emergency.",
+      ],
+    },
+    {
+      id: "guardians-m6-s2",
+      number: 2,
+      title: "Earthquake + Gas Leak",
+      estMinutes: 3,
+      body: [
+        "After shaking stops and you smell gas: don't flip any light switches on or off (a spark can ignite gas), don't use flames, and evacuate using a route that avoids the smell.",
+      ],
+    },
+    {
+      id: "guardians-m6-s3",
+      number: 3,
+      title: "Fire + Blocked Staircase + Working Lift",
+      estMinutes: 3,
+      body: [
+        "Even if a lift looks like it's working, during a fire it stays off-limits unless a responder specifically tells you to use it. Use the second staircase instead — that's what it's there for.",
+      ],
+    },
+    {
+      id: "guardians-m6-s4",
+      number: 4,
+      title: "Decision Checkpoint",
+      estMinutes: 4,
+      body: [],
+      checkpoint: {
+        scenario: "Earthquake just stopped shaking. You smell gas near the stairwell exit. The building alarm hasn't sounded yet.",
+        correct: {
+          label: "Avoid using electrical switches, move away from the smell using a different route, and alert an adult/responder immediately — don't wait for the alarm.",
+          explanation: "The alarm not sounding doesn't mean there's no danger — a gas smell is itself confirmation enough to act, and switches can spark it.",
+        },
+        wrong: {
+          label: "Flip the hallway light on to see better.",
+          explanation: "A light switch can spark right next to a gas leak — the exact ignition risk the \"no switches\" rule exists to prevent.",
+        },
+      },
+    },
+  ],
+};
