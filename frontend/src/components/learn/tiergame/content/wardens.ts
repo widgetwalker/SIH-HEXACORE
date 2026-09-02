@@ -53,6 +53,7 @@ export const WARDENS_MODULE_1: TierModuleContent = {
         wrong: {
           label: "Assume people will notice the crack themselves and self-correct.",
           explanation: "People moving out of habit under stress often don't register hazards they're not actively looking for — assuming self-correction risks an injury you could have prevented.",
+          hazardIcon: "🧱",
         },
       },
     },
@@ -174,6 +175,7 @@ export const WARDENS_MODULE_3: TierModuleContent = {
         wrong: {
           label: "Go back inside to look for them personally.",
           explanation: "Re-entering a building you just evacuated risks turning one missing-person situation into two, without the equipment or authority to do it safely.",
+          hazardIcon: "⚠️",
         },
       },
     },
@@ -286,6 +288,7 @@ export const WARDENS_MODULE_5: TierModuleContent = {
         wrong: {
           label: "Try to shut off the panel yourself to \"prevent a bigger problem.\"",
           explanation: "Approaching a panel near floodwater risks electrocution - the exact outcome the firm rule exists to prevent, regardless of good intent.",
+          hazardIcon: "⚡",
         },
       },
     },

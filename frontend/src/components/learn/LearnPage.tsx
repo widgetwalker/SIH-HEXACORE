@@ -284,6 +284,7 @@ export default function LearnPage() {
 
       {viewer && getRealModule(viewer.tierId, viewer.moduleId) && (
         <ModuleViewer
+          key={`${viewer.tierId}-${viewer.moduleId}`}
           module={getRealModule(viewer.tierId, viewer.moduleId)!}
           onClose={() => setViewer(null)}
           onComplete={(scorePct) => {

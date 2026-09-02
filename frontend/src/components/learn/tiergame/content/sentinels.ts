@@ -54,6 +54,7 @@ export const SENTINELS_MODULE_1: TierModuleContent = {
         wrong: {
           label: "Assume they'll figure it out and continue on your own.",
           explanation: "Panic freeze doesn't resolve itself quickly — leaving them to \"figure it out\" can mean they stay frozen near the hazard.",
+          hazardIcon: "🧱",
         },
       },
     },
@@ -177,6 +178,7 @@ export const SENTINELS_MODULE_3: TierModuleContent = {
         wrong: {
           label: "Take A because it's faster and \"the smoke isn't that bad yet.\"",
           explanation: "\"Not that bad yet\" is exactly the judgment that fails once conditions change mid-route, with no way back.",
+          hazardIcon: "💨",
         },
       },
     },
@@ -289,7 +291,9 @@ export const SENTINELS_MODULE_5: TierModuleContent = {
         wrong: {
           label: "Go outside briefly since \"it seems calm now.\"",
           explanation: "Conditions can return violently and without warning once the eye passes — \"briefly\" isn't a safe window to bet on.",
+          hazardIcon: "🌪️",
         },
+        mapOrientation: "vertical",
       },
     },
   ],
