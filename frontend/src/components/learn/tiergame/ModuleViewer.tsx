@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { DecisionCheckpoint, TierModuleContent } from "./types";
 import { moduleCompletionPct } from "./types";
 import RouteMapChoice from "./RouteMapChoice";
-import SimGameModal from "./SimGameModal";
 import { LEARN_SCENARIOS } from "./content/simScenarios";
 import styles from "./ModuleViewer.module.css";
 
@@ -18,12 +18,12 @@ export default function ModuleViewer({ module, onClose, onComplete }: Props) {
   const [sectionIdx, setSectionIdx] = useState(0);
   const [sectionsRead, setSectionsRead] = useState<Set<string>>(new Set());
   const [choice, setChoice] = useState<"correct" | "wrong" | null>(null);
-  const [drillOpen, setDrillOpen] = useState(false);
 
   const section = module.sections[sectionIdx];
   const isLast = sectionIdx === module.sections.length - 1;
   const pct = moduleCompletionPct(module, sectionsRead);
   const simScenario = LEARN_SCENARIOS[module.id];
+  const isSimCheckpoint = module.type === "simulation" && !!simScenario && !!section.checkpoint;
 
   useEffect(() => {
     setSectionsRead((prev) => (prev.has(section.id) ? prev : new Set(prev).add(section.id)));
@@ -60,12 +60,8 @@ export default function ModuleViewer({ module, onClose, onComplete }: Props) {
 
           <div className={styles.body}>
             {section.checkpoint ? (
-              module.type === "simulation" && simScenario ? (
-                <SimCheckpointPrompt
-                  checkpoint={section.checkpoint}
-                  choice={choice}
-                  onOpenDrill={() => setDrillOpen(true)}
-                />
+              isSimCheckpoint ? (
+                <SimCheckpointPrompt checkpoint={section.checkpoint} moduleId={module.id} />
               ) : module.type === "interactive" ? (
                 <RouteMapChoice checkpoint={section.checkpoint} choice={choice} onChoose={setChoice} />
               ) : (
@@ -88,59 +84,33 @@ export default function ModuleViewer({ module, onClose, onComplete }: Props) {
             >
               ← Back
             </button>
-            <button
-              className="btn btn-primary"
-              onClick={goNext}
-              disabled={!!section.checkpoint && !choice}
-            >
-              {isLast ? "Finish Module" : "Continue →"}
-            </button>
+            {!isSimCheckpoint && (
+              <button
+                className="btn btn-primary"
+                onClick={goNext}
+                disabled={!!section.checkpoint && !choice}
+              >
+                {isLast ? "Finish Module" : "Continue →"}
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      {drillOpen && simScenario && section.checkpoint && (
-        <SimGameModal
-          scenario={simScenario}
-          checkpoint={section.checkpoint}
-          onClose={() => setDrillOpen(false)}
-          onFinish={(won) => {
-            setChoice(won ? "correct" : "wrong");
-            setDrillOpen(false);
-          }}
-        />
-      )}
     </>
   );
 }
 
-function SimCheckpointPrompt({
-  checkpoint,
-  choice,
-  onOpenDrill,
-}: {
-  checkpoint: DecisionCheckpoint;
-  choice: "correct" | "wrong" | null;
-  onOpenDrill: () => void;
-}) {
-  const answered = choice !== null;
+function SimCheckpointPrompt({ checkpoint, moduleId }: { checkpoint: DecisionCheckpoint; moduleId: string }) {
+  const router = useRouter();
   return (
     <div>
       <p className={styles.scenario}>{checkpoint.scenario}</p>
-      {!answered ? (
-        <button className={`btn btn-danger ${styles.drillBtn}`} onClick={onOpenDrill}>
-          Enter the Drill →
-        </button>
-      ) : (
-        <div className={`${styles.feedback} ${choice === "correct" ? styles.feedbackGood : styles.feedbackBad}`}>
-          <strong>{choice === "correct" ? "Drill cleared — nice work." : "Drill failed — here's what to remember."}</strong>
-          <p>{choice === "correct" ? checkpoint.correct.explanation : checkpoint.wrong.explanation}</p>
-          {checkpoint.keyRule && <p className={styles.keyRule}>{checkpoint.keyRule}</p>}
-          <button className={`btn btn-ghost ${styles.drillBtn}`} onClick={onOpenDrill}>
-            Replay Drill
-          </button>
-        </div>
-      )}
+      <button
+        className={`btn btn-danger ${styles.drillBtn}`}
+        onClick={() => router.push(`/simulate?learnModule=${moduleId}`)}
+      >
+        Enter the Drill →
+      </button>
     </div>
   );
 }

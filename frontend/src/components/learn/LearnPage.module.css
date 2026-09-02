@@ -44,6 +44,8 @@
   backdrop-filter: blur(16px);
   padding: 12px 20px;
   border-radius: var(--radius-full);
+  max-width: 360px;
+  line-height: 1.4;
   color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 600;

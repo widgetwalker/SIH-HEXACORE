@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ModuleViewer from "./tiergame/ModuleViewer";
 import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
@@ -38,6 +39,16 @@ function getRealModule(tierId: number, moduleId: string): TierModuleContent | un
   return cfg.modules.find((m) => m.id === `${cfg.prefix}-${moduleId}`);
 }
 
+/* Reverse-lookup for the /simulate round trip: given a full module id
+   (e.g. "guardians-m2"), find which tier owns it and its short id ("m2"). */
+function findModuleTier(fullModuleId: string): { tierId: number; shortId: string; module: TierModuleContent } | undefined {
+  for (const [tierIdStr, cfg] of Object.entries(TIER_GAME_CONFIG)) {
+    const mod = cfg.modules.find((m) => m.id === fullModuleId);
+    if (mod) return { tierId: Number(tierIdStr), shortId: mod.id.replace(`${cfg.prefix}-`, ""), module: mod };
+  }
+  return undefined;
+}
+
 const TIERS = [
   { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
   { id: 2, age: "8–10", label: "Rangers", color: "blue", icon: "🛡️", modules: 6, completed: 3 },
@@ -55,6 +66,23 @@ const MODULES = [
   { id: "m6", title: "Multi-Hazard Compound Drill", type: "Simulation", duration: "25 min", status: "locked", score: null, icon: "⚠️" },
 ];
 
+/* tierScores used to be in-memory only, which was fine while every module
+   played out in a modal on this same page. Now "simulation"-type modules
+   navigate away to /simulate and back, which unmounts LearnPage entirely -
+   without persistence that round trip would wipe every other module's
+   progress from the same session, not just reset the one being played. */
+const TIER_SCORES_KEY = "safezone_tier_scores_v1";
+
+function loadTierScores(): Record<number, Record<string, number>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(TIER_SCORES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 const BADGES = [
   { name: "First Responder", earned: true, icon: "🏅" },
   { name: "Fire Marshal", earned: true, icon: "🔥" },
@@ -65,12 +93,22 @@ const BADGES = [
 ];
 
 export default function LearnPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTier, setActiveTier] = useState(2);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
   const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
-  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
+  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>(loadTierScores);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(tierScores));
+    } catch {
+      /* storage full or unavailable - non-fatal, progress just won't survive a reload */
+    }
+  }, [tierScores]);
 
   /* first module in a tier's list is always unlocked; each next one unlocks
      once the previous is completed - real sequential progression, not mock data */
@@ -85,10 +123,36 @@ export default function LearnPage() {
     return scores[prevId] !== undefined ? "in-progress" : "locked";
   };
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, duration = 2500) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), duration);
   };
+
+  /* Round trip from a "simulation"-type checkpoint's real /simulate drill:
+     applies the score, jumps to the right tier, and surfaces the module's
+     own PDF checkpoint explanation as a toast — since the drill happened on
+     a different page, this is the only place that content can be shown. */
+  useEffect(() => {
+    const result = searchParams.get("moduleResult");
+    if (!result) return;
+    const [fullModuleId, status] = result.split(":");
+    const owner = findModuleTier(fullModuleId);
+    if (owner) {
+      const scorePct = status === "won" ? 100 : 60;
+      setActiveTier(owner.tierId);
+      setTierScores((prev) => ({
+        ...prev,
+        [owner.tierId]: { ...(prev[owner.tierId] ?? {}), [owner.shortId]: scorePct },
+      }));
+      const checkpoint = owner.module.sections.find((s) => s.checkpoint)?.checkpoint;
+      if (checkpoint) {
+        const text = status === "won" ? checkpoint.correct.explanation : checkpoint.wrong.explanation;
+        showToast(status === "won" ? `✅ Drill cleared — ${text}` : `Drill logged — ${text}`, 6000);
+      }
+    }
+    router.replace("/learn");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className={styles.page}>
