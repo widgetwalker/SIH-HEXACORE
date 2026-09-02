@@ -4,28 +4,33 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import ModuleViewer from "./tiergame/ModuleViewer";
 import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
+import { SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6 } from "./tiergame/content/sentinels";
 import type { TierModuleContent } from "./tiergame/types";
 import styles from "./LearnPage.module.css";
 
 const GUARDIANS_TIER_ID = 3;
-/* real module content, in unlock order - all 6 Guardians modules are now
-   wired up; Sentinels/Wardens from docs/10_TIER_GAMES_SPECIFICATION.md are next */
-const GUARDIANS_REAL_MODULES: TierModuleContent[] = [
-  GUARDIANS_MODULE_1,
-  GUARDIANS_MODULE_2,
-  GUARDIANS_MODULE_3,
-  GUARDIANS_MODULE_4,
-  GUARDIANS_MODULE_5,
-  GUARDIANS_MODULE_6,
-];
-const GUARDIANS_MODULE_BY_ID: Record<string, TierModuleContent> = {
-  m1: GUARDIANS_MODULE_1,
-  m2: GUARDIANS_MODULE_2,
-  m3: GUARDIANS_MODULE_3,
-  m4: GUARDIANS_MODULE_4,
-  m5: GUARDIANS_MODULE_5,
-  m6: GUARDIANS_MODULE_6,
+const SENTINELS_TIER_ID = 4;
+
+/* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
+   each module's own id prefix (e.g. "guardians-m1") so it can be matched
+   against the mock MODULES list's plain ids ("m1"). Add a Wardens entry the
+   same way once that content file exists - nothing else below needs to change. */
+const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleContent[] }> = {
+  [GUARDIANS_TIER_ID]: {
+    prefix: "guardians",
+    modules: [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6],
+  },
+  [SENTINELS_TIER_ID]: {
+    prefix: "sentinels",
+    modules: [SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6],
+  },
 };
+
+function getRealModule(tierId: number, moduleId: string): TierModuleContent | undefined {
+  const cfg = TIER_GAME_CONFIG[tierId];
+  if (!cfg) return undefined;
+  return cfg.modules.find((m) => m.id === `${cfg.prefix}-${moduleId}`);
+}
 
 const TIERS = [
   { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
@@ -58,17 +63,20 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
-  const [viewerModuleId, setViewerModuleId] = useState<string | null>(null);
-  const [guardiansScores, setGuardiansScores] = useState<Record<string, number>>({});
+  const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
+  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
 
-  /* first module in the list is always unlocked; each next one unlocks once
-     the previous is completed - real sequential progression, not mock data */
-  const guardiansStatus = (moduleId: string): "locked" | "in-progress" | "completed" => {
-    if (guardiansScores[moduleId] !== undefined) return "completed";
-    const idx = GUARDIANS_REAL_MODULES.findIndex((m) => m.id === `guardians-${moduleId}`);
+  /* first module in a tier's list is always unlocked; each next one unlocks
+     once the previous is completed - real sequential progression, not mock data */
+  const tierModuleStatus = (tierId: number, moduleId: string): "locked" | "in-progress" | "completed" => {
+    const cfg = TIER_GAME_CONFIG[tierId];
+    if (!cfg) return "locked";
+    const scores = tierScores[tierId] ?? {};
+    if (scores[moduleId] !== undefined) return "completed";
+    const idx = cfg.modules.findIndex((m) => m.id === `${cfg.prefix}-${moduleId}`);
     if (idx <= 0) return "in-progress";
-    const prevId = GUARDIANS_REAL_MODULES[idx - 1].id.replace("guardians-", "");
-    return guardiansScores[prevId] !== undefined ? "in-progress" : "locked";
+    const prevId = cfg.modules[idx - 1].id.replace(`${cfg.prefix}-`, "");
+    return scores[prevId] !== undefined ? "in-progress" : "locked";
   };
 
   const showToast = (msg: string) => {
@@ -186,9 +194,17 @@ export default function LearnPage() {
             </div>
             <div className={styles.modulesList}>
               {MODULES.map((base) => {
-                const isRealGuardians = activeTier === GUARDIANS_TIER_ID && base.id in GUARDIANS_MODULE_BY_ID;
-                const m = isRealGuardians
-                  ? { ...base, status: guardiansStatus(base.id), score: guardiansScores[base.id] ?? null }
+                const real = getRealModule(activeTier, base.id);
+                const isRealTierModule = !!real;
+                const m = real
+                  ? {
+                      ...base,
+                      title: real.name,
+                      icon: real.icon,
+                      duration: `${real.estMinutes} min`,
+                      status: tierModuleStatus(activeTier, base.id),
+                      score: tierScores[activeTier]?.[base.id] ?? null,
+                    }
                   : base;
                 return (
                 <div
@@ -200,8 +216,8 @@ export default function LearnPage() {
                       return;
                     }
                     setSelectedModule(m.id);
-                    if (isRealGuardians) {
-                      setViewerModuleId(m.id);
+                    if (isRealTierModule) {
+                      setViewer({ tierId: activeTier, moduleId: m.id });
                     } else {
                       showToast(`Loaded "${m.title}"`);
                     }
@@ -260,13 +276,17 @@ export default function LearnPage() {
         </main>
       </div>
 
-      {viewerModuleId && GUARDIANS_MODULE_BY_ID[viewerModuleId] && (
+      {viewer && getRealModule(viewer.tierId, viewer.moduleId) && (
         <ModuleViewer
-          module={GUARDIANS_MODULE_BY_ID[viewerModuleId]}
-          onClose={() => setViewerModuleId(null)}
+          module={getRealModule(viewer.tierId, viewer.moduleId)!}
+          onClose={() => setViewer(null)}
           onComplete={(scorePct) => {
-            setGuardiansScores((prev) => ({ ...prev, [viewerModuleId]: scorePct }));
-            setViewerModuleId(null);
+            const { tierId, moduleId } = viewer;
+            setTierScores((prev) => ({
+              ...prev,
+              [tierId]: { ...(prev[tierId] ?? {}), [moduleId]: scorePct },
+            }));
+            setViewer(null);
             showToast(scorePct === 100 ? "✅ Module complete — nice work!" : "Module complete — review the checkpoint next time.");
           }}
         />
