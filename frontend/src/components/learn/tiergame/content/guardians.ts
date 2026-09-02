@@ -251,3 +251,54 @@ export const GUARDIANS_MODULE_5: TierModuleContent = {
     },
   ],
 };
+
+/* PDF types this "Video + Quiz" — no actual video script or quiz question
+   bank exists in any of the 3 PDFs (see docs/10_TIER_GAMES_SPECIFICATION.md
+   Part 13, item 1), so this renders through the same reader/checkpoint
+   engine as the Interactive modules until real video/quiz content lands. */
+export const GUARDIANS_MODULE_4: TierModuleContent = {
+  id: "guardians-m4",
+  number: 4,
+  name: "Chemical Spill: Lab Safety Protocol",
+  type: "video-quiz",
+  estMinutes: 10,
+  icon: "🧪",
+  sections: [
+    {
+      id: "guardians-m4-s1",
+      number: 1,
+      title: "If You Smell or See Something Wrong",
+      estMinutes: 4,
+      body: [
+        "A strange chemical smell, fumes, or a spilled unknown liquid in a lab means: alert an adult immediately, and move away from the area — don't lean in to identify it.",
+      ],
+    },
+    {
+      id: "guardians-m4-s2",
+      number: 2,
+      title: "Evacuating Past a Spill",
+      estMinutes: 3,
+      body: [
+        "If the spill is in a hallway or stairwell you'd normally use, don't walk through the fumes to save time. Use the alternate exit your school has designated, even if it takes longer.",
+      ],
+    },
+    {
+      id: "guardians-m4-s3",
+      number: 3,
+      title: "Decision Checkpoint",
+      estMinutes: 3,
+      body: [],
+      checkpoint: {
+        scenario: "A chemical spill has fumes coming from your usual staircase. The alternate staircase is clear but two floors further away.",
+        correct: {
+          label: "Take the longer, clear staircase.",
+          explanation: "The extra distance costs time; walking through unknown fumes risks your health immediately and can disorient you mid-evacuation.",
+        },
+        wrong: {
+          label: "Hold your breath and go through the short way.",
+          explanation: "Chemical fumes can affect you well before you'd need to breathe, and holding your breath doesn't protect against everything a spill can put in the air.",
+        },
+      },
+    },
+  ],
+};
