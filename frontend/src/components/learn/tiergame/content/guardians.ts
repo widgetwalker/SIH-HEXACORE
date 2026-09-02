@@ -195,3 +195,59 @@ export const GUARDIANS_MODULE_3: TierModuleContent = {
     },
   ],
 };
+
+export const GUARDIANS_MODULE_5: TierModuleContent = {
+  id: "guardians-m5",
+  number: 5,
+  name: "Cyclone & Flood Shelter Procedures",
+  type: "interactive",
+  estMinutes: 11,
+  icon: "🌊",
+  sections: [
+    {
+      id: "guardians-m5-s1",
+      number: 1,
+      title: "Cyclone: Staying Put Is the Action",
+      estMinutes: 3,
+      body: [
+        "Unlike fire, a cyclone usually means you stay inside, away from windows, in an interior room. Never go to a rooftop or balcony \"to see the storm\" — flying debris is the biggest danger.",
+      ],
+    },
+    {
+      id: "guardians-m5-s2",
+      number: 2,
+      title: "Flood: Water Changes Everything",
+      estMinutes: 3,
+      body: [
+        "Never walk or wade through moving water, even if it looks shallow — it can hide strong currents, drop-offs, or live electrical hazards. If water is rising on the ground floor, move to a higher safe floor rather than trying to leave through the water.",
+      ],
+    },
+    {
+      id: "guardians-m5-s3",
+      number: 3,
+      title: "When the Two Combine",
+      estMinutes: 3,
+      body: [
+        "A cyclone bringing flooding means: stay indoors and away from windows, but also be ready to move to a higher floor if water starts entering the ground level. Follow official instructions rather than guessing.",
+      ],
+    },
+    {
+      id: "guardians-m5-s4",
+      number: 4,
+      title: "Decision Checkpoint",
+      estMinutes: 2,
+      body: [],
+      checkpoint: {
+        scenario: "You're on the ground floor. A cyclone warning is active and water has started seeping under the main door.",
+        correct: {
+          label: "Move up to a higher safe floor and away from windows.",
+          explanation: "Rising water at ground level plus an active cyclone means both hazards point the same direction: get higher and stay clear of windows.",
+        },
+        wrong: {
+          label: "Step outside quickly to check how bad the flooding is.",
+          explanation: "Going outside during an active cyclone warning exposes you to flying debris — the exact danger the stay-inside rule exists to avoid.",
+        },
+      },
+    },
+  ],
+};

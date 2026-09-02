@@ -3,18 +3,22 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import ModuleViewer from "./tiergame/ModuleViewer";
-import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3 } from "./tiergame/content/guardians";
+import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_5 } from "./tiergame/content/guardians";
 import type { TierModuleContent } from "./tiergame/types";
 import styles from "./LearnPage.module.css";
 
 const GUARDIANS_TIER_ID = 3;
 /* real module content, in unlock order — only Guardians is wired up so far;
-   extend this list as more tiers/modules from docs/10_TIER_GAMES_SPECIFICATION.md land */
-const GUARDIANS_REAL_MODULES: TierModuleContent[] = [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3];
+   extend this list as more tiers/modules from docs/10_TIER_GAMES_SPECIFICATION.md land.
+   m4 (Video+Quiz) is deliberately skipped here until the video/quiz content
+   question from docs/10_TIER_GAMES_SPECIFICATION.md Part 13 is resolved -
+   m5 unlocks off m3 instead so it isn't stuck behind an unbuilt module. */
+const GUARDIANS_REAL_MODULES: TierModuleContent[] = [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_5];
 const GUARDIANS_MODULE_BY_ID: Record<string, TierModuleContent> = {
   m1: GUARDIANS_MODULE_1,
   m2: GUARDIANS_MODULE_2,
   m3: GUARDIANS_MODULE_3,
+  m5: GUARDIANS_MODULE_5,
 };
 
 const TIERS = [
