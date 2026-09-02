@@ -30,16 +30,29 @@ export default function DropCoverHoldGame({ onComplete }: Props) {
   const [times, setTimes] = useState<number[]>([]);
   const [mistakes, setMistakes] = useState(0);
   const alertAt = useRef(0);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Every setTimeout this component schedules (the alert delay, the flash
+  // reset, the between-rounds pause) gets tracked here so unmounting mid-drill
+  // (closing the modal) can cancel all of them - otherwise a stray timeout
+  // fires later and calls setState on an unmounted component.
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
-  useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
+  const trackTimeout = (fn: () => void, delay: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current.delete(id);
+      fn();
+    }, delay);
+    timeoutsRef.current.add(id);
+    return id;
+  };
+
+  useEffect(() => () => { timeoutsRef.current.forEach(clearTimeout); }, []);
 
   const startRound = () => {
     setPhase("waiting");
     setStep(0);
     setButtons(shuffle(STEPS));
     const delay = 900 + Math.random() * 1600;
-    timeoutRef.current = setTimeout(() => {
+    trackTimeout(() => {
       alertAt.current = Date.now();
       setPhase("playing");
     }, delay);
@@ -49,7 +62,7 @@ export default function DropCoverHoldGame({ onComplete }: Props) {
     if (phase !== "playing") return;
     const correct = label === STEPS[step];
     setFlash({ label, ok: correct });
-    setTimeout(() => setFlash(null), 220);
+    trackTimeout(() => setFlash(null), 220);
 
     if (!correct) {
       setMistakes((m) => m + 1);
@@ -65,7 +78,7 @@ export default function DropCoverHoldGame({ onComplete }: Props) {
     setTimes(nextTimes);
     if (round + 1 < ROUNDS) {
       setRound((r) => r + 1);
-      setTimeout(startRound, 500);
+      trackTimeout(startRound, 500);
     } else {
       const avg = nextTimes.reduce((a, b) => a + b, 0) / nextTimes.length;
       const speedScore = Math.max(0, 100 - Math.round(avg / 40) - mistakes * 8);

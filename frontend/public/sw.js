@@ -20,12 +20,21 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(APP_SHELL))
+      .then((cache) =>
+        // cache.addAll() is all-or-nothing - one unreachable route (e.g. an
+        // auth-gated /admin) would silently fail the whole precache, leaving
+        // even the always-public routes uncached. Add each independently so
+        // one failure doesn't take the rest down with it.
+        Promise.all(
+          APP_SHELL.map((url) =>
+            cache.add(url).catch(() => {
+              /* this one route unreachable at install time - not fatal, it
+                 populates lazily via the navigate handler once visited online */
+            })
+          )
+        )
+      )
       .then(() => self.skipWaiting())
-      .catch(() => {
-        /* one or more shell routes unreachable at install time - fine, they
-           populate lazily via the fetch handler's cache-first fallback */
-      })
   );
 });
 
@@ -49,8 +58,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+          // Only cache a real success - caching a 500/404 page would mean
+          // that broken response gets served offline later, masking recovery
+          // once the server is actually healthy again.
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+          }
           return res;
         })
         .catch(() => caches.match(req).then((cached) => cached || caches.match("/")))
@@ -69,7 +83,16 @@ self.addEventListener("fetch", (event) => {
           }
           return res;
         })
-        .catch(() => cached);
+        .catch(
+          () =>
+            // No cache hit and the network failed - `cached` is undefined
+            // here, and respondWith() must resolve to a real Response, not
+            // undefined, or the fetch event itself errors out.
+            new Response("Offline and this asset was never cached.", {
+              status: 503,
+              statusText: "Offline",
+            })
+        );
     })
   );
 });

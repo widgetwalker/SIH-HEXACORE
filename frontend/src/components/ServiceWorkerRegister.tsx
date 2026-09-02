@@ -16,7 +16,10 @@ export default function ServiceWorkerRegister() {
         regs.forEach((r) => r.unregister());
       });
       if (window.caches) {
-        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+        // Only this app's own cache buckets (public/sw.js's CACHE_VERSION is
+        // always "safezone-*") - deleting every key here would also wipe any
+        // unrelated Cache Storage entries sharing this origin.
+        caches.keys().then((keys) => keys.filter((k) => k.startsWith("safezone-")).forEach((k) => caches.delete(k)));
       }
       return;
     }

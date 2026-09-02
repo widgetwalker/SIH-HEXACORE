@@ -107,6 +107,24 @@ export default function SimulatePage() {
     });
   }, []);
 
+  // Recognition keeps running (and its onend/onerror keep firing setState)
+  // after navigating away unless explicitly stopped; detach the handlers
+  // first so a stop-triggered onend can't touch state post-unmount.
+  useEffect(() => {
+    return () => {
+      const rec = recognitionRef.current;
+      if (rec) {
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        rec.stop();
+      }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   const speak = (text: string) => {
     if (!("speechSynthesis" in window) || !text) return;
     window.speechSynthesis.cancel();

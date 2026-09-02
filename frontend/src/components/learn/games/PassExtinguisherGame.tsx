@@ -30,14 +30,24 @@ export default function PassExtinguisherGame({ onComplete }: Props) {
   const [mistakes, setMistakes] = useState(0);
   const [wrongKey, setWrongKey] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // Captured once, at the moment the drill actually finishes, and reused for
+  // both the score sent to onComplete and the score/time shown below - if the
+  // "done" render recomputed Date.now() itself instead, a later unrelated
+  // re-render would show a larger elapsed time (and therefore a different
+  // score) than what was already reported.
+  const [finalElapsedS, setFinalElapsedS] = useState(0);
   const startedAt = useRef(Date.now());
   const reportedRef = useRef(false);
+  const wrongKeyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (wrongKeyTimeoutRef.current) clearTimeout(wrongKeyTimeoutRef.current); }, []);
 
   useEffect(() => {
     if (fire <= 0 && !reportedRef.current) {
       reportedRef.current = true;
-      const elapsedS = (Date.now() - startedAt.current) / 1000;
-      const score = Math.max(30, Math.min(100, 100 - mistakes * 12 - Math.max(0, Math.round(elapsedS - 8))));
+      const elapsedS = Math.round((Date.now() - startedAt.current) / 1000);
+      const score = Math.max(30, Math.min(100, 100 - mistakes * 12 - Math.max(0, elapsedS - 8)));
+      setFinalElapsedS(elapsedS);
       setDone(true);
       onComplete(score);
     }
@@ -54,19 +64,19 @@ export default function PassExtinguisherGame({ onComplete }: Props) {
       setMistakes((m) => m + 1);
       setFire((f) => Math.min(100, f + 5));
       setWrongKey(key);
-      setTimeout(() => setWrongKey(null), 250);
+      if (wrongKeyTimeoutRef.current) clearTimeout(wrongKeyTimeoutRef.current);
+      wrongKeyTimeoutRef.current = setTimeout(() => setWrongKey(null), 250);
     }
   };
 
   if (done) {
-    const elapsedS = Math.round((Date.now() - startedAt.current) / 1000);
-    const score = Math.max(30, Math.min(100, 100 - mistakes * 12 - Math.max(0, elapsedS - 8)));
+    const score = Math.max(30, Math.min(100, 100 - mistakes * 12 - Math.max(0, finalElapsedS - 8)));
     return (
       <div className={styles.resultBox}>
         <span style={{ fontSize: "3rem" }}>✅</span>
         <span className={styles.resultScore}>{score}%</span>
         <p style={{ color: "var(--text-muted)" }}>
-          Fire extinguished in {elapsedS}s · {mistakes} misstep{mistakes === 1 ? "" : "s"}
+          Fire extinguished in {finalElapsedS}s · {mistakes} misstep{mistakes === 1 ? "" : "s"}
         </p>
       </div>
     );

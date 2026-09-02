@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import * as THREE from "three";
 import { parseFloorplan, SCENARIOS, type BlockageEvent, type Scenario } from "./floorplan";
@@ -100,15 +100,24 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       joystickKnobRef.current.style.transform = "translate(-50%, -50%)";
     }
   };
+  // Pressed-visual state lives in React, not as a directly-mutated DOM class -
+  // touchStateRef (read imperatively by the tick loop) is unaffected, but the
+  // *visual* pressed style was being set via classList.toggle, which the next
+  // re-render (SimulatePage re-renders ~7x/sec on live game-state updates)
+  // would silently overwrite back to the plain className from JSX, causing
+  // the pressed glow to flicker off mid-press.
+  const [crouchPressed, setCrouchPressed] = useState(false);
+  const [breathePressed, setBreathePressed] = useState(false);
+
   const setCrouch = (v: boolean) => (e: ReactPointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     touchStateRef.current.crouch = v;
-    e.currentTarget.classList.toggle(styles.actionBtnActive, v);
+    setCrouchPressed(v);
   };
   const setBreathe = (v: boolean) => (e: ReactPointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     touchStateRef.current.breathe = v;
-    e.currentTarget.classList.toggle(styles.actionBtnActive, v);
+    setBreathePressed(v);
   };
 
   useEffect(() => {
@@ -1125,7 +1134,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         <div className={styles.actionButtons}>
           <button
             type="button"
-            className={styles.actionBtn}
+            className={`${styles.actionBtn} ${crouchPressed ? styles.actionBtnActive : ""}`}
             onPointerDown={setCrouch(true)}
             onPointerUp={setCrouch(false)}
             onPointerLeave={setCrouch(false)}
@@ -1136,7 +1145,7 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           </button>
           <button
             type="button"
-            className={styles.actionBtn}
+            className={`${styles.actionBtn} ${breathePressed ? styles.actionBtnActive : ""}`}
             onPointerDown={setBreathe(true)}
             onPointerUp={setBreathe(false)}
             onPointerLeave={setBreathe(false)}
