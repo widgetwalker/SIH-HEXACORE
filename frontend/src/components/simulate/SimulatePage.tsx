@@ -77,6 +77,8 @@ export default function SimulatePage() {
   const [mitraInput, setMitraInput] = useState("");
   const [mitraLoading, setMitraLoading] = useState(false);
   const [mitraBubble, setMitraBubble] = useState<MitraBubble | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
   const mitraLogRef = useRef<HTMLDivElement>(null);
   const lastDistRef = useRef<number | null>(null);
@@ -91,6 +93,32 @@ export default function SimulatePage() {
       if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition && !recognitionRef.current) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-IN";
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = (e: any) => {
+        const transcript = e.results[0][0].transcript;
+        if (transcript) {
+          setMitraInput(transcript);
+          sendMitra(transcript);
+        }
+      };
+    }
+  }, [mitraMessages, gs, phase, scenario, mitraLoading]);
 
   useEffect(() => {
     if (!mitraPanelRef.current) return;
@@ -119,6 +147,23 @@ export default function SimulatePage() {
       }
       return next;
     });
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      recognitionRef.current?.start();
+    }
+  };
+
+  const speakMitra = (text: string) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-IN";
+    utterance.rate = 1.05;
+    window.speechSynthesis.speak(utterance);
   };
 
   const sendMitra = async (raw: string) => {
@@ -155,8 +200,11 @@ export default function SimulatePage() {
       const data = await res.json();
       const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
       setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
+      speakMitra(replyText);
     } catch {
-      setMitraMessages((m) => [...m, { role: "mitra", text: "Connection lost — try again once you're back online." }]);
+      const errText = "Connection lost — try again once you're back online.";
+      setMitraMessages((m) => [...m, { role: "mitra", text: errText }]);
+      speakMitra(errText);
     } finally {
       setMitraLoading(false);
     }
@@ -396,6 +444,14 @@ export default function SimulatePage() {
                 sendMitra(mitraInput);
               }}
             >
+              <button
+                type="button"
+                className={`${styles.mitraMic} ${isListening ? styles.listeningPulse : ""}`}
+                onClick={toggleListening}
+                title="Use voice"
+              >
+                🎤
+              </button>
               <input
                 className={styles.mitraInput}
                 value={mitraInput}
