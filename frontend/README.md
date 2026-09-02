@@ -4,13 +4,13 @@
 
 ## Quick Start
 ```bash
-cd frontend
-npm install
-npm run dev      # Turbopack @ http://localhost:3000
-npm run build    # production check (must stay green)
+npm install && npm run dev   # Turbopack @ http://localhost:3000
+npm run build                 # production check (must stay green)
 ```
 
 Requires Node 18.17+ / 20+ · Next.js 16.3.2 (App Router, Turbopack) · React 19 · Three.js r149
+
+No `.env` file, database, or backend is required — the whole app installs, builds, and runs on a bare clone. The only optional piece is `GEMINI_API_KEY` in `.env.local`, which powers Mitra's chat replies in `/simulate`; without it Mitra just shows "offline" instead of breaking anything.
 
 ## Routes
 | Route | File | What lives there |
