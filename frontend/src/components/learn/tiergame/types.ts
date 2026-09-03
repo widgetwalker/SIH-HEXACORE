@@ -5,7 +5,10 @@ export interface DecisionCheckpoint {
   correct: { label: string; explanation: string };
   wrong: { label: string; explanation: string; hazardIcon?: string };
   keyRule?: string;
-  /** layout for RouteMapChoice (interactive-type modules only); default "horizontal" */
+  /** RouteMapChoice (interactive-type modules only): "vertical" swaps the
+   *  "You are here" label to "Your floor" for floor-level decisions (e.g.
+   *  move up vs. go outside) rather than a stair-choice framing. Doesn't
+   *  change the map's geometry, only that label - default "horizontal". */
   mapOrientation?: "horizontal" | "vertical";
 }
 

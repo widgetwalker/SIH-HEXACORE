@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { DecisionCheckpoint } from "./types";
 import styles from "./RouteMapChoice.module.css";
@@ -30,7 +30,13 @@ interface Side {
  */
 export default function RouteMapChoice({ checkpoint, choice, onChoose }: Props) {
   const answered = choice !== null;
-  const correctFirst = useMemo(() => Math.random() < 0.5, [checkpoint.scenario]);
+  // Fixed on first paint (server and client agree, no hydration mismatch),
+  // then re-randomized client-side right after mount - this component only
+  // ever mounts from a client-side click, so there's no visible flash.
+  const [correctFirst, setCorrectFirst] = useState(true);
+  useEffect(() => {
+    setCorrectFirst(Math.random() < 0.5);
+  }, [checkpoint.scenario]);
   const hazardIcon = checkpoint.wrong.hazardIcon ?? "🔥";
   const vertical = checkpoint.mapOrientation === "vertical";
 

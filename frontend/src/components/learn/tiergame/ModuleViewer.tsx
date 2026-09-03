@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DecisionCheckpoint, TierModuleContent } from "./types";
 import { moduleCompletionPct } from "./types";
@@ -125,9 +125,16 @@ function CheckpointCard({
   onChoose: (c: "correct" | "wrong") => void;
 }) {
   const answered = choice !== null;
-  /* randomize left/right position each time a checkpoint mounts, so the
-     correct answer isn't always in the same slot */
-  const correctFirst = useMemo(() => Math.random() < 0.5, [checkpoint.scenario]);
+  /* Randomize left/right position each time a checkpoint mounts, so the
+     correct answer isn't always in the same slot. Starts at a fixed value
+     (not Math.random()) so server and client render the same markup on
+     first paint, then re-randomizes client-side right after mount - this
+     component is only ever mounted from a client-side click in the first
+     place, so there's no visible flash, just no hydration-mismatch risk. */
+  const [correctFirst, setCorrectFirst] = useState(true);
+  useEffect(() => {
+    setCorrectFirst(Math.random() < 0.5);
+  }, [checkpoint.scenario]);
 
   const correctBtn = (
     <button

@@ -77,7 +77,13 @@ function loadTierScores(): Record<number, Record<string, number>> {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(TIER_SCORES_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    // Corrupted/foreign data (null, an array, a primitive) would otherwise
+    // turn a "just reset progress" fallback into a hard crash the first
+    // time something does tierScores[tierId] on it.
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    return parsed as Record<number, Record<string, number>>;
   } catch {
     return {};
   }
