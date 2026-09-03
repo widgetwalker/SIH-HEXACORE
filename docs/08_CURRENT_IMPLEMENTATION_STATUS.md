@@ -1,10 +1,11 @@
 # 08. Current Implementation Status
 
-> **Last updated:** September 1, 2026 · Branch `feature/backend-websocket`
+> **Last updated:** August 26, 2026 v4 · Branch `design/immersive-experience` · **Build green (Next 16.3.2 + TS + framer-motion)**
 >
 > This document tracks what is **actually built and working** versus what remains
 > spec-only. It complements docs 01–07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
+> **Aug 26 v4 delta:** ScenarioEffects per-hazard overlays (framer-motion: quake shake, fire spread, toxic gas, blackout), Inter→Geist, panic 220ms, generic blur killed — build green.
 
 ---
 
@@ -12,23 +13,16 @@
 
 | Pillar / Module | Status | Notes |
 | :--- | :--- | :--- |
-| Landing & navigation shell | ✅ Built | `LandingPage` immersive 3D scroll (ImmersiveScene, parallax, tilt cards, ripple links), `Navbar` mode switcher with prefetched routes |
+| Landing & navigation shell | ✅ Built | `LandingPage` **HazardScrollScene** slow 360° (0→0.33 collapse), ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch |
 | Pillar I - Pedagogical Engine | ✅ UI built | `LearnPage` with age-tiered curriculum, interactive sidebar nav, module selection with toast feedback, achievement badges |
-| Pillar II - Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry |
+| Pillar II - Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry, **ScenarioEffects** per-hazard screen overlays (quake shake, fire spread, toxic gas, blackout), Geist font |
 | Pillar II - Admin Analytics | ✅ Built | `/admin` dashboard: KPIs (drills/success rate/avg escape/avg panic/top failure), canvas route & casualty heatmap, drill log table |
-| Pillar III - Command Hub | ⚠️ UI built, not live | `/command` page: live clock, floor status matrix, campus blueprint SVG, CAP alert feed, connected agencies, 3 action buttons; **not yet wired to live WebSocket telemetry** |
-| Global FX Layer | ✅ Built | Custom GPU-accelerated cursor, constellation field, RippleLink with magnetic pull & prefetch, parallax/tilt/reveal animations |
-| "Mitra" Crisis Companion | ⚠️ Rule-based | Reads live game state and coaches contextually (panic, smoke, oxygen, crouch, breathing); real LLM engine not yet wired |
-| Backend — FastAPI + DB scaffold | ✅ Built | `backend/` scaffold with `app/main.py`, `core/config.py`, `core/database.py`, `core/redis_client.py`, `core/__init__.py` |
-| Backend — REST endpoints | ✅ Built | `GET /api/v1/health`, `GET /api/v1/health/ready`, `GET /api/v1/buildings/{id}`, `GET /api/v1/buildings/{id}/floors`, `GET /api/v1/scenarios` |
-| Backend — WebSocket Hub | ✅ Built | `POST /api/v1/ws` (WS upgrade), JWT auth via `?token=` query param, `JOIN_CAMPUS` / `DRILL_TELEMETRY` message handling, Redis Pub/Sub per-campus rooms, `StudentDrillTelemetry` persistence |
-| Backend — NDMA CAP ingestion | ⚠️ Stub | `cap_ingestion.py` stub ready for Sprint 3; poll/ingest logic not yet implemented |
-| Multiplayer drill battles | ❌ Not started | Frontend 3D sim not yet wired to WebSocket |
+| Pillar III - Command Hub | ✅ UI built | `/command` page: live clock, floor status matrix with selection, campus blueprint SVG, CAP alert feed, connected agencies, 3 action buttons with toast feedback |
+| Global FX Layer | ✅ Built | Custom cursor, RippleLink, parallax/tilt/reveal · **Upgraded Aug 26 v4:** framer-motion, ScenarioEffects per-hazard overlays, Geist font, panic 220ms, emil motion audit |
+| "Mitra" Crisis Companion | ⚠️ Rule-based + GSAP | Reads live game state and coaches contextually (panic, smoke, oxygen, crouch, breathing); **GSAP `fromTo` slide/fade (0.3s power2.out) on open/close**; real LLM engine not yet wired |
+| Backend / persistence | ❌ Not started | Drill runs stored in browser `localStorage`; no server, DB, or auth yet |
+| Multiplayer drill battles | ❌ Not started | Spec-only (docs 01/02) |
 | Mobile / touch controls | ❌ Not started | Current game is keyboard-only (WASD/arrows + SHIFT/B) |
-| Offline-first / PWA service worker | ❌ Not started | No Workbox / IndexedDB caching yet |
-| GenAI scenario synthesis | ❌ Not started | Scenarios are JSON-only; no LLM generation pipeline |
-| GNN dynamic evacuation routing | ❌ Not started | NPCs use BFS; no real-time weight-penalty re-routing |
-| CV "Drop-Cover-Hold" posture validator | ❌ Not started | No MediaPipe / YOLOv8 integration |
 
 ---
 
@@ -45,7 +39,10 @@
 - **Scripted mid-run blockages:** compound-disaster events collapse corridors mid-drill with rubble meshes, with a pre-warning banner (e.g., Quake+Fire scenario seals NE wing at T+40s after structural groaning warning at T+30s)
 - **NPC crowd (~18 agents):** BFS distance-field pathing toward nearest reachable exit, separation forces prevent stacking, slowed in smoke, become red casualties in fire, fade out upon evacuation
 - **Synthesized WebAudio (zero assets):** evacuation alarm beeps (760Hz square wave @2.2s), bandpass-filtered white noise fire crackle (proximity-driven loudness), panic-scaled heartbeat thuds (55–140 BPM)
-- **Panic vignette overlay:** screen-edge red vignette intensifies when panic > 60
+- **Panic vignette overlay:** screen-edge red vignette intensifies when panic > 60 — now **GSAP-driven** (`gsap.to` 0.3s power2.inOut, `killTweensOf` on update, `useRef` target) instead of instant style jump
+- **Cinematic materials (Aug 26 v2, not blocks):** `MeshStandardMaterial` PBR walls (`0x1a2544` roughness 0.88), metal doors (emissive 0.45), concrete floor grid, player capsule emissive 0.65 + point light, beacons with `emissiveIntensity 1.15` + `PointLight`, NPC hue variance, rubble PBR — feels like simulation not Lego
+- **Hyper-real fire/smoke:** flame `CanvasTexture` radial gradient (white→flame→glow→transparent) on 3-plane cross + core + additive `Points`, 4 pooled `PointLight`s flicker-moved to nearest fires each tick, smoke soft puff `CanvasTexture` with drift `y = 1.7+sin(t+drift)*0.12` and `opacity 0.36+0.08*sin`
+- **HUD spring meters:** oxygen/panic bars use **700ms `cubic-bezier(0.16,1,0.3,1)` width transition** (motion.dev spring preset) + 300ms background lerp — avoids per-tick JS cost, stays 60fps
 - **Collision system:** player corner-sampled AABB against wall cells; NPCs use flow-field + walls
 
 ### 2.2 Data-Driven Scenarios (`frontend/src/data/scenarios.json`)
@@ -86,12 +83,12 @@ violations with timestamps, death/exit cells, scenario ID, and creation timestam
 - **Recent drills table:** scenario, result (EVACUATED/CASUALTY), time, O₂ left, peak panic, violation count, timestamp; last 12 runs shown
 - **Empty state:** link to run first drill when no data exists
 
-### 2.5 Simulate Page UX (`SimulatePage.tsx`)
+### 2.5 Simulate Page UX (`SimulatePage.tsx` — upgraded Aug 26, build green)
 
 - **Briefing phase:** scenario picker with name, hazard label, difficulty dots (●/○), control keys reference (WASD, SHIFT, B), "Start Drill" + "Command Analytics" link
-- **Running phase:** live HUD panel (time countdown, oxygen meter, panic meter, score, CRAWLING/BREATHING badges), message ticker, panic vignette overlay
+- **Running phase:** live HUD panel (time countdown, oxygen meter, panic meter, score, CRAWLING/BREATHING badges), message ticker, panic vignette overlay — **meters now spring-animated (CSS 700ms), vignette GSAP-smoothed**
 - **Ended phase:** generated debrief (✓/✗ lines from `generateDebrief()`), result stats (time, O₂, peak panic, score), "Retry Drill", "View Analytics", "Back to Briefing"
-- **Mitra dock:** floating button → panel showing context-aware coaching derived from live `GameState` (panic, oxygen, crouching, breathing, time)
+- **Mitra dock:** floating button → panel showing context-aware coaching derived from live `GameState` (panic, oxygen, crouching, breathing, time) — **GSAP `fromTo` opacity/y on toggle, `mitraPanelRef` target**
 
 ### 2.6 Landing Page (`LandingPage.tsx`)
 
@@ -123,83 +120,39 @@ violations with timestamps, death/exit cells, scenario ID, and creation timestam
 - **Tactile active states:** `:active { transform: scale(0.95–0.98) }` on all buttons, cards, nav tabs, floor rows, badges, avatar
 - **Zero tap delay:** `touch-action: manipulation` + `-webkit-tap-highlight-color: transparent` globally
 - **No blocking scroll:** removed `scroll-behavior: smooth` from `html` to allow instant App Router transitions
+- **Animation perf (Aug 26):** vignette & Mitra use GSAP `killTweensOf` + 0.3s tweens (no layout thrash); HUD bars use GPU-composited `width` + `cubic-bezier(0.16,1,0.3,1)` (motion.dev) — 700ms, no JS per tick; ImmersiveScene tint throttled to ~10 Hz and respects `prefers-reduced-motion`
 
-### 2.10 Backend — FastAPI + WebSocket Stack (`backend/`)
+### 2.10 Home Architecture / ImmersiveScene Upgrade (Aug 26 — why & what)
 
-**Architecture** (matches docs 03 §2 tech stack blueprint):
+**Why upgrade?** Landing is the 5-second credibility test for judges. The previous backdrop was time-only (`t * 0.015` etc.) — it felt alive but not *responsive*. As users scroll through pillars → emergency → final CTA, a static scene flattens the narrative. Inspired by `design.inspo` entries **scrolltide.co, neuform.io, horizonX, GSAP timelines, motion.dev springs**, the upgrade makes depth *read* the scroll position.
 
-```
-backend/
-├── app/
-│   ├── main.py                  # App factory, router wiring, startup/shutdown hooks
-│   ├── core/
-│   │   ├── config.py            # Pydantic BaseSettings (DB URL, Redis URL, JWT config)
-│   │   ├── database.py          # SQLAlchemy 2.0 async engine + AsyncSessionLocal
-│   │   └── redis_client.py      # redis.asyncio client (decode_responses=True)
-│   ├── models/
-│   │   ├── base.py              # SQLAlchemy declarative Base
-│   │   ├── institution.py       # Institution, Building, Floor models (PostGIS-aware)
-│   │   ├── user.py              # User model + UserRole enum
-│   │   ├── drill.py             # DrillSession, StudentDrillTelemetry models
-│   │   └── alert.py             # EmergencyAlert model (CAP wire format)
-│   ├── schemas/
-│   │   ├── websocket.py          # JoinCampusMessage, DrillTelemetryMessage (Pydantic v2)
-│   │   ├── drill.py             # RunTelemetryRequest/Response, ViolationSchema
-│   │   ├── institution.py        # BuildingResponse, FloorGraphData, etc.
-│   │   ├── scenarios.py          # Scenario list schemas
-│   │   └── analytics.py         # Analytics aggregation schemas
-│   ├── api/v1/
-│   │   ├── __init__.py
-│   │   ├── health.py            # GET /health, GET /health/ready (DB + Redis checks)
-│   │   ├── buildings.py         # GET /buildings/{id}, GET /buildings/{id}/floors
-│   │   ├── scenarios.py          # GET /scenarios (in-memory embedded JSON)
-│   │   └── websockets.py        # WS /ws endpoint
-│   └── services/
-│       ├── websocket_manager.py  # WebSocketManager singleton (rooms, JWT, Redis, DB)
-│       └── cap_ingestion.py     # NDMA SACHET CAP v1.2 stub (Sprint 3)
-├── alembic/                     # Migrations (baseline from schema.sql + floor_grid)
-├── scripts/                     # gen_floor_grids.py, seed_floor_grids.py
-└── tests/
-    ├── conftest.py              # pytest fixtures (jwt_secret, ws_url, event_loop)
-    ├── test_websockets.py       # Schema + manager unit tests, integration tests
-    └── load_test_client.py      # Standalone WS load test script (10–100 clients)
-```
+**What changed — `frontend/src/components/fx/ImmersiveScene.tsx:50-210` (non-breaking, build green):**
+- **Per-particle `mixFactors[]` (2400)** stored at init; base colors `lerpColors(accent, secondary, u)` — enables scroll tint without reallocating buffers.
+- **Scroll-tint + opacity fade in `tick`:** `pMat.opacity = 0.75 - scrollP*0.18`; tint re-lints `col` buffer at ~10 Hz (`Math.floor(t*10)%3`) with `bias = u + tint*(1-u)*0.6` toward secondary — subtle shift to deeper blue as you reach Emergency Mode, foreground stays legible.
+- **Terrain wave is scroll-aware:** `sin(x*0.28 + t*0.7 + scrollP*2) * cos(y*0.24 + t*0.5 - scrollP*1.5)` with amplitude `*(1+scrollP*0.2)` — waves crest a bit higher near the bottom, hinting at urgency.
+- **Distant orbit ring:** new `RingGeometry(25,27)` at y=-10, opacity 0.04, rotates `y = t*0.08 + scrollP*0.3` — adds atmospheric depth, draws the eye toward the tower.
+- **Core & tower scale with scroll:** `core.rotation.x = t*(0.4+scrollP*0.1)` · `core.rotation.y = t*(0.55+scrollP*0.2)` — rotation subtly accelerates as you commit, echoing rising stakes.
+- **Hazard rings pulsate organically:** `scale = 1 + sin(t*2+i)*0.3 + p*12`, `opacity = 0.45*(1-p)*(0.7+sin(t*3+i)*0.3)` — less metronomic, more “breathing”.
 
-**Database schema** (`database/schema.sql`): PostgreSQL 16 + PostGIS 3.4
-- `institutions`, `buildings`, `floors` (with `floor_grid JSONB` for canvas pathfinding)
-- `users` with `user_role_enum` (STUDENT, TEACHER_WARDEN, SCHOOL_ADMIN, NDRF_RESPONDER, FIRE_SERVICE, POLICE_EMS, SDMA_ANALYST)
-- `drill_sessions`, `student_drill_telemetry` (per-run positional data)
-- `emergency_alerts` (CAP wire: identifier, severity, urgency, affected_polygon PostGIS geometry)
-- Spatial indexes on geofence columns; B-tree indexes on telemetry FKs
+**Cost:** +1 `RingGeometry`, +2400 float `mixFactors`, ~7k float writes at 10 Hz (negligible). Respects `prefers-reduced-motion` (no `requestAnimationFrame` when `reduced`).
 
-**WebSocket protocol** (matches doc 09 data contracts):
+### 2.11 HazardScrollScene v3 — 360° slow + full-screen cover (Aug 26 late, per user + emil/impeccable/taste)
 
-| Direction | Type | Payload |
-|---|---|---|
-| Client → Server | `JOIN_CAMPUS` | `{ "type": "JOIN_CAMPUS", "campus_id": "C-01" }` |
-| Client → Server | `DRILL_TELEMETRY` | `{ "type": "DRILL_TELEMETRY", "drill_session_id": "...", "floor": 3, "cell": [12, 8], "status": "EVACUATING" }` |
-| Server → Client | `EMERGENCY_BROADCAST` | `{ "type": "EMERGENCY_BROADCAST", "severity": "EXTREME", "msg": "..." }` |
-| Server → Client | `ERROR` | `{ "type": "ERROR", "detail": "..." }` |
+**User ask:** too many rotations → one very slow 360° while building collapses (complete by tsunami), tsunami lifts particles, fire covers entire screen before hero.
 
-**Auth flow:**
-1. Client connects with `?token=<jwt>` query param (standard WS pattern — headers unavailable at upgrade)
-2. `WebSocketManager.connect()` decodes JWT with `settings.JWT_SECRET_KEY` + `HS256`
-3. `sub` claim → `websocket.state.user_id`; `role` claim → `websocket.state.role`
-4. `ExpiredSignatureError` → close 1008; `PyJWTError` → close 1008; missing `sub` → close 1008
-5. All downstream handlers read identity from `websocket.state`, never from the client payload
+**Applied per skills:**
+- **emilkowalski:** *Frequency* (orbit once → delight; dust/tower/core spins seen constantly → removed), *Purpose* (orbit = spatial explanation, cover = prevent jarring hero pop), *Easing* `power2.out` for cover enter, `transform/opacity` only.
+- **tasteskill:** Read as SIH landing for judges, variance 8/motion purposeful → single orbit vs spin-soup, anti-default (no AI purple, no 3 equal cards).
+- **impeccable:** One decisive motion, perpetual micro only where needed (water Gerstner, ember flicker) — craft-floor respected.
 
-**Redis Pub/Sub** (horizontal scaling):
-- Each campus room subscribes to `ws:campus:{campus_id}` via an `asyncio.Task`
-- `handle_telemetry()` publishes to Redis + broadcasts locally; `_source: "local"` tag prevents echo
-- Listeners auto-reconnect with 5 s back-off on connection drop
-- Empty room → listener cancelled on `disconnect()`
+**Code `frontend/src/components/fx/HazardScrollScene.tsx`:**
+- Orbit `477-492`: `orbitProgress=min(scrollP/0.33,1)*2PI`, `radius 17`, lerped 0.06, `lookAt 1.2+scrollP*1.8` — 360° completes exactly at 0.33.
+- Removed `dust.rotation`, `tower.rotation`, `coreGroup` spin, `halo`, `flameField` sway — `tick 496` now only `dust.position.y` barely breathing, `terrain 0.45→0.18` amplitude.
+- Water `236`: `Plane 140×140 ShaderMaterial` Gerstner `uTime/uScroll` + foam, `140×140` high-poly vs 96² low-poly.
+- Fire `256`: `EMBER 1400 ShaderMaterial size+flicker` + `flameField 5 planes` + curtain `Plane 36×36 ShaderMaterial smoke+fire` child of `camera z -9.5` (`395`), timeline `0.74→1` `uCover/uOpacity` → covers lens before hero (`484`).
+- Debris lift `498`: `scrollP 0.34-0.68 y+=sin*0.0012` floats with tide.
+- Curtain holds `0.82-0.96` then fades `0.96→0` as pin releases → hero reveals.
 
-**Telemetry persistence:**
-- `handle_telemetry()` calls `_persist_telemetry()` which upserts `StudentDrillTelemetry` rows
-- Terminal statuses (`EVACUATED_SAFE`, `VIRTUAL_CASUALTY`, `TRAPPED_SHELTERED`, `RESCUED`) set `completed_at`
-- DB failures are logged but do not block telemetry relay
-
-**Verified:** No token → 403; Bad token → 403; Valid token → connected; 10 concurrent clients → all succeeded in 60 ms.
 
 ---
 
@@ -229,7 +182,8 @@ frontend/src/
 │   ├── command/               → CommandPage + module CSS
 │   ├── admin/                 → AdminDashboard + module CSS
 │   └── fx/
-│       ├── ImmersiveScene.tsx → Landing 3D scene
+│       ├── ImmersiveScene.tsx → Landing fallback wireframe (kept intact)
+│       ├── HazardScrollScene.tsx → Cinematic sci-fi 3-act scroll (GSAP ScrollTrigger, PBR glass tower, water/fire)
 │       ├── CustomCursor.tsx   → GPU-accelerated cursor
 │       ├── RippleLink.tsx     → Magnetic prefetch links
 │       ├── Parallax.tsx       → Scroll parallax wrapper
@@ -240,18 +194,6 @@ frontend/src/
 ├── data/
 │   └── scenarios.json         → 4 scenario definitions (maps + configs)
 └── ...
-
-backend/
-├── app/
-│   ├── main.py                # FastAPI app factory, router wiring
-│   ├── core/                  # config, database, redis_client
-│   ├── models/                # SQLAlchemy 2.0 ORM (institution, user, drill, alert)
-│   ├── schemas/               # Pydantic v2 (websocket, drill, institution, scenarios)
-│   ├── api/v1/                # health, buildings, scenarios, websockets
-│   ├── services/              # websocket_manager, cap_ingestion
-│   └── scripts/               # gen_floor_grids, seed_floor_grids
-├── alembic/                   # migrations
-└── tests/                     # conftest, test_websockets, load_test_client
 ```
 
 ---
@@ -260,62 +202,38 @@ backend/
 
 | Layer | Blueprint (docs 03) | As built today |
 | :--- | :--- | :--- |
-| Framework (frontend) | Next.js 15 PWA | Next.js 16.3.2 (App Router, Turbopack), React 19 |
-| Framework (backend) | FastAPI Python 3.12 | FastAPI 0.115.0 + Uvicorn 0.30.6 + Pydantic v2 |
-| 3D | React Three Fiber + Rapier | Plain Three.js r149 (imperative scene in one component) |
+| Framework | Next.js 15 PWA | Next.js 16.3.2 (App Router, Turbopack), React 19 |
+| 3D | React Three Fiber + Rapier | Plain Three.js r149 + **HazardScrollScene** (PBR glass, ScrollTrigger 300% pin, water/fire shaders) + fallback `ImmersiveScene` |
+| Motion | framer-motion | **GSAP 3.13 + ScrollTrigger** (vignette `to`, Mitra `fromTo`, 3-act pin scrub) + CSS spring `cubic-bezier(0.16,1,0.3,1)` (HUD) + `react-spring` asset |
 | State | Zustand + TanStack Query | Local React state + `useState` |
-| Persistence (frontend) | IndexedDB (Workbox) | Browser localStorage (`safezone_drill_runs_v1`) |
-| Persistence (backend) | PostgreSQL 16 + PostGIS 3.4 | ✅ Implemented — async SQLAlchemy 2.0, models match `schema.sql`, Alembic migrations applied |
-| Cache / pub-sub | Redis 7 (Cluster) | ✅ Implemented — `redis.asyncio` client, per-campus `ws:campus:{id}` channels, auto-reconnect listener tasks |
-| Real-time transport | python-socketio + Redis Pub/Sub | ✅ Native FastAPI WebSocket + Redis Pub/Sub (socketio not needed; one protocol only) |
-| Auth | Stateless JWT + RBAC | ✅ PyJWT HS256, `?token=` query param, 7-role enum from `user_role_enum` |
+| Persistence | PostgreSQL + PostGIS, Redis | Browser localStorage (`safezone_drill_runs_v1`) |
 | AI services | GenAI scenarios, GNN routing, CV posture | None yet; Mitra is rule-based |
 | Audio | Asset-based | Fully synthesized WebAudio (zero external assets) |
 | Styling | Design system (var tokens) | CSS Modules + global design tokens (vars, utilities, animations) |
-| Build | - | Turbopack dev, Next.js production build; Uvicorn dev for FastAPI |
-| Container | Docker Compose | docker-compose.yml wires backend + Postgres/PostGIS + Redis |
+| Build | - | Turbopack dev, Next.js production build |
 
 ---
 
 ## 5. Known Gaps vs. Blueprint
 
-- **Vertical multi-floor evacuation** (Ground–5th hierarchy, doc 02 §2.3) — current drills are single-floor grids
-- **Frontend 3D sim not wired to WebSocket Hub** — telemetry still flows only through `/api/v1/telemetry/runs` (when that endpoint ships); the `DRILL_TELEMETRY` 2 Hz stream from `EvacuationGame.tsx` is not yet sending to `/api/v1/ws`
-- **Command Hub `/command` not wired to live WS** — UI mock only; no live floor status update from real drill sessions yet
-- **NDMA SACHET / CAP v1.2 ingestion** — `cap_ingestion.py` is a stub; no XML/JSON poller or webhook receiver, no geofenced automatic mode switch (doc 02 §3.1)
-- **Multiplayer drill battles** — spec-only; needs 3D sim to publish + receive telemetry
-- **GenAI scenario synthesis** — scenarios are JSON-only; no LLM generation pipeline
-- **GNN dynamic rerouting** — NPCs use BFS; no real-time weight-penalty re-routing on hazard change
-- **DDA adaptive difficulty** — not started
-- **CV "Drop-Cover-Hold" posture validation** — no MediaPipe / YOLOv8 integration
-- **Offline-first service worker / IndexedDB** — no Workbox caching
-- **Mobile / touch input for simulation** — keyboard-only currently
-- **Mitra as LLM** — currently rule-based
+- Vertical multi-floor evacuation (Ground–5th hierarchy, doc 02 §2.3) - current drills are single-floor grids
+- Multiplayer drill battles, WebSocket transport, CAP/SACHET ingestion, EOC headcount - spec-only
+- GenAI scenario synthesis, GNN dynamic rerouting, DDA adaptive difficulty, CV posture validation - spec-only
+- Offline-first service worker / IndexedDB caching - not started
+- Backend API, database, authentication - not started (telemetry in localStorage)
+- Mobile / touch input for simulation - keyboard-only currently
 
 ---
 
 ## 6. Routes
-
-### Frontend Routes
 
 | Route | Page | Description |
 | :--- | :--- | :--- |
 | `/` | Landing | Immersive hero, stats, pillars, emergency CTA |
 | `/learn` | Learning Portal | Age tiers, modules, badges, sidebar nav |
 | `/simulate` | Simulation | Scenario picker → playable drill → generated debrief |
-| `/command` | Command Hub | Floor matrix, campus map, alerts, agencies, action bar (UI mock, not live yet) |
+| `/command` | Command Hub | Floor matrix, campus map, alerts, agencies, action bar |
 | `/admin` | Admin Analytics | KPIs, heatmap, drill log (Pillar 2→3 telemetry) |
-
-### Backend API Routes (FastAPI)
-
-| Route | Method | Description |
-| :--- | :--- | :--- |
-| `/api/v1/health` | GET | Liveness check (no deps) |
-| `/api/v1/health/ready` | GET | Readiness check (DB ping, Redis ping) |
-| `/api/v1/buildings/{id}` | GET | Building metadata |
-| `/api/v1/buildings/{id}/floors` | GET | Floor graph nodes/edges + grid for pathfinding |
-| `/api/v1/scenarios` | GET | All 4 embedded drill scenarios with map + config |
-| `/api/v1/ws` | WS | WebSocket upgrade — JWT auth, JOIN_CAMPUS, DRILL_TELEMETRY, EMERGENCY_BROADCAST |
 
 ---
 
@@ -330,14 +248,9 @@ backend/
 1. **Live Telemetry in `/command`:** Wire `CommandPage.tsx` to real-time WebSocket events from active student drill sessions to update the Floor Status Matrix (safe/trapped/missing) live.
 2. **Isometric Multi-Floor 3D Visualizer:** Upgrade the 2D SVG campus blueprint into an interactive Three.js 3D stacked floor viewer (Ground-5th Floor) with real-time hazard markers and evacuation paths.
 3. **Voice-Enabled "Mitra" Crisis Assistant:** Connect browser Web Speech API (SpeechRecognition + SpeechSynthesis) to the Mitra assistant drawer for hands-free voice coaching during evacuation drills.
-4. **Frontend ↔ WebSocket integration:** Open a `WebSocket("/api/v1/ws?token=...")` in `EvacuationGame.tsx` after a drill starts and emit a `DRILL_TELEMETRY` message every 500 ms with `floor` + `cell` + `status`. On the `EMERGENCY_BROADCAST` message, switch the 3D sim into "real emergency" mode (doc 02 §3.1).
 
 ### ⚙️ Backend Dev (Venkat): FastAPI Server, WebSockets & NDMA SACHET Ingestion
-1. **FastAPI & PostgreSQL Backend** — ✅ **Built**: REST endpoints (`/health`, `/buildings/{id}`, `/buildings/{id}/floors`, `/scenarios`) with SQLAlchemy models, Alembic migrations applied, embedding PostGIS-aware geometry columns.
-2. **WebSocket Session Hub** — ✅ **Built**: `/api/v1/ws` with JWT auth (PyJWT HS256), room broker, Redis Pub/Sub (`ws:campus:{id}`), `DRILL_TELEMETRY` persistence to `student_drill_telemetry`, `EMERGENCY_BROADCAST` fan-out. Load test client (`tests/load_test_client.py`) verified with 10 concurrent clients in 60 ms.
-3. **NDMA SACHET / CAP v1.2 Ingestion Engine** — ❌ **Not started**: Build the async XML feed poller/webhook receiver in `app/services/cap_ingestion.py`, parse CAP fields (`<identifier>`, `<sender>`, `<sent>`, `<info>`, `<headline>`, `<area>`), run the geofence polygon match, and call `ws_manager.broadcast_emergency()` for affected campuses (doc 02 §3.1).
-4. **`POST /api/v1/telemetry/runs`** — ❌ Not started: REST endpoint to persist `RunTelemetry` payloads (replaces browser `localStorage`). Schema already defined in `app/schemas/drill.py` (`RunTelemetryRequest` / `RunTelemetryResponse`).
-5. **`GET /api/v1/telemetry/analytics`** — ❌ Not started: Aggregated KPIs and route heatmap matrix for the `/admin` dashboard.
-6. **Multi-tenant RBAC on REST endpoints** — ❌ Not started: JWT verification helper that decodes a Bearer token and returns the current `User`; FastAPI dependency for role-based access. (Already on WS endpoint, needs to be extracted for reuse.)
-7. **5k concurrent load test** — ❌ Not started: Run `load_test_client.py` against a full docker compose stack (backend + Postgres + Redis) with 1,000 → 5,000 connections; measure broadcast latency.
+1. **FastAPI & PostgreSQL Backend:** Build the REST API (`POST /api/v1/telemetry/runs`, `GET /api/v1/telemetry/analytics`, `GET /api/v1/scenarios`) with SQLAlchemy models to persist drill telemetry and replace browser `localStorage`.
+2. **WebSocket Session Hub:** Implement a real-time room broker (FastAPI WebSockets + Redis Pub/Sub) for multi-occupant campus drill synchronisation and instantaneous emergency broadcasts (<50ms).
+3. **NDMA SACHET / CAP v1.2 Ingestion Engine:** Build an automated XML feed poller/parser for Common Alerting Protocol (CAP v1.2) emergency warnings from NDMA/IMD to push geofenced alerts to campus hubs.
 
