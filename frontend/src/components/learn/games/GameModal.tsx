@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import styles from "./games.module.css";
 
@@ -11,6 +12,14 @@ interface Props {
 }
 
 export default function GameModal({ title, icon, onClose, children }: Props) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div

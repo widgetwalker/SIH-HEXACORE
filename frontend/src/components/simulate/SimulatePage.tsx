@@ -99,6 +99,14 @@ export default function SimulatePage() {
   const [speechSupported, setSpeechSupported] = useState({ tts: false, stt: false });
   const recognitionRef = useRef<InstanceType<NonNullable<typeof window.SpeechRecognition>> | null>(null);
   const lastSpokenRef = useRef("");
+  // SpeechRecognition's onresult closure is set once per toggleListening()
+  // call and can fire well after gs has moved on - a ref kept in sync with
+  // the latest gs lets that handler read the current value instead of the
+  // one captured when listening started.
+  const gsRef = useRef<GameState | null>(null);
+  useEffect(() => {
+    gsRef.current = gs;
+  }, [gs]);
 
   useEffect(() => {
     setSpeechSupported({
@@ -154,7 +162,7 @@ export default function SimulatePage() {
       if (last.isFinal) {
         const lower = text.toLowerCase();
         if (/help|status|repeat|mitra/.test(lower)) {
-          speak(getMitraTip(gs));
+          speak(getMitraTip(gsRef.current));
         }
       }
     };
@@ -479,6 +487,7 @@ export default function SimulatePage() {
                       else speak(mitraMessages[mitraMessages.length - 1]?.text ?? getMitraTip(gs));
                     }}
                     title={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
+                    aria-label={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
                     aria-pressed={voiceOn}
                   >
                     {voiceOn ? "🔊" : "🔈"}
@@ -490,6 +499,7 @@ export default function SimulatePage() {
                     className={`${styles.mitraIconBtn} ${listening ? styles.mitraIconBtnActive : ""}`}
                     onClick={toggleListening}
                     title={listening ? "Stop listening" : "Say \"help\" or \"status\" for hands-free coaching"}
+                    aria-label={listening ? "Stop listening" : "Say help or status for hands-free coaching"}
                     aria-pressed={listening}
                   >
                     {listening ? "🎙️" : "🎤"}

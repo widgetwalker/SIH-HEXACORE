@@ -31,7 +31,7 @@ interface Props {
   onComplete: (score: number) => void;
 }
 
-type DragInfo = { id: string; from: "pool" | "bag"; moved: number };
+type DragInfo = { id: string; from: "pool" | "bag"; moved: number; lastX: number; lastY: number };
 
 export default function GoBagBuilder({ onComplete }: Props) {
   const [bag, setBag] = useState<string[]>([]);
@@ -56,7 +56,7 @@ export default function GoBagBuilder({ onComplete }: Props) {
 
   const onItemPointerDown = (id: string, from: "pool" | "bag") => (e: ReactPointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { id, from, moved: 0 };
+    dragRef.current = { id, from, moved: 0, lastX: e.clientX, lastY: e.clientY };
     if (ghostRef.current) {
       const item = ITEMS.find((i) => i.id === id);
       ghostRef.current.textContent = item?.label ?? "";
@@ -68,7 +68,12 @@ export default function GoBagBuilder({ onComplete }: Props) {
   const onLayoutPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
     if (!d) return;
-    d.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+    // clientX/Y deltas instead of movementX/Y - movement is often 0 for
+    // touch-derived pointer events in some browsers, which was making real
+    // drags register as taps on mobile.
+    d.moved += Math.abs(e.clientX - d.lastX) + Math.abs(e.clientY - d.lastY);
+    d.lastX = e.clientX;
+    d.lastY = e.clientY;
     if (ghostRef.current) {
       ghostRef.current.style.left = `${e.clientX}px`;
       ghostRef.current.style.top = `${e.clientY}px`;
