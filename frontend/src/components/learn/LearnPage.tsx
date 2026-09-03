@@ -1,8 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import ModuleViewer from "./tiergame/ModuleViewer";
+import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
+import { SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6 } from "./tiergame/content/sentinels";
+import { WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6 } from "./tiergame/content/wardens";
+import type { TierModuleContent } from "./tiergame/types";
 import styles from "./LearnPage.module.css";
+
+const GUARDIANS_TIER_ID = 3;
+const SENTINELS_TIER_ID = 4;
+const WARDENS_TIER_ID = 5;
+
+/* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
+   each module's own id prefix (e.g. "guardians-m1") so it can be matched
+   against the mock MODULES list's plain ids ("m1"). All 3 tiers from
+   docs/10_TIER_GAMES_SPECIFICATION.md are now wired up (18/18 modules). */
+const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleContent[] }> = {
+  [GUARDIANS_TIER_ID]: {
+    prefix: "guardians",
+    modules: [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6],
+  },
+  [SENTINELS_TIER_ID]: {
+    prefix: "sentinels",
+    modules: [SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6],
+  },
+  [WARDENS_TIER_ID]: {
+    prefix: "wardens",
+    modules: [WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6],
+  },
+};
+
+function getRealModule(tierId: number, moduleId: string): TierModuleContent | undefined {
+  const cfg = TIER_GAME_CONFIG[tierId];
+  if (!cfg) return undefined;
+  return cfg.modules.find((m) => m.id === `${cfg.prefix}-${moduleId}`);
+}
+
+/* Reverse-lookup for the /simulate round trip: given a full module id
+   (e.g. "guardians-m2"), find which tier owns it and its short id ("m2"). */
+function findModuleTier(fullModuleId: string): { tierId: number; shortId: string; module: TierModuleContent } | undefined {
+  for (const [tierIdStr, cfg] of Object.entries(TIER_GAME_CONFIG)) {
+    const mod = cfg.modules.find((m) => m.id === fullModuleId);
+    if (mod) return { tierId: Number(tierIdStr), shortId: mod.id.replace(`${cfg.prefix}-`, ""), module: mod };
+  }
+  return undefined;
+}
 
 const TIERS = [
   { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
@@ -21,6 +66,29 @@ const MODULES = [
   { id: "m6", title: "Multi-Hazard Compound Drill", type: "Simulation", duration: "25 min", status: "locked", score: null, icon: "⚠️" },
 ];
 
+/* tierScores used to be in-memory only, which was fine while every module
+   played out in a modal on this same page. Now "simulation"-type modules
+   navigate away to /simulate and back, which unmounts LearnPage entirely -
+   without persistence that round trip would wipe every other module's
+   progress from the same session, not just reset the one being played. */
+const TIER_SCORES_KEY = "safezone_tier_scores_v1";
+
+function loadTierScores(): Record<number, Record<string, number>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(TIER_SCORES_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    // Corrupted/foreign data (null, an array, a primitive) would otherwise
+    // turn a "just reset progress" fallback into a hard crash the first
+    // time something does tierScores[tierId] on it.
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    return parsed as Record<number, Record<string, number>>;
+  } catch {
+    return {};
+  }
+}
+
 const BADGES = [
   { name: "First Responder", earned: true, icon: "🏅" },
   { name: "Fire Marshal", earned: true, icon: "🔥" },
@@ -31,15 +99,66 @@ const BADGES = [
 ];
 
 export default function LearnPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTier, setActiveTier] = useState(2);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
+  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>(loadTierScores);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(tierScores));
+    } catch {
+      /* storage full or unavailable - non-fatal, progress just won't survive a reload */
+    }
+  }, [tierScores]);
+
+  /* first module in a tier's list is always unlocked; each next one unlocks
+     once the previous is completed - real sequential progression, not mock data */
+  const tierModuleStatus = (tierId: number, moduleId: string): "locked" | "in-progress" | "completed" => {
+    const cfg = TIER_GAME_CONFIG[tierId];
+    if (!cfg) return "locked";
+    const scores = tierScores[tierId] ?? {};
+    if (scores[moduleId] !== undefined) return "completed";
+    const idx = cfg.modules.findIndex((m) => m.id === `${cfg.prefix}-${moduleId}`);
+    if (idx <= 0) return "in-progress";
+    const prevId = cfg.modules[idx - 1].id.replace(`${cfg.prefix}-`, "");
+    return scores[prevId] !== undefined ? "in-progress" : "locked";
   };
+
+  const showToast = (msg: string, duration = 2500) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), duration);
+  };
+
+  /* Round trip from a "simulation"-type checkpoint's real /simulate drill:
+     applies the score, jumps to the right tier, and surfaces the module's
+     own PDF checkpoint explanation as a toast — since the drill happened on
+     a different page, this is the only place that content can be shown. */
+  useEffect(() => {
+    const result = searchParams.get("moduleResult");
+    if (!result) return;
+    const [fullModuleId, status] = result.split(":");
+    const owner = findModuleTier(fullModuleId);
+    if (owner) {
+      const scorePct = status === "won" ? 100 : 60;
+      setActiveTier(owner.tierId);
+      setTierScores((prev) => ({
+        ...prev,
+        [owner.tierId]: { ...(prev[owner.tierId] ?? {}), [owner.shortId]: scorePct },
+      }));
+      const checkpoint = owner.module.sections.find((s) => s.checkpoint)?.checkpoint;
+      if (checkpoint) {
+        const text = status === "won" ? checkpoint.correct.explanation : checkpoint.wrong.explanation;
+        showToast(status === "won" ? `✅ Drill cleared — ${text}` : `Drill logged — ${text}`, 6000);
+      }
+    }
+    router.replace("/learn");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className={styles.page}>
@@ -150,16 +269,33 @@ export default function LearnPage() {
               <span className="badge badge-teal">Tier {activeTier}</span>
             </div>
             <div className={styles.modulesList}>
-              {MODULES.map((m) => (
+              {MODULES.map((base) => {
+                const real = getRealModule(activeTier, base.id);
+                const isRealTierModule = !!real;
+                const m = real
+                  ? {
+                      ...base,
+                      title: real.name,
+                      icon: real.icon,
+                      duration: `${real.estMinutes} min`,
+                      status: tierModuleStatus(activeTier, base.id),
+                      score: tierScores[activeTier]?.[base.id] ?? null,
+                    }
+                  : base;
+                return (
                 <div
                   key={m.id}
                   className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
                   onClick={() => {
-                    if (m.status !== "locked") {
-                      setSelectedModule(m.id);
-                      showToast(`Loaded "${m.title}"`);
-                    } else {
+                    if (m.status === "locked") {
                       showToast("🔒 Complete previous modules to unlock this drill");
+                      return;
+                    }
+                    setSelectedModule(m.id);
+                    if (isRealTierModule) {
+                      setViewer({ tierId: activeTier, moduleId: m.id });
+                    } else {
+                      showToast(`Loaded "${m.title}"`);
                     }
                   }}
                   role="button"
@@ -189,7 +325,8 @@ export default function LearnPage() {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -214,6 +351,23 @@ export default function LearnPage() {
           </section>
         </main>
       </div>
+
+      {viewer && getRealModule(viewer.tierId, viewer.moduleId) && (
+        <ModuleViewer
+          key={`${viewer.tierId}-${viewer.moduleId}`}
+          module={getRealModule(viewer.tierId, viewer.moduleId)!}
+          onClose={() => setViewer(null)}
+          onComplete={(scorePct) => {
+            const { tierId, moduleId } = viewer;
+            setTierScores((prev) => ({
+              ...prev,
+              [tierId]: { ...(prev[tierId] ?? {}), [moduleId]: scorePct },
+            }));
+            setViewer(null);
+            showToast(scorePct === 100 ? "✅ Module complete — nice work!" : "Module complete — review the checkpoint next time.");
+          }}
+        />
+      )}
     </div>
   );
 }

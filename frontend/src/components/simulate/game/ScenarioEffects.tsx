@@ -28,6 +28,15 @@ interface Props {
   phase: "briefing" | "running" | "ended";
 }
 
+/* quake-style shake/wobble applies to the original compound scenario plus the
+   tier-game multi-hazard drills, which are also earthquake-triggered fires */
+const QUAKE_SCENARIO_IDS = new Set([
+  "quake-compound",
+  "guardians-multihazard",
+  "sentinels-multihazard",
+  "wardens-multihazard",
+]);
+
 /* ── Deterministic seeded random for particle positions ── */
 function seededRandom(seed: number) {
   let s = seed;
@@ -191,7 +200,7 @@ export default function ScenarioEffects({ scenario, gs, phase }: Props) {
   const oxygen = gs?.oxygen ?? 100;
 
   /* ── detect hazard category ── */
-  const isQuake = scenario.id === "quake-compound";
+  const isQuake = QUAKE_SCENARIO_IDS.has(scenario.id);
   const isChemical = scenario.hazardLabel === "TOXIC GAS";
   const isBlackout = scenario.id === "blackout-fire";
   const isFire = !isQuake && !isChemical && scenario.colors.flame.startsWith("#f");

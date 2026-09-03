@@ -12,33 +12,38 @@
 
 ## ⚡ Quick Start & Setup Instructions
 
+The frontend is fully self-contained: **no database, no backend, and no API keys are required** to install, build, or run it. Everything in `/`, `/learn`, `/simulate`, `/command`, and `/admin` works out of the box on a bare clone — verified with a clean `npm run build` and zero environment variables set.
+
 ### 1. Prerequisites
 - **Node.js**: v18.17+ or v20+ recommended (`node -v`)
 - **npm**: v9+ (`npm -v`)
 - **Git**
 
-### 2. Clone & Navigate to Frontend
+### 2. Clone and run
+
+**macOS / Linux / Git Bash:**
 ```bash
-# Clone the repository
-git clone https://github.com/widgetwalker/SIH-HEXACORE.git
-cd SIH-HEXACORE/frontend
+git clone https://github.com/widgetwalker/SIH-HEXACORE.git && cd SIH-HEXACORE/frontend && npm install && npm run dev
 ```
 
-### 3. Install Dependencies
-```bash
-npm install
+**Windows PowerShell** (`&&` isn't a valid separator there — use `;`, or just run each line separately):
+```powershell
+git clone https://github.com/widgetwalker/SIH-HEXACORE.git; cd SIH-HEXACORE/frontend; npm install; npm run dev
 ```
 
-### 4. Start Development Server
-```bash
-npm run dev
-```
-> The application will start immediately with Turbopack at **`http://localhost:3000`**.
+Either way this installs every dependency and starts the dev server (Turbopack) at **`http://localhost:3000`**. If you already cloned it, just run the last two commands from inside `frontend/` — and make sure you're actually *inside* `frontend/` (where `package.json` lives) before running any `npm` command, not the repo root.
 
-### 5. Production Build & Verification
+### 3. Production Build & Verification
 ```bash
 npm run build
 npm run start
+```
+This must stay green with zero TypeScript/build errors — that's the actual CI/submission bar, not just `npm run dev` working.
+
+### 4. Optional: enabling Mitra (AI crisis companion)
+Everything works without this. The only feature that needs it is Mitra's chat replies inside `/simulate` — without a key it just shows "Mitra is offline right now" instead of crashing anything. To enable it, create `frontend/.env.local`:
+```bash
+GEMINI_API_KEY=your-key-here
 ```
 
 ---

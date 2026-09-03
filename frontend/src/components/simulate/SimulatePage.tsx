@@ -4,10 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { SCENARIOS } from "./game/floorplan";
 import { generateDebrief, saveRun, fmtTime, type DebriefLine, type RunTelemetry } from "./game/telemetry";
 import type { GameState } from "./game/EvacuationGame";
+import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -66,6 +68,11 @@ function dirText(dir: GameState["guideDir"]): string {
 }
 
 export default function SimulatePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const learnModuleId = searchParams.get("learnModule");
+  const learnScenario = learnModuleId ? LEARN_SCENARIOS[learnModuleId] : undefined;
+
   const [phase, setPhase] = useState<Phase>("briefing");
   const [runId, setRunId] = useState(0);
   const [selIdx, setSelIdx] = useState(0);
@@ -86,7 +93,7 @@ export default function SimulatePage() {
   const lastUrgentAtRef = useRef(0);
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const goodLineIdxRef = useRef(0);
-  const scenario = SCENARIOS[selIdx];
+  const scenario = learnScenario ?? SCENARIOS[selIdx];
 
   useEffect(() => {
     return () => {
@@ -295,26 +302,29 @@ export default function SimulatePage() {
           <div className={styles.overlay}>
             <div className={`hud-panel ${styles.card}`}>
               <span className="badge badge-red badge-pulse">{scenario.badge}</span>
+              {learnScenario && <span className="badge badge-teal">📘 Lesson Drill</span>}
               <h1 className={styles.cardTitle}>{scenario.hazardLabel} DRILL</h1>
               <p className={styles.cardDesc}>{scenario.brief}</p>
 
-              {/* scenario selector */}
-              <div className={styles.scenarioRow} role="tablist" aria-label="Scenario selection">
-                {SCENARIOS.map((s, i) => (
-                  <button
-                    key={s.id}
-                    role="tab"
-                    aria-selected={i === selIdx}
-                    className={`${styles.scenarioCard} ${i === selIdx ? styles.scenarioCardActive : ""}`}
-                    onClick={() => setSelIdx(i)}
-                  >
-                    <span className={styles.scenarioName}>{s.name}</span>
-                    <span className={styles.scenarioMeta}>
-                      {s.hazardLabel} · {"●".repeat(s.difficulty)}{"○".repeat(3 - s.difficulty)}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {/* scenario selector — hidden when arriving from a lesson checkpoint, since the scenario is fixed */}
+              {!learnScenario && (
+                <div className={styles.scenarioRow} role="tablist" aria-label="Scenario selection">
+                  {SCENARIOS.map((s, i) => (
+                    <button
+                      key={s.id}
+                      role="tab"
+                      aria-selected={i === selIdx}
+                      className={`${styles.scenarioCard} ${i === selIdx ? styles.scenarioCardActive : ""}`}
+                      onClick={() => setSelIdx(i)}
+                    >
+                      <span className={styles.scenarioName}>{s.name}</span>
+                      <span className={styles.scenarioMeta}>
+                        {s.hazardLabel} · {"●".repeat(s.difficulty)}{"○".repeat(3 - s.difficulty)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className={styles.controls}>
                 <div className={styles.controlItem}><kbd>W A S D</kbd><span>Move</span></div>
@@ -407,9 +417,23 @@ export default function SimulatePage() {
                 ))}
               </ul>
               <div className={styles.resultActions}>
-                <button className="btn btn-primary" onClick={start}>Retry Drill</button>
-                <Link href="/admin" className={`btn btn-ghost ${styles.adminLink}`}>View Analytics ↗</Link>
-                <button className="btn btn-ghost" onClick={() => setPhase("briefing")}>Back to Briefing</button>
+                {learnScenario ? (
+                  <>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => router.push(`/learn?moduleResult=${learnModuleId}:${gs.status}`)}
+                    >
+                      Return to Lesson ✓
+                    </button>
+                    <button className="btn btn-ghost" onClick={start}>Retry Drill</button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn btn-primary" onClick={start}>Retry Drill</button>
+                    <Link href="/admin" className={`btn btn-ghost ${styles.adminLink}`}>View Analytics ↗</Link>
+                    <button className="btn btn-ghost" onClick={() => setPhase("briefing")}>Back to Briefing</button>
+                  </>
+                )}
               </div>
             </div>
           </div>
