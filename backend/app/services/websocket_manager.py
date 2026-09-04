@@ -259,8 +259,17 @@ class WebSocketManager:
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove the socket from whatever room it was in."""
+        # Capture the leaving user_id and campus_id BEFORE we clear the
+        # room, so we can untrack them from the PathfinderBridge.
+        leaving_user_id: str | None = None
+        leaving_campus_id: str | None = None
         async with self._lock:
             for campus_id, room in list(self._rooms.items()):
+                for ws, uid, _ in list(room):
+                    if ws is websocket:
+                        leaving_user_id = uid
+                        leaving_campus_id = campus_id
+                        break
                 # Rebuild the room without the leaving socket.
                 remaining = {(ws, uid, role) for ws, uid, role in room if ws is not websocket}
                 if remaining:
@@ -271,6 +280,16 @@ class WebSocketManager:
                     del self._rooms[campus_id]
                     # Stop the Redis listener for this campus
                     await self._stop_redis_listener(campus_id)
+
+        # Untrack from the PathfinderBridge.  Lazy-imported to avoid a
+        # circular import.
+        if leaving_user_id and leaving_campus_id:
+            try:
+                from app.services.pathfinder_bridge import pathfinder_bridge
+                await pathfinder_bridge.untrack_user(leaving_campus_id, leaving_user_id)
+            except Exception:  # noqa: BLE001
+                # Best-effort cleanup; never let tracking errors break disconnect.
+                pass
 
     # ── telemetry ───────────────────────────────────────────────────────────
 
@@ -319,6 +338,13 @@ class WebSocketManager:
             "status": msg.status,
         }
         await self._publish_to_campus(campus_id, broadcast)
+
+        # 4. Track this user on their floor so the PathfinderBridge
+        # knows where to re-route when a hazard update arrives.
+        # Lazy-imported to avoid a circular import between
+        # websocket_manager and pathfinder_bridge.
+        from app.services.pathfinder_bridge import pathfinder_bridge
+        await pathfinder_bridge.track_user(campus_id, user_id, msg.floor)
 
     async def _persist_telemetry(
         self,
@@ -579,6 +605,35 @@ class WebSocketManager:
                 await redis_client.publish(f"ws:campus:{campus_id}", json.dumps(payload))
             except Exception as exc:
                 logger.warning("Failed to publish campus emergency to Redis: %s", exc)
+
+    # ── pathfinder integration ─────────────────────────────────────────────
+
+    async def broadcast_path_update(
+        self,
+        campus_id: str,
+        update: dict[str, Any],
+    ) -> None:
+        """
+        Push a PATH_UPDATE message to all clients in a campus room.
+
+        Called by the PathfinderBridge after a hazard change triggers a
+        re-route.  Also publishes to Redis so other workers fan it out.
+        """
+        payload = {**update, "_source": "local"}
+
+        async with self._lock:
+            room = list(self._rooms.get(campus_id, set()))
+
+        if room:
+            await self._broadcast_json(room, payload)
+
+        try:
+            await redis_client.publish(f"ws:campus:{campus_id}", json.dumps(payload))
+        except Exception as exc:
+            logger.warning(
+                "Failed to publish PATH_UPDATE to Redis for campus=%s: %s",
+                campus_id, exc,
+            )
 
     # ── shutdown ───────────────────────────────────────────────────────────
 
