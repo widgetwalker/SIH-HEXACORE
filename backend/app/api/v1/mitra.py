@@ -111,11 +111,12 @@ async def mitra_chat(body: MitraChatRequest) -> MitraChatResponse:
         logger.error("Mitra/Gemini request failed: %s", exc)
         raise HTTPException(status_code=502, detail="Mitra is temporarily unreachable.") from exc
 
-    if res.status_code != 200:
-        logger.error("Mitra/Gemini error: %s %s", res.status_code, res.text)
-        raise HTTPException(status_code=502, detail="Mitra is temporarily unreachable.")
+    try:
+        data = res.json()
+    except ValueError as exc:
+        logger.error("Mitra/Gemini returned invalid JSON: %s", res.text[:200])
+        raise HTTPException(status_code=502, detail="Mitra is temporarily unreachable.") from exc
 
-    data = res.json()
     candidates = data.get("candidates") or []
     parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
     text = "".join(p.get("text", "") for p in parts).strip()

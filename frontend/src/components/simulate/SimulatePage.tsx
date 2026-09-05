@@ -28,7 +28,7 @@ const BUBBLE_TONE_CLASS = {
    Gemini key only has to exist on whoever runs that server, not in every
    developer's own frontend/.env.local. Override via NEXT_PUBLIC_BACKEND_URL
    if the backend isn't on the default local port. */
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });
 

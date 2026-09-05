@@ -38,6 +38,7 @@ app.add_middleware(
         "http://localhost:3000", "http://127.0.0.1:3000",
         "http://localhost:3001", "http://127.0.0.1:3001",
     ],
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):3\d{3}$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "Authorization", "Cookie"],
@@ -47,12 +48,12 @@ app.add_middleware(
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """
-    Reshape every HTTPException to {"error": "..."} instead of FastAPI's
-    default {"detail": "..."} - the frontend's Mitra client already reads
-    `data.error` on a failed response (a holdover from when this endpoint
-    was a Next.js route), so this keeps that call site unchanged.
+    If the request path is under /api/v1/mitra, provide {"error": ...} to match
+    the frontend Mitra client's expectation. Otherwise, provide standard
+    {"detail": ...} so other endpoints remain standard FastAPI format.
     """
-    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+    content = {"error": exc.detail} if request.url.path.startswith("/api/v1/mitra") else {"detail": exc.detail}
+    return JSONResponse(status_code=exc.status_code, content=content)
 
 
 @app.on_event("startup")

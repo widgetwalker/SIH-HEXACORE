@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MitraTurn(BaseModel):
@@ -42,7 +42,7 @@ class MitraContext(BaseModel):
 
 class MitraChatRequest(BaseModel):
     message: str
-    history: List[MitraTurn] = []
+    history: List[MitraTurn] = Field(default_factory=list)
     context: Optional[MitraContext] = None
 
 
