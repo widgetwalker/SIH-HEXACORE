@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-me-in-env-file"
     JWT_ALGORITHM: str = "HS256"
 
+    # Gemini key for the /api/v1/mitra/chat endpoint. Lives here (server-side
+    # only) instead of in every developer's frontend/.env.local - empty by
+    # default so a fresh clone still boots, Mitra just replies with a clear
+    # "not configured" error until someone sets this.
+    GEMINI_API_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

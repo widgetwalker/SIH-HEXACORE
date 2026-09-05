@@ -24,6 +24,12 @@ const BUBBLE_TONE_CLASS = {
   info: "mitraBubbleInfo",
 } as const;
 
+/* Mitra now lives on the FastAPI backend (POST /api/v1/mitra/chat) so the
+   Gemini key only has to exist on whoever runs that server, not in every
+   developer's own frontend/.env.local. Override via NEXT_PUBLIC_BACKEND_URL
+   if the backend isn't on the default local port. */
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+
 const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });
 
 type Phase = "briefing" | "running" | "ended";
@@ -157,7 +163,7 @@ export default function SimulatePage() {
     setMitraInput("");
     setMitraLoading(true);
     try {
-      const res = await fetch("/api/mitra", {
+      const res = await fetch(`${BACKEND_URL}/api/v1/mitra/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
