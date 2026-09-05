@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # "not configured" error until someone sets this.
     GEMINI_API_KEY: str = ""
 
+    # NDMA SACHET webhook secret (HMAC-SHA256 signature verification).
+    # Leave empty in dev to allow loopback-only calls without a signature.
+    SACHET_WEBHOOK_SECRET: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

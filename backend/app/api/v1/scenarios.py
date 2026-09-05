@@ -8,9 +8,9 @@ Data is embedded in the module — no external file dependency,
 making deployment a single-step operation.
 """
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.schemas.scenarios import Scenario, ScenarioListResponse
 
@@ -181,3 +181,186 @@ def list_scenarios() -> ScenarioListResponse:
     - blockages: optional timed corridor-sealing events
     """
     return ScenarioListResponse(scenarios=SCENARIOS_DB)
+
+
+# ── Dynamic scenario generation ─────────────────────────────────────────
+
+# Hazard templates: each one is a complete, valid floor-plan with seed
+# fire cells (F), a player start (P), and at least one exit (E).  The
+# generator varies the *parameters* (spread rate, fog, difficulty, etc.)
+# per request rather than the map itself, which keeps the drill
+# deterministic and fair while still giving the frontend variety.
+_HAZARD_TEMPLATES = {
+    "FIRE": {
+        "name": "Lab Fire",
+        "badge": "SCENARIO GEN \xb7 LAB FIRE",
+        "hazardLabel": "FIRE",
+        "colors": {"flame": "#ff7a1a", "glow": "#ef4444", "smoke": "#30363f"},
+        "map": [
+            "########################",
+            "#P........#........#...#",
+            "#.........#........#...#",
+            "#.....##..#..##....#.F.#",
+            "####.###########.###.###",
+            "#......................#",
+            "#......................#",
+            "###.#######.#######.####",
+            "#.....#........#.......#",
+            "#..F..#........#.......#",
+            "#.....#...##...#...#####",
+            "#.....#........#...#..E#",
+            "###.###.....##.#...#...#",
+            "#.......#......#.......#",
+            "#.......#..F...........#",
+            "########################",
+        ],
+    },
+    "TOXIC GAS": {
+        "name": "Chemical Spill",
+        "badge": "SCENARIO GEN \xb7 TOXIC GAS RELEASE",
+        "hazardLabel": "TOXIC GAS",
+        "colors": {"flame": "#f59e0b", "glow": "#a3e635", "smoke": "#3f4e1f"},
+        "map": [
+            "########################",
+            "#..P...#......#........#",
+            "#......D..F...#...E....#",
+            "#......#......D........#",
+            "###D########D#######D###",
+            "#......................#",
+            "#...####......####.....#",
+            "#...#..D......D..#.....#",
+            "#...####......####.....#",
+            "#......................#",
+            "####D##########D####D###",
+            "#......#.......#.......#",
+            "#..F...#...F...D....E..#",
+            "#......#.......#.......#",
+            "########################",
+        ],
+    },
+    "QUAKE": {
+        "name": "Quake + Fire",
+        "badge": "SCENARIO GEN \xb7 COMPOUND QUAKE + FIRE",
+        "hazardLabel": "FIRE",
+        "colors": {"flame": "#ff7a1a", "glow": "#ef4444", "smoke": "#30363f"},
+        "map": [
+            "########################",
+            "#P.....#........#.....E#",
+            "#......#...F....#......#",
+            "#......D........D......#",
+            "#......#........#......#",
+            "####D############D######",
+            "#......................#",
+            "#........####..........#",
+            "#......................#",
+            "#####D########D####D####",
+            "#......#........#......#",
+            "#..F...#........D......#",
+            "#......D........#......#",
+            "#......#........#...F..#",
+            "#E.....#........#......#",
+            "########################",
+        ],
+    },
+    "BLACKOUT": {
+        "name": "Blackout Drill",
+        "badge": "SCENARIO GEN \xb7 NIGHT FIRE",
+        "hazardLabel": "FIRE",
+        "colors": {"flame": "#ff9d3a", "glow": "#f59e0b", "smoke": "#1c222c"},
+        "map": [
+            "########################",
+            "#P........#........#...#",
+            "#.........#........#...#",
+            "#.....##..#..##....#.F.#",
+            "####.###########.###.###",
+            "#......................#",
+            "#......................#",
+            "###.#######.#######.####",
+            "#.....#........#.......#",
+            "#..F..#........#.......#",
+            "#.....#...##...#...#####",
+            "#.....#........#...#..E#",
+            "###.###.....##.#...#...#",
+            "#.......#......#.......#",
+            "#.......#..F...........#",
+            "########################",
+        ],
+    },
+}
+
+
+def _generate_scenario(hazard_label: str, seed: int) -> Scenario:
+    """
+    Deterministic parameter variation for a given hazard template.
+
+    The seed is mixed into every numeric parameter so the same request
+    always produces the same scenario — useful for replay and grading.
+    """
+    template = _HAZARD_TEMPLATES.get(hazard_label.upper(), _HAZARD_TEMPLATES["FIRE"])
+
+    # Mix the seed into a pseudo-random but deterministic parameter set.
+    # Using a simple LCG keeps the generator dependency-free (no numpy).
+    state = seed
+    def _rng() -> float:
+        nonlocal state
+        state = (state * 1664525 + 1013904223) & 0xFFFFFFFF
+        return state / 0xFFFFFFFF
+
+    difficulty = 1 + int(_rng() * 4)  # 1..5
+    time_limit = 90 + int(_rng() * 90)  # 90..180 s
+    spread_interval = round(2.0 + _rng() * 1.6, 2)  # 2.0..3.6 s
+    spread_chance = round(0.35 + _rng() * 0.25, 2)  # 0.35..0.60
+    fog_density = round(0.01 + _rng() * 0.05, 3)  # 0.01..0.06
+
+    return Scenario(
+        id=f"gen-{hazard_label.lower()}-{seed}",
+        name=template["name"],
+        badge=template["badge"],
+        hazardLabel=template["hazardLabel"],
+        difficulty=difficulty,
+        brief=(
+            f"Generated drill: {template['name'].lower()} with "
+            f"difficulty {difficulty}/5 and a {time_limit}s limit."
+        ),
+        timeLimit=time_limit,
+        spreadInterval=spread_interval,
+        spreadChance=spread_chance,
+        fogDensity=fog_density,
+        colors=template["colors"],
+        map=template["map"],
+        blockages=[],
+    )
+
+
+@router.post(
+    "/scenarios/generate",
+    response_model=Scenario,
+    tags=["scenarios"],
+    summary="Generate a dynamic drill scenario",
+)
+async def generate_scenario(
+    hazard_label: str = "FIRE",
+    seed: Optional[int] = None,
+) -> Scenario:
+    """
+    Generate a fresh drill scenario on demand.
+
+    The scenario is built from a hazard template (FIRE, TOXIC GAS,
+    QUAKE, BLACKOUT) with parameters varied deterministically by ``seed``.
+    If no seed is supplied, one is derived from the current time so the
+    drill feels different each run, while still being reproducible if the
+    caller records the returned scenario's ``id``.
+
+    Planned Sprint 3 enhancement: route the request through an LLM
+    service for narrative-driven, fully custom maps.  The current
+    implementation is a pure-Python generator with no external calls.
+    """
+    if seed is None:
+        import time as _time
+        seed = int(_time.time() * 1000) & 0xFFFFFFFF
+    if not (0 <= seed <= 0xFFFFFFFF):
+        raise HTTPException(
+            status_code=422,
+            detail="seed must be a non-negative 32-bit integer",
+        )
+    return _generate_scenario(hazard_label, seed)

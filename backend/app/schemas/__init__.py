@@ -26,6 +26,12 @@ from app.schemas.websocket import (
     WebSocketMessage,
 )
 from app.schemas.scenarios import Scenario, ScenarioListResponse
+from app.schemas.pathfinder import (
+    HazardState,
+    PathRequest,
+    PathResult,
+    PathUpdateMessage,
+)
 
 __all__ = [
     "RunTelemetryRequest",
@@ -43,4 +49,8 @@ __all__ = [
     "WebSocketMessage",
     "Scenario",
     "ScenarioListResponse",
+    "HazardState",
+    "PathRequest",
+    "PathResult",
+    "PathUpdateMessage",
 ]
