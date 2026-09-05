@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ModuleViewer from "./tiergame/ModuleViewer";
+import { EXPLORERS_MODULE_1, EXPLORERS_MODULE_2, EXPLORERS_MODULE_3, EXPLORERS_MODULE_4 } from "./tiergame/content/explorers";
+import { RANGERS_MODULE_1, RANGERS_MODULE_2, RANGERS_MODULE_3, RANGERS_MODULE_4, RANGERS_MODULE_5, RANGERS_MODULE_6 } from "./tiergame/content/rangers";
 import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
 import { SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6 } from "./tiergame/content/sentinels";
 import { WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6 } from "./tiergame/content/wardens";
@@ -14,15 +16,25 @@ import GoBagBuilder from "./games/GoBagBuilder";
 import PassExtinguisherGame from "./games/PassExtinguisherGame";
 import styles from "./LearnPage.module.css";
 
+const EXPLORERS_TIER_ID = 1;
+const RANGERS_TIER_ID = 2;
 const GUARDIANS_TIER_ID = 3;
 const SENTINELS_TIER_ID = 4;
 const WARDENS_TIER_ID = 5;
 
 /* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
    each module's own id prefix (e.g. "guardians-m1") so it can be matched
-   against the mock MODULES list's plain ids ("m1"). All 3 tiers from
-   docs/10_TIER_GAMES_SPECIFICATION.md are now wired up (18/18 modules). */
+   against the mock MODULES list's plain ids ("m1"). All 5 tiers from
+   docs/10_TIER_GAMES_SPECIFICATION.md are now wired up. */
 const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleContent[] }> = {
+  [EXPLORERS_TIER_ID]: {
+    prefix: "explorers",
+    modules: [EXPLORERS_MODULE_1, EXPLORERS_MODULE_2, EXPLORERS_MODULE_3, EXPLORERS_MODULE_4],
+  },
+  [RANGERS_TIER_ID]: {
+    prefix: "rangers",
+    modules: [RANGERS_MODULE_1, RANGERS_MODULE_2, RANGERS_MODULE_3, RANGERS_MODULE_4, RANGERS_MODULE_5, RANGERS_MODULE_6],
+  },
   [GUARDIANS_TIER_ID]: {
     prefix: "guardians",
     modules: [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6],
