@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # JWT auth - not used until Sprint 3, placeholder for now.
     JWT_SECRET_KEY: str = "change-me-in-env-file"
     JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str | None = None
+    JWT_AUDIENCE: str | None = None
 
     # Gemini key for the /api/v1/mitra/chat endpoint. Lives here (server-side
     # only) instead of in every developer's frontend/.env.local - empty by
