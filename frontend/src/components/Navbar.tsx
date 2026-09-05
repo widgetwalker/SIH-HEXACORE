@@ -24,6 +24,7 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
         mode === "emergency" ? styles.emergency : ""
       }`}
       aria-label="Main navigation"
+      suppressHydrationWarning
     >
       <div className={styles.inner}>
         {/* Logo */}
@@ -103,12 +104,13 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
             prefetch={true}
             className={`${styles.alertIndicator} ${mode === "emergency" ? styles.alertActive : ""}`}
             style={{ textDecoration: "none" }}
+            suppressHydrationWarning
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" suppressHydrationWarning>
+              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" suppressHydrationWarning />
+              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" suppressHydrationWarning />
             </svg>
-            <span>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
+            <span suppressHydrationWarning>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
           </Link>
 
           <Link

@@ -141,19 +141,19 @@ export default function LandingPage() {
           <Parallax speed={0.22} className={`${styles.chip} ${styles.chipA}`}>
             <div className={`hud-panel ${styles.chipInner}`}>
               <span className="hud-label">Panic Index</span>
-              <span className="hud-value" style={{ color: "#00D4AA" }}>12% · STABLE</span>
+              <span className={`hud-value ${styles.chipValueTeal}`} suppressHydrationWarning>12% · STABLE</span>
             </div>
           </Parallax>
           <Parallax speed={0.3} className={`${styles.chip} ${styles.chipB}`}>
             <div className={`hud-panel ${styles.chipInner}`}>
               <span className="hud-label">Evac Route B</span>
-              <span className="hud-value" style={{ color: "#3B82F6" }}>RECALC 14ms ✓</span>
+              <span className={`hud-value ${styles.chipValueBlue}`} suppressHydrationWarning>RECALC 14ms ✓</span>
             </div>
           </Parallax>
           <Parallax speed={0.18} className={`${styles.chip} ${styles.chipC}`}>
             <div className={`hud-panel ${styles.chipInner}`}>
               <span className="hud-label">SACHET Feed</span>
-              <span className="hud-value" style={{ color: "#F59E0B" }}>LISTENING…</span>
+              <span className={`hud-value ${styles.chipValueAmber}`} suppressHydrationWarning>LISTENING…</span>
             </div>
           </Parallax>
 

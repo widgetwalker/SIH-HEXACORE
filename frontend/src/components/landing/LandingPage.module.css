@@ -100,6 +100,9 @@
   padding: 12px 18px;
   text-align: left;
 }
+.chipValueTeal { color: #00D4AA; }
+.chipValueBlue { color: #3B82F6; }
+.chipValueAmber { color: #F59E0B; }
 .chipA { top: 24%; left: 6%; }
 .chipB { top: 38%; right: 7%; animation-delay: 1.2s; }
 .chipC { bottom: 20%; left: 12%; animation-delay: 2.1s; }
