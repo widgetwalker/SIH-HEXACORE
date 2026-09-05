@@ -1,0 +1,15 @@
+{
+  "name": "SafeZone - Gamified Disaster Preparedness",
+  "short_name": "SafeZone",
+  "description": "Train today, survive tomorrow. Gamified disaster education, 3D evacuation drills, and campus emergency command for Indian schools and colleges.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0A0F1E",
+  "theme_color": "#0A0F1E",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -84,8 +84,6 @@ export default function SimulatePage() {
   const [mitraInput, setMitraInput] = useState("");
   const [mitraLoading, setMitraLoading] = useState(false);
   const [mitraBubble, setMitraBubble] = useState<MitraBubble | null>(null);
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
   const mitraLogRef = useRef<HTMLDivElement>(null);
   const lastDistRef = useRef<number | null>(null);
@@ -101,76 +99,54 @@ export default function SimulatePage() {
     };
   }, []);
 
+  /* ── Mitra voice — Web Speech API (doc 08 §7, Frontend Dev 2 task 3) ── */
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speechSupported, setSpeechSupported] = useState({ tts: false, stt: false });
+  const recognitionRef = useRef<InstanceType<NonNullable<typeof window.SpeechRecognition>> | null>(null);
+  const lastSpokenRef = useRef("");
+  // SpeechRecognition's onresult closure is set once per toggleListening()
+  // call and can fire well after gs has moved on - a ref kept in sync with
+  // the latest gs lets that handler read the current value instead of the
+  // one captured when listening started.
+  const gsRef = useRef<GameState | null>(null);
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition && !recognitionRef.current) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "en-IN";
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-      recognitionRef.current = recognition;
-    }
+    gsRef.current = gs;
+  }, [gs]);
+
+  useEffect(() => {
+    setSpeechSupported({
+      tts: typeof window !== "undefined" && "speechSynthesis" in window,
+      stt: typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+    });
   }, []);
 
+  // Recognition keeps running (and its onend/onerror keep firing setState)
+  // after navigating away unless explicitly stopped; detach the handlers
+  // first so a stop-triggered onend can't touch state post-unmount.
   useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = (e: any) => {
-        const transcript = e.results[0][0].transcript;
-        if (transcript) {
-          setMitraInput(transcript);
-          sendMitra(transcript);
-        }
-      };
-    }
-  }, [mitraMessages, gs, phase, scenario, mitraLoading]);
-
-  useEffect(() => {
-    if (!mitraPanelRef.current) return;
-    const el = mitraPanelRef.current;
-    if (mitraOpen) {
-      gsap.fromTo(el, { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" });
-    } else {
-      gsap.to(el, { opacity: 0, duration: 0.2, ease: "power2.in" });
-    }
-  }, [mitraOpen]);
-
-  useEffect(() => {
-    if (mitraLogRef.current) {
-      mitraLogRef.current.scrollTop = mitraLogRef.current.scrollHeight;
-    }
-  }, [mitraMessages, mitraLoading]);
-
-  const openMitra = () => {
-    setMitraOpen((open) => {
-      const next = !open;
-      if (next) {
-        setMitraBubble(null);
-        if (mitraMessages.length === 0) {
-          setMitraMessages([{ role: "mitra", text: getMitraTip(gs) }]);
-        }
+    return () => {
+      const rec = recognitionRef.current;
+      if (rec) {
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        rec.stop();
       }
-      return next;
-    });
-  };
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      recognitionRef.current?.start();
-    }
-  };
-
-  const speakMitra = (text: string) => {
-    if (!window.speechSynthesis) return;
+  const speak = (text: string) => {
+    if (!("speechSynthesis" in window) || !text) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN";
-    utterance.rate = 1.05;
-    window.speechSynthesis.speak(utterance);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.pitch = 1.0;
+    window.speechSynthesis.speak(utter);
   };
 
   const sendMitra = async (raw: string) => {
@@ -207,14 +183,78 @@ export default function SimulatePage() {
       const data = await res.json();
       const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
       setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
-      speakMitra(replyText);
+      if (voiceOn) speak(replyText);
     } catch {
-      const errText = "Connection lost — try again once you're back online.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: errText }]);
-      speakMitra(errText);
+      const failText = "Connection lost — try again once you're back online.";
+      setMitraMessages((m) => [...m, { role: "mitra", text: failText }]);
+      if (voiceOn) speak(failText);
     } finally {
       setMitraLoading(false);
     }
+  };
+
+  const toggleListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = "en-IN";
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const text = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      setTranscript(text);
+      const last = e.results[e.results.length - 1];
+      if (last.isFinal) {
+        const lower = text.toLowerCase();
+        if (/help|status|repeat|mitra/.test(lower)) {
+          speak(getMitraTip(gsRef.current));
+        } else {
+          setMitraInput(text);
+          sendMitra(text);
+        }
+      }
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+    setTranscript("");
+  };
+
+  useEffect(() => {
+    if (!mitraPanelRef.current) return;
+    const el = mitraPanelRef.current;
+    if (mitraOpen) {
+      gsap.fromTo(el, { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" });
+    } else {
+      gsap.to(el, { opacity: 0, duration: 0.2, ease: "power2.in" });
+    }
+  }, [mitraOpen]);
+
+  useEffect(() => {
+    if (mitraLogRef.current) {
+      mitraLogRef.current.scrollTop = mitraLogRef.current.scrollHeight;
+    }
+  }, [mitraMessages, mitraLoading]);
+
+  const openMitra = () => {
+    setMitraOpen((open) => {
+      const next = !open;
+      if (next) {
+        setMitraBubble(null);
+        if (mitraMessages.length === 0) {
+          setMitraMessages([{ role: "mitra", text: getMitraTip(gs) }]);
+        }
+      }
+      return next;
+    });
   };
 
   const showBubble = (text: string, tone: MitraBubble["tone"]) => {
@@ -252,6 +292,16 @@ export default function SimulatePage() {
       showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good");
     }
   };
+
+  /* hands-free coaching: speak Mitra's tip whenever it changes, while voice is on */
+  useEffect(() => {
+    if (!voiceOn || phase === "briefing") return;
+    const tip = getMitraTip(gs);
+    if (tip === lastSpokenRef.current) return;
+    lastSpokenRef.current = tip;
+    speak(tip);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, gs, phase]);
 
   const onState = (s: GameState) => {
     setGs(s);
@@ -450,7 +500,40 @@ export default function SimulatePage() {
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
-            <span className="hud-label">Mitra · Crisis Companion</span>
+            <div className={styles.mitraHeader}>
+              <span className="hud-label">Mitra · Crisis Companion</span>
+              <div className={styles.mitraVoiceControls}>
+                {speechSupported.tts && (
+                  <button
+                    type="button"
+                    className={`${styles.mitraIconBtn} ${voiceOn ? styles.mitraIconBtnActive : ""}`}
+                    onClick={() => {
+                      const next = !voiceOn;
+                      setVoiceOn(next);
+                      if (!next) window.speechSynthesis.cancel();
+                      else speak(mitraMessages[mitraMessages.length - 1]?.text ?? getMitraTip(gs));
+                    }}
+                    title={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
+                    aria-label={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
+                    aria-pressed={voiceOn}
+                  >
+                    {voiceOn ? "🔊" : "🔈"}
+                  </button>
+                )}
+                {speechSupported.stt && (
+                  <button
+                    type="button"
+                    className={`${styles.mitraIconBtn} ${listening ? styles.mitraIconBtnActive : ""}`}
+                    onClick={toggleListening}
+                    title={listening ? "Stop listening" : "Say \"help\" or \"status\" for hands-free coaching"}
+                    aria-label={listening ? "Stop listening" : "Say help or status for hands-free coaching"}
+                    aria-pressed={listening}
+                  >
+                    {listening ? "🎙️" : "🎤"}
+                  </button>
+                )}
+              </div>
+            </div>
             <div ref={mitraLogRef} className={styles.mitraLog}>
               {mitraMessages.map((m, i) => (
                 <p key={i} className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
@@ -461,6 +544,9 @@ export default function SimulatePage() {
                 <div className={styles.typing}><span /><span /><span /></div>
               )}
             </div>
+            {listening && (
+              <p className={styles.mitraTranscript}>{transcript || "Listening… try “help” or “status”"}</p>
+            )}
             <form
               className={styles.mitraInputRow}
               onSubmit={(e) => {
@@ -470,9 +556,10 @@ export default function SimulatePage() {
             >
               <button
                 type="button"
-                className={`${styles.mitraMic} ${isListening ? styles.listeningPulse : ""}`}
+                className={`${styles.mitraMic} ${listening ? styles.listeningPulse : ""}`}
                 onClick={toggleListening}
-                title="Use voice"
+                title={listening ? "Stop listening" : "Use voice"}
+                aria-label={listening ? "Stop listening" : "Use voice"}
               >
                 🎤
               </button>

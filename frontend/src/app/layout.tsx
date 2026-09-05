@@ -3,6 +3,7 @@ import { Viewport } from "next";
 import "@designcodeio/threeui/style.css";
 import "./globals.css";
 import CustomCursor from "@/components/fx/CustomCursor";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "SafeZone - Gamified Disaster Preparedness | SIH 2026",
@@ -21,6 +22,11 @@ export const metadata: Metadata = {
     description:
       "AI-powered gamified disaster training for schools. Real simulations. Real safety.",
     type: "website",
+  },
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 
@@ -52,6 +58,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         {children}
         <CustomCursor />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

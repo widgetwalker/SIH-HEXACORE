@@ -363,6 +363,45 @@
   from { opacity: 0; transform: translateY(6px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+.mitraHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mitraVoiceControls {
+  display: flex;
+  gap: 6px;
+}
+.mitraIconBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--bg-glass);
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.mitraIconBtn:hover { border-color: var(--border-strong); }
+.mitraIconBtnActive {
+  border-color: var(--accent-teal);
+  background: var(--accent-teal-dim);
+  box-shadow: var(--glow-teal-sm);
+}
+.mitraTranscript {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-teal);
+  padding: 6px 10px;
+  background: var(--bg-glass);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
 .typing {
   display: flex;
   gap: 5px;
