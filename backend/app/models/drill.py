@@ -65,7 +65,7 @@ class DrillSession(Base):
     )
     scenario_id: Mapped[str] = mapped_column(String(100), nullable=False)
     primary_hazard: Mapped[str] = mapped_column(String(100), nullable=False)
-    cascading_hazards: Mapped[list] = mapped_column(JSONB, default_factory=list)
+    cascading_hazards: Mapped[list] = mapped_column(JSONB, default=list)
     started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     total_participants: Mapped[int] = mapped_column(Integer, default=0)
@@ -107,8 +107,8 @@ class StudentDrillTelemetry(Base):
     evacuation_time_sec: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     panic_peak_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     cv_posture_compliance_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
-    prohibitions_violated: Mapped[list] = mapped_column(JSONB, default_factory=list)
-    escape_route_taken: Mapped[list] = mapped_column(JSONB, default_factory=list)
+    prohibitions_violated: Mapped[list] = mapped_column(JSONB, default=list)
+    escape_route_taken: Mapped[list] = mapped_column(JSONB, default=list)
     completed_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), default=datetime.utcnow
     )
@@ -146,10 +146,10 @@ class DrillRun(Base):
     breath_count: Mapped[int] = mapped_column(Integer, nullable=False)
     distance_traveled: Mapped[float] = mapped_column(Numeric(8, 2), nullable=True)
     fire_cell_entries: Mapped[int] = mapped_column(Integer, nullable=True)
-    exit_used: Mapped[dict | None] = mapped_column(JSONB, default_factory=dict)
-    death_cell: Mapped[dict | None] = mapped_column(JSONB, default_factory=dict)
-    violations: Mapped[list] = mapped_column(JSONB, default_factory=list)  # list of violation dicts
-    route_heat: Mapped[list[float]] = mapped_column(JSONB, default_factory=list)  # flat rows*cols visit counts
+    exit_used: Mapped[dict | None] = mapped_column(JSONB, default=dict)
+    death_cell: Mapped[dict | None] = mapped_column(JSONB, default=dict)
+    violations: Mapped[list] = mapped_column(JSONB, default=list)  # list of violation dicts
+    route_heat: Mapped[list[float]] = mapped_column(JSONB, default=list)  # flat rows*cols visit counts
     cols: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     rows: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[int] = mapped_column(Integer, nullable=False)  # client millisecond timestamp
