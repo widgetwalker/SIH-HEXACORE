@@ -54,7 +54,7 @@
 .floorRow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; user-select: none; touch-action: manipulation; }
 .floorRow:hover { background: var(--bg-glass); transform: translateX(2px); }
 .floorRow:active { transform: scale(0.98); }
-.floorRowSelected { border-left: 3px solid var(--accent-teal); background: rgba(0, 212, 170, 0.08) !important; }
+.floorRowSelected { outline: 1px solid rgba(0, 212, 170, 0.4); outline-offset: -1px; background: rgba(0, 212, 170, 0.08) !important; }
 .row-danger { background: var(--accent-red-dim); }
 .row-warning { background: rgba(245,158,11,0.05); }
 .floorId { min-width: 24px; font-weight: 700; font-size: 0.75rem; color: var(--text-muted); }
@@ -87,11 +87,12 @@
 .rightCol { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr); gap: 12px; min-width: 0; align-items: start; }
 .floorInspector { grid-column: 1 / -1; }
 .alertPanel { flex: 1; }
+.injectionDeckPanel { grid-column: 1 / -1; min-width: 0; }
 .alertFeed { padding: 8px; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
-.alertItem { padding: 10px 12px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 4px; border-left: 3px solid; }
-.alert-red { border-left-color: var(--accent-red); background: rgba(239,68,68,0.04); }
-.alert-amber { border-left-color: var(--accent-amber); background: rgba(245,158,11,0.04); }
-.alert-blue { border-left-color: var(--accent-blue); background: rgba(59,130,246,0.04); }
+.alertItem { padding: 10px 12px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 4px; }
+.alert-red { border: 1px solid rgba(239,68,68,0.32); background: rgba(239,68,68,0.04); }
+.alert-amber { border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+.alert-blue { border: 1px solid rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
 .alertTime { font-size: 0.625rem; color: var(--text-faint); }
 .alertSev { align-self: flex-start; font-size: 0.6rem; }
 .alertSrc { font-size: 0.6875rem; font-weight: 600; color: var(--text-secondary); }

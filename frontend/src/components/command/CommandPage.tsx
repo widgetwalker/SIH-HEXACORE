@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { applyWebSocketTelemetry, applyEmergencyBroadcast, createMockTelemetryStream, createWebSocketTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry, type CommandAlert, type DrillTelemetryMessage, type WebSocketConnectionStatus, type WebSocketTelemetryMessage, type EmergencyBroadcastMessage } from "./telemetry";
 import { subscribeDrillEvents, type DrillTelemetryFrame } from "./drillEventBus";
+import LiveThreatBanner, { type LiveThreatAlert } from "./LiveThreatBanner";
+import IncidentInjectionDeck, { type IncidentType } from "./IncidentInjectionDeck";
 
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
@@ -130,9 +132,56 @@ export default function CommandPage() {
   }));
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>("disconnected");
 
+  // Live threat alert state (mock for now - would be populated by WebSocket in production)
+  const [liveAlert, setLiveAlert] = useState<LiveThreatAlert | null>({
+    source: "NDMA-CAP",
+    severity: "CRITICAL",
+    title: "Earthquake M5.2 - Campus Impact Zone",
+    detail: "Epicenter 12km NW of campus. Aftershocks expected. Immediate evacuation protocol activated.",
+    timestamp: new Date().toLocaleTimeString(),
+  });
+
+  // Incident injection state
+  const [isInjecting, setIsInjecting] = useState(false);
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleAcknowledgeAlert = () => {
+    showToast("✓ Alert acknowledged - Logged to NDMA incident report");
+    // In production: send acknowledgement to backend
+  };
+
+  const handleTriggerProtocol = () => {
+    showToast("⚡ Campus Emergency Protocol Activated - All buildings notified");
+    // In production: trigger emergency broadcast
+  };
+
+  const handleInjectIncident = (incidentType: IncidentType, floor: string) => {
+    setIsInjecting(true);
+    showToast(`⚡ Injecting ${incidentType.replace("_", " ")} incident on ${floor}...`);
+
+    // Simulate incident injection (in production: send to backend WebSocket)
+    setTimeout(() => {
+      const incidentTitles = {
+        transformer_fire: "Transformer Fire - Power Failure",
+        chemical_spill: "Chemical Spill - Lab Containment Required",
+        gas_leak: "Gas Leak - Immediate Evacuation",
+      };
+
+      setLiveAlert({
+        source: "Campus-IoT",
+        severity: "CRITICAL",
+        title: incidentTitles[incidentType],
+        detail: `Simulated incident on ${floor}. Emergency response teams notified.`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+
+      setIsInjecting(false);
+      showToast(`✓ Incident injected successfully on ${floor}`);
+    }, 2000);
   };
 
   useEffect(() => {
@@ -201,6 +250,12 @@ export default function CommandPage() {
       </div>
 
       <div className={styles.dashboard}>
+        <LiveThreatBanner
+          alert={liveAlert}
+          onAcknowledge={handleAcknowledgeAlert}
+          onTriggerProtocol={handleTriggerProtocol}
+        />
+
         {/* Top bar */}
         <div className={styles.topBar}>
           <div className={styles.topLeft}>
@@ -406,6 +461,13 @@ export default function CommandPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className={styles.injectionDeckPanel}>
+              <IncidentInjectionDeck
+                onInjectIncident={handleInjectIncident}
+                isInjecting={isInjecting}
+              />
             </div>
         </div>
 
