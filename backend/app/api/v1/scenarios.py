@@ -8,11 +8,17 @@ Data is embedded in the module — no external file dependency,
 making deployment a single-step operation.
 """
 
+import json
+import logging
+import httpx
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.scenarios import Scenario, ScenarioListResponse
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -343,24 +349,107 @@ async def generate_scenario(
     seed: Optional[int] = None,
 ) -> Scenario:
     """
-    Generate a fresh drill scenario on demand.
-
-    The scenario is built from a hazard template (FIRE, TOXIC GAS,
-    QUAKE, BLACKOUT) with parameters varied deterministically by ``seed``.
-    If no seed is supplied, one is derived from the current time so the
-    drill feels different each run, while still being reproducible if the
-    caller records the returned scenario's ``id``.
-
-    Planned Sprint 3 enhancement: route the request through an LLM
-    service for narrative-driven, fully custom maps.  The current
-    implementation is a pure-Python generator with no external calls.
+    Generate a fresh drill scenario on demand using Gemini 3.6 Flash.
+    
+    If the LLM call fails or times out, or if the server lacks an API key,
+    it falls back to a deterministic pseudo-random generator.
     """
     if seed is None:
         import time as _time
         seed = int(_time.time() * 1000) & 0xFFFFFFFF
     if not (0 <= seed <= 0xFFFFFFFF):
-        raise HTTPException(
-            status_code=422,
-            detail="seed must be a non-negative 32-bit integer",
-        )
-    return _generate_scenario(hazard_label, seed)
+        raise HTTPException(status_code=422, detail="seed must be non-negative 32-bit int")
+
+    if not settings.GEMINI_API_KEY:
+        logger.warning("No GEMINI_API_KEY set. Falling back to rule-based generator.")
+        return _generate_scenario(hazard_label, seed)
+
+    schema = {
+        "type": "OBJECT",
+        "properties": {
+            "id": {"type": "STRING"},
+            "name": {"type": "STRING"},
+            "badge": {"type": "STRING"},
+            "hazardLabel": {"type": "STRING"},
+            "difficulty": {"type": "INTEGER"},
+            "brief": {"type": "STRING"},
+            "timeLimit": {"type": "INTEGER"},
+            "spreadInterval": {"type": "NUMBER"},
+            "spreadChance": {"type": "NUMBER"},
+            "fogDensity": {"type": "NUMBER"},
+            "colors": {
+                "type": "OBJECT",
+                "properties": {
+                    "flame": {"type": "STRING"},
+                    "glow": {"type": "STRING"},
+                    "smoke": {"type": "STRING"}
+                },
+                "required": ["flame", "glow", "smoke"]
+            },
+            "map": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            },
+            "blockages": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "t": {"type": "INTEGER"},
+                        "warnT": {"type": "INTEGER"},
+                        "cells": {
+                            "type": "ARRAY",
+                            "items": {
+                                "type": "ARRAY",
+                                "items": {"type": "INTEGER"}
+                            }
+                        },
+                        "warnMessage": {"type": "STRING"},
+                        "message": {"type": "STRING"}
+                    },
+                    "required": ["t", "cells", "message"]
+                }
+            }
+        },
+        "required": ["id", "name", "badge", "hazardLabel", "difficulty", "brief", "timeLimit", "spreadInterval", "spreadChance", "fogDensity", "colors", "map", "blockages"]
+    }
+
+    prompt = f"""
+Generate a highly creative, unique school disaster drill scenario for a '{hazard_label}' incident.
+The map MUST be exactly 16 rows of 24 characters each.
+Rules for the map:
+'#' = Wall, '.' = Floor/Corridor, 'D' = Door, 'P' = Player Start (Exactly one), 'E' = Exit (At least one), 'F' = Fire/Hazard Seed (At least one).
+Make the layout feel like a real school (classrooms, hallways, labs).
+Include dramatic blockages (corridor seal events) if difficulty > 2.
+"""
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "response_mime_type": "application/json",
+            "response_schema": schema,
+            "temperature": 0.7
+        }
+    }
+
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            res = await client.post(url, params={"key": settings.GEMINI_API_KEY}, json=payload)
+            res.raise_for_status()
+            
+            data = res.json()
+            # Gemini returns text content containing the raw JSON
+            content_str = data["candidates"][0]["content"]["parts"][0]["text"]
+            scenario_data = json.loads(content_str)
+            
+            # Use Pydantic model to enforce constraints (e.g. string limits, map shapes, warnT < t)
+            scenario = Scenario.model_validate(scenario_data)
+            
+            # Override ID to match seed tracking expectations
+            scenario.id = f"gen-{hazard_label.lower()}-{seed}"
+            return scenario
+
+    except Exception as e:
+        logger.error(f"LLM Scenario Generation failed: {e}. Falling back to rule-based.")
+        return _generate_scenario(hazard_label, seed)
