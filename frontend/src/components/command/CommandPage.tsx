@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
-import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
+import { applyWebSocketTelemetry, applyEmergencyBroadcast, createMockTelemetryStream, createWebSocketTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry, type CommandAlert, type DrillTelemetryMessage, type WebSocketConnectionStatus, type WebSocketTelemetryMessage, type EmergencyBroadcastMessage } from "./telemetry";
+import { subscribeDrillEvents, type DrillTelemetryFrame } from "./drillEventBus";
 
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
@@ -18,11 +19,11 @@ const ConstellationField = dynamic(
 
 import styles from "./CommandPage.module.css";
 
-const ALERTS = [
-  { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
-  { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", msg: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
-  { id: 3, time: "22:42:05", severity: "Alert", source: "Campus IoT", msg: "Smoke detector triggered - Building A, Floor 4, Room 402.", color: "amber" },
-  { id: 4, time: "22:42:30", severity: "Info", source: "System", msg: "Automatic mode switch: Learning → Emergency Mode activated.", color: "blue" },
+const ALERTS: CommandAlert[] = [
+  { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", message: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
+  { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", message: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
+  { id: 3, time: "22:42:05", severity: "Alert", source: "Campus IoT", message: "Smoke detector triggered - Building A, Floor 4, Room 402.", color: "amber" },
+  { id: 4, time: "22:42:30", severity: "Info", source: "System", message: "Automatic mode switch: Learning → Emergency Mode activated.", color: "blue" },
 ];
 
 const AGENCIES = [
@@ -32,11 +33,102 @@ const AGENCIES = [
   { name: "Ambulance EMS", status: "Standby", role: "Medical Triage", color: "violet" },
 ];
 
+const FLOOR_INSPECTOR_DATA: Record<string, {
+  label: string;
+  summary: string;
+  rooms: Array<{ room: string; hazard: string; trapped: number; agency: string; status: "critical" | "warning" | "clear" }>;
+  assignments: Array<{ name: string; role: string; status: string }>;
+}> = {
+  "5F": {
+    label: "Fifth Floor",
+    summary: "Low occupancy, smoke pockets, and one blocked stairwell near the library wing.",
+    rooms: [
+      { room: "501 Lab", hazard: "Smoke drift", trapped: 2, agency: "NDRF Unit", status: "warning" },
+      { room: "510 Studio", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "514 Hall", hazard: "Blocked exit", trapped: 3, agency: "Fire Station #4", status: "critical" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Wardens", status: "Active" },
+      { name: "Fire Station #4", role: "Suppression", status: "En Route" },
+    ],
+  },
+  "4F": {
+    label: "Fourth Floor",
+    summary: "Highest risk floor: heat buildup, trapped students concentrated in the east wing, and a narrow evacuation route.",
+    rooms: [
+      { room: "402 Lab", hazard: "Fire plume", trapped: 12, agency: "Fire Station #4", status: "critical" },
+      { room: "410 Corridor B", hazard: "Smoke-heavy", trapped: 8, agency: "NDRF Unit", status: "warning" },
+      { room: "418 Seminar", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+    ],
+    assignments: [
+      { name: "NDRF Unit", role: "Rescue team", status: "Dispatched" },
+      { name: "Fire Station #4", role: "Fire suppression", status: "En Route" },
+      { name: "Ambulance EMS", role: "Triage", status: "Standby" },
+    ],
+  },
+  "3F": {
+    label: "Third Floor",
+    summary: "Stable occupancy, minor smoke trace, and available alternate route near the service stairs.",
+    rooms: [
+      { room: "302 Admin", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "311 Workshop", hazard: "Smoke trace", trapped: 1, agency: "Campus EOC", status: "warning" },
+      { room: "316 Lounge", hazard: "Clear", trapped: 0, agency: "NDRF Unit", status: "clear" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Wardens", status: "Active" },
+      { name: "NDRF Unit", role: "Sweep", status: "Dispatched" },
+    ],
+  },
+  "2F": {
+    label: "Second Floor",
+    summary: "Nearly clear. Student movement is steady; no blocked primary exits.",
+    rooms: [
+      { room: "205 Lecture", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "213 Library", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "220 Hall", hazard: "Minor congestion", trapped: 2, agency: "NDRF Unit", status: "warning" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Wardens", status: "Active" },
+      { name: "Ambulance EMS", role: "Triage", status: "Standby" },
+    ],
+  },
+  "1F": {
+    label: "First Floor",
+    summary: "Public areas are stable; evacuation volume is manageable with the side exit open.",
+    rooms: [
+      { room: "105 Atrium", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "116 Canteen", hazard: "Congestion", trapped: 3, agency: "Campus EOC", status: "warning" },
+      { room: "120 Lobby", hazard: "Clear", trapped: 0, agency: "NDRF Unit", status: "clear" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Traffic control", status: "Active" },
+      { name: "NDRF Unit", role: "Sweep", status: "Dispatched" },
+    ],
+  },
+  GF: {
+    label: "Ground Floor",
+    summary: "Entry control active; most occupants are already routed to assembly zones.",
+    rooms: [
+      { room: "G02 Main Gate", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "G07 Assembly", hazard: "Clear", trapped: 0, agency: "Campus EOC", status: "clear" },
+      { room: "G11 Service", hazard: "Blocked", trapped: 2, agency: "Fire Station #4", status: "warning" },
+    ],
+    assignments: [
+      { name: "Campus EOC", role: "Assembly control", status: "Active" },
+      { name: "Fire Station #4", role: "Support", status: "En Route" },
+    ],
+  },
+};
+
 export default function CommandPage() {
   const [clock, setClock] = useState("22:42:30");
   const [toast, setToast] = useState<string | null>(null);
   const [selectedFloor, setSelectedFloor] = useState<string | null>("4F");
-  const [telemetry, setTelemetry] = useState<CommandTelemetry>(getInitialCommandTelemetry);
+  const [telemetry, setTelemetry] = useState<CommandTelemetry>(() => ({
+    ...getInitialCommandTelemetry(),
+    alerts: ALERTS.map((a) => ({ ...a, source: a.source })),
+  }));
+  const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>("disconnected");
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -51,12 +143,47 @@ export default function CommandPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => createMockTelemetryStream(setTelemetry), []);
+  useEffect(() => {
+    // Try real WebSocket first; fall back to BroadcastChannel bus + mock seed.
+    const liveStream = createWebSocketTelemetryStream((raw) => {
+      const message = raw as WebSocketTelemetryMessage;
+      if (message.type === "EMERGENCY_BROADCAST") {
+        setTelemetry((previous) => applyEmergencyBroadcast(previous, message as EmergencyBroadcastMessage));
+      } else if (message.type === "DRILL_TELEMETRY") {
+        setTelemetry((previous) => applyWebSocketTelemetry(previous, message as DrillTelemetryMessage));
+      }
+    }, {}, setConnectionStatus);
+
+    if (liveStream) return liveStream;
+
+    // Subscribe to client-side BroadcastChannel bus (cross-tab drill telemetry)
+    const unsubBus = subscribeDrillEvents((frame: DrillTelemetryFrame) => {
+      setTelemetry((previous) =>
+        applyWebSocketTelemetry(previous, {
+          type: "DRILL_TELEMETRY",
+          user_id: frame.user_id,
+          floor: frame.floor,
+          cell: frame.cell,
+          status: frame.status,
+        }),
+      );
+    });
+
+    // Seed with mock data so the dashboard isn't empty before a drill starts
+    const unsubMock = createMockTelemetryStream(setTelemetry);
+
+    return () => {
+      unsubBus();
+      unsubMock();
+    };
+  }, []);
 
   const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);
   const totalTrapped = telemetry.floors.reduce((a, f) => a + f.trapped, 0);
   const totalMissing = telemetry.floors.reduce((a, f) => a + f.missing, 0);
+  const selectedFloorData = telemetry.floors.find((f) => f.id === selectedFloor) ?? telemetry.floors[0];
+  const selectedInspector = FLOOR_INSPECTOR_DATA[selectedFloorData.id] ?? FLOOR_INSPECTOR_DATA["4F"];
 
   return (
     <div className={styles.page}>
@@ -81,6 +208,9 @@ export default function CommandPage() {
             <span className="mono caption" style={{ color: "var(--text-faint)" }}>Campus Emergency Operations Center</span>
           </div>
           <div className={styles.topRight}>
+            <span className={styles.connectionStatus} data-status={telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "live" : connectionStatus === "connected" ? "connected" : "mock"}>
+              {telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "WEBSOCKET LIVE" : connectionStatus === "connected" ? "WEBSOCKET CONNECTED" : "MOCK LINK"}
+            </span>
             <span className={`mono ${styles.clock}`}>{clock}</span>
           </div>
         </div>
@@ -100,7 +230,6 @@ export default function CommandPage() {
           <div className={`${styles.panel} ${styles.floorMatrixPanel} crt-effect`}>
             <div className={styles.panelHeader}>
               <span className="hud-label">FLOOR STATUS MATRIX</span>
-              <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{telemetry.source.toUpperCase()} LINK</span>
             </div>
             <div className={styles.floorList}>
               {telemetry.floors.map((f) => (
@@ -176,18 +305,71 @@ export default function CommandPage() {
 
         </div>
 
-        {/* Bottom: Alert feed + Agencies */}
+        {/* Bottom: floor inspector + alert feed + agencies */}
         <div className={styles.rightCol}>
+            <div className={`${styles.panel} ${styles.floorInspector}`}>
+              <div className={styles.panelHeader}>
+                <span className="hud-label">FLOOR INSPECTOR</span>
+                <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{selectedFloorData.id}</span>
+              </div>
+
+              <div className={styles.inspectorBody}>
+                <div className={styles.inspectorSummary}>
+                  <div>
+                    <span className="hud-label">Selected zone</span>
+                    <h3>{selectedInspector.label}</h3>
+                  </div>
+                  <div className={styles.summaryBadge}>
+                    {selectedFloorData.trapped} trapped
+                  </div>
+                </div>
+
+                <p className={styles.inspectorText}>{selectedInspector.summary}</p>
+
+                <div className={styles.roomList}>
+                  {selectedInspector.rooms.map((room) => (
+                    <div key={room.room} className={`${styles.roomCard} ${styles[`room-${room.status}`]}`}>
+                      <div className={styles.roomHeader}>
+                        <span className={styles.roomName}>{room.room}</span>
+                        <span className={styles.roomHazard}>{room.hazard}</span>
+                      </div>
+                      <div className={styles.roomMeta}>
+                        <span>{room.trapped} trapped students</span>
+                        <span>{room.agency}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.assignmentWrap}>
+                  <span className="hud-label">Active agency assignments</span>
+                  <div className={styles.assignmentList}>
+                    {selectedInspector.assignments.map((assignment) => (
+                      <div key={assignment.name} className={styles.assignmentItem}>
+                        <div>
+                          <span className={styles.assignmentName}>{assignment.name}</span>
+                          <span className={styles.assignmentRole}>{assignment.role}</span>
+                        </div>
+                        <span className={`badge badge-${assignment.status === "Active" ? "teal" : assignment.status === "Dispatched" ? "blue" : assignment.status === "En Route" ? "amber" : "violet"}`}>
+                          {assignment.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className={`${styles.panel} ${styles.alertPanel}`}>
               <div className={styles.panelHeader}>
                 <span className="hud-label">CAP ALERT FEED</span>
               </div>
               <div className={styles.alertFeed}>
-                {ALERTS.map((a) => (
+                {telemetry.alerts.map((a) => (
                   <div
                     key={a.id}
                     className={`${styles.alertItem} ${styles[`alert-${a.color}`]}`}
-                    onClick={() => showToast(`[${a.source}] ${a.msg}`)}
+                    onClick={() => showToast(`[${a.source}] ${a.message}`)}
                     role="button"
                     tabIndex={0}
                     style={{ cursor: "pointer" }}
@@ -195,7 +377,7 @@ export default function CommandPage() {
                     <span className={`mono ${styles.alertTime}`}>{a.time}</span>
                     <span className={`badge badge-${a.color} ${styles.alertSev}`}>{a.severity}</span>
                     <span className={styles.alertSrc}>{a.source}</span>
-                    <p className={styles.alertMsg}>{a.msg}</p>
+                    <p className={styles.alertMsg}>{a.message}</p>
                   </div>
                 ))}
               </div>
