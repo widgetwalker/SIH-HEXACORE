@@ -6,18 +6,8 @@ import Navbar from "@/components/Navbar";
 import { applyWebSocketTelemetry, applyEmergencyBroadcast, createMockTelemetryStream, createWebSocketTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry, type CommandAlert, type DrillTelemetryMessage, type WebSocketConnectionStatus, type WebSocketTelemetryMessage, type EmergencyBroadcastMessage } from "./telemetry";
 import { subscribeDrillEvents, type DrillTelemetryFrame } from "./drillEventBus";
 
-const MultiFloorVisualizer = dynamic(
-  () => import("./MultiFloorVisualizer"),
-  { ssr: false }
-);
-
 const FloorStack3D = dynamic(
   () => import("./FloorStack3D"),
-  { ssr: false }
-);
-
-const ConstellationField = dynamic(
-  () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
   { ssr: false }
 );
 
@@ -199,11 +189,6 @@ export default function CommandPage() {
         </div>
       )}
 
-      {/* Background */}
-      <div className={styles.bgLayer}>
-        <ConstellationField variant="defense-lines" style={{ width: "100%", height: "100%" }} />
-      </div>
-
       <div className={styles.dashboard}>
         {/* Top bar */}
         <div className={styles.topBar}>
@@ -259,18 +244,6 @@ export default function CommandPage() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className={`${styles.panel} ${styles.visualizerPanel}`}>
-            <div className={styles.panelHeader}>
-              <span className="hud-label">MULTI-FLOOR 3D VIEW</span>
-              <span className="mono caption" style={{ color: "var(--text-faint)" }}>GROUND - 5F</span>
-            </div>
-            <MultiFloorVisualizer
-              floors={telemetry.floors}
-              selectedFloor={selectedFloor}
-              onSelectFloor={(floorId) => setSelectedFloor(floorId)}
-            />
           </div>
 
           {/* Center: 3D Floor Stack */}

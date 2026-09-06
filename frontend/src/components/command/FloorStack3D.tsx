@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import gsap from "gsap";
@@ -13,11 +13,11 @@ interface Props {
   onSelectFloor: (floorId: string) => void;
 }
 
-const FLOOR_WIDTH = 5;
-const FLOOR_DEPTH = 3.5;
-const SLAB_THICKNESS = 0.14;
-const FLOOR_GAP_COLLAPSED = 1.4;
-const FLOOR_GAP_EXPLODED = 3.2;
+const FLOOR_WIDTH = 6;
+const FLOOR_DEPTH = 4;
+const SLAB_THICKNESS = 0.16;
+const FLOOR_GAP_COLLAPSED = 2.4;
+const FLOOR_GAP_EXPLODED = 4.5;
 
 const FLOOR_COLORS: Record<FloorTelemetry["status"], number> = {
   danger: 0xef4444,
@@ -73,14 +73,17 @@ function createHazardSprite(type: "fire" | "smoke"): THREE.Sprite {
 
 export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const telemetryRef = useRef(telemetry);
   const selectedFloorRef = useRef(selectedFloor);
   const onSelectFloorRef = useRef(onSelectFloor);
+  const [exploded, setExploded] = useState(false);
   const explodedRef = useRef(false);
   const floorGroupsRef = useRef<Map<string, THREE.Group>>(new Map());
   const studentDotsRef = useRef<Map<string, THREE.InstancedMesh>>(new Map());
-  const hazardSpritesRef = useRef<Map<string, THREE.Sprite[]>>(new Map());
   const animatingRef = useRef(false);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
 
   telemetryRef.current = telemetry;
   selectedFloorRef.current = selectedFloor;
@@ -89,9 +92,10 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
   const toggleExploded = useCallback(() => {
     if (animatingRef.current) return;
     animatingRef.current = true;
-    const newExploded = !explodedRef.current;
-    explodedRef.current = newExploded;
-    const gap = newExploded ? FLOOR_GAP_EXPLODED : FLOOR_GAP_COLLAPSED;
+    const next = !explodedRef.current;
+    explodedRef.current = next;
+    setExploded(next);
+    const gap = next ? FLOOR_GAP_EXPLODED : FLOOR_GAP_COLLAPSED;
     const floors = telemetryRef.current.floors;
 
     floors.forEach((floor, index) => {
@@ -106,6 +110,30 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
       });
     });
 
+    const wrap = wrapRef.current;
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (wrap && renderer && camera) {
+      const newH = next ? 700 : 440;
+      gsap.to(wrap, {
+        height: newH,
+        duration: 0.6,
+        ease: "power2.inOut",
+        onUpdate: () => {
+          const nw = mountRef.current?.clientWidth ?? 500;
+          const nh = Math.max(mountRef.current?.clientHeight ?? 440, 1);
+          const frustumSize = next ? 24 : 14;
+          const na = nw / nh;
+          camera.left = frustumSize * na / -2;
+          camera.right = frustumSize * na / 2;
+          camera.top = frustumSize / 2;
+          camera.bottom = frustumSize / -2;
+          camera.updateProjectionMatrix();
+          renderer.setSize(nw, nh);
+        },
+      });
+    }
+
     setTimeout(() => {
       animatingRef.current = false;
     }, 800);
@@ -115,14 +143,14 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
     const mount = mountRef.current;
     if (!mount) return;
 
-    const w = mount.clientWidth || 400;
-    const h = mount.clientHeight || 300;
+    const w = 500;
+    const h = 440;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x070d18);
 
     const aspect = w / h;
-    const frustumSize = 12;
+    const frustumSize = 16;
     const camera = new THREE.OrthographicCamera(
       frustumSize * aspect / -2,
       frustumSize * aspect / 2,
@@ -131,13 +159,15 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
       0.1,
       100
     );
-    camera.position.set(10, 10, 10);
-    camera.lookAt(0, 3, 0);
+    camera.position.set(12, 6, 12);
+    camera.lookAt(0, 1, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h);
     mount.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+    cameraRef.current = camera;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -146,7 +176,7 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
     controls.enableZoom = true;
     controls.minZoom = 0.5;
     controls.maxZoom = 2;
-    controls.target.set(0, 3, 0);
+    controls.target.set(0, 1, 0);
     controls.update();
 
     scene.add(new THREE.HemisphereLight(0xbed7ff, 0x101827, 1.2));
@@ -159,6 +189,10 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
 
     const floorGroups = new Map<string, THREE.Group>();
     const interactiveMeshes: THREE.Mesh[] = [];
+    const edgeMeshes = new Map<string, THREE.LineSegments>();
+
+    const slabGeometry = new THREE.BoxGeometry(FLOOR_WIDTH, SLAB_THICKNESS, FLOOR_DEPTH);
+    const edgeGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(FLOOR_WIDTH, 0.8, FLOOR_DEPTH));
 
     telemetry.floors.forEach((floor, index) => {
       const y = (telemetry.floors.length - 1 - index) * FLOOR_GAP_COLLAPSED;
@@ -166,28 +200,25 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
       group.position.y = y;
       group.userData.floorId = floor.id;
 
-      const slab = new THREE.Mesh(
-        new THREE.BoxGeometry(FLOOR_WIDTH, SLAB_THICKNESS, FLOOR_DEPTH),
-        new THREE.MeshStandardMaterial({
-          color: 0x142238,
-          metalness: 0.35,
-          roughness: 0.7,
-        })
-      );
+      const slabMaterial = new THREE.MeshStandardMaterial({
+        color: 0x142238,
+        metalness: 0.35,
+        roughness: 0.7,
+      });
+      const slab = new THREE.Mesh(slabGeometry, slabMaterial);
       slab.userData.floorId = floor.id;
       group.add(slab);
       interactiveMeshes.push(slab);
 
-      const edge = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(FLOOR_WIDTH, 0.5, FLOOR_DEPTH)),
-        new THREE.LineBasicMaterial({
-          color: FLOOR_COLORS[floor.status],
-          transparent: true,
-          opacity: 0.6,
-        })
-      );
+      const edgeMaterial = new THREE.LineBasicMaterial({
+        color: FLOOR_COLORS[floor.status],
+        transparent: true,
+        opacity: 0.6,
+      });
+      const edge = new THREE.LineSegments(edgeGeometry, edgeMaterial);
       edge.position.y = 0.25;
       group.add(edge);
+      edgeMeshes.set(floor.id, edge);
 
       const labelCanvas = document.createElement("canvas");
       labelCanvas.width = 128;
@@ -213,11 +244,11 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
 
     floorGroupsRef.current = floorGroups;
 
+    const studentDotGeometry = new THREE.SphereGeometry(0.06, 8, 8);
+    const studentDotMaterial = new THREE.MeshBasicMaterial({ color: 0x00d4aa });
     const studentDots = new Map<string, THREE.InstancedMesh>();
     telemetry.floors.forEach((floor) => {
-      const geometry = new THREE.SphereGeometry(0.06, 8, 8);
-      const material = new THREE.MeshBasicMaterial({ color: 0x00d4aa });
-      const mesh = new THREE.InstancedMesh(geometry, material, 60);
+      const mesh = new THREE.InstancedMesh(studentDotGeometry, studentDotMaterial, 60);
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.visible = false;
       const group = floorGroups.get(floor.id);
@@ -249,7 +280,6 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
       }
       hazardSprites.set(floor.id, sprites);
     });
-    hazardSpritesRef.current = hazardSprites;
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -278,74 +308,56 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
 
-    const resize = () => {
-      const nw = mount.clientWidth;
-      const nh = Math.max(mount.clientHeight, 1);
-      const na = nw / nh;
-      camera.left = frustumSize * na / -2;
-      camera.right = frustumSize * na / 2;
-      camera.top = frustumSize / 2;
-      camera.bottom = frustumSize / -2;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh);
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(mount);
-
     const dummy = new THREE.Object3D();
+    let lastSelected: string | null = null;
+    let frameCount = 0;
 
     let raf = 0;
-    const animate = (time: number) => {
+    const animate = () => {
+      frameCount++;
       const selected = selectedFloorRef.current;
       const currentTelemetry = telemetryRef.current;
 
-      floorGroups.forEach((group, floorId) => {
-        const active = floorId === selected;
-        group.scale.setScalar(active ? 1.03 : 1);
-
-        const edge = group.children.find(
-          (c) => c instanceof THREE.LineSegments
-        ) as THREE.LineSegments | undefined;
-        if (edge && edge.material instanceof THREE.LineBasicMaterial) {
+      if (selected !== lastSelected) {
+        floorGroups.forEach((group, floorId) => {
+          group.scale.setScalar(floorId === selected ? 1.03 : 1);
+        });
+        edgeMeshes.forEach((edge, floorId) => {
           const floorData = currentTelemetry.floors.find((f) => f.id === floorId);
-          if (floorData) {
+          if (floorData && edge.material instanceof THREE.LineBasicMaterial) {
             edge.material.color.setHex(FLOOR_COLORS[floorData.status]);
-            edge.material.opacity = active ? 0.9 : 0.5;
+            edge.material.opacity = floorId === selected ? 0.9 : 0.5;
           }
-        }
-      });
-
-      hazardSprites.forEach((sprites) => {
-        sprites.forEach((sprite, i) => {
-          const pulse = 1 + Math.sin(time * 0.005 + i * 2) * 0.15;
-          sprite.scale.set(0.5 * pulse, 0.5 * pulse, 1);
         });
-      });
-
-      const dotsMesh = selected ? studentDotsRef.current.get(selected) : undefined;
-      if (dotsMesh) {
-        const liveParticipants = currentTelemetry.liveParticipants ?? {};
-        let count = 0;
-        Object.entries(liveParticipants).forEach(([, info]) => {
-          if (info.floorId !== selected) return;
-          const x = (Math.random() - 0.5) * (FLOOR_WIDTH - 0.8);
-          const z = (Math.random() - 0.5) * (FLOOR_DEPTH - 0.8);
-          dummy.position.set(x, SLAB_THICKNESS / 2 + 0.15, z);
-          dummy.updateMatrix();
-          dotsMesh.setMatrixAt(count, dummy.matrix);
-          const color = new THREE.Color(CATEGORY_COLORS[info.category] ?? 0x00d4aa);
-          dotsMesh.setColorAt(count, color);
-          count++;
-        });
-        dotsMesh.count = Math.max(count, 1);
-        dotsMesh.instanceMatrix.needsUpdate = true;
-        if (dotsMesh.instanceColor) dotsMesh.instanceColor.needsUpdate = true;
-        dotsMesh.visible = count > 0;
+        lastSelected = selected;
       }
 
-      studentDotsRef.current.forEach((mesh, floorId) => {
-        if (floorId !== selected) mesh.visible = false;
-      });
+      if (frameCount % 3 === 0) {
+        const liveParticipants = currentTelemetry.liveParticipants ?? {};
+        const dotsMesh = selected ? studentDotsRef.current.get(selected) : undefined;
+        if (dotsMesh) {
+          let count = 0;
+          Object.entries(liveParticipants).forEach(([, info]) => {
+            if (info.floorId !== selected || count >= 60) return;
+            const x = (Math.random() - 0.5) * (FLOOR_WIDTH - 0.8);
+            const z = (Math.random() - 0.5) * (FLOOR_DEPTH - 0.8);
+            dummy.position.set(x, SLAB_THICKNESS / 2 + 0.15, z);
+            dummy.updateMatrix();
+            dotsMesh.setMatrixAt(count, dummy.matrix);
+            const color = new THREE.Color(CATEGORY_COLORS[info.category] ?? 0x00d4aa);
+            dotsMesh.setColorAt(count, color);
+            count++;
+          });
+          dotsMesh.count = count;
+          dotsMesh.instanceMatrix.needsUpdate = true;
+          if (dotsMesh.instanceColor) dotsMesh.instanceColor.needsUpdate = true;
+          dotsMesh.visible = count > 0;
+        }
+
+        studentDotsRef.current.forEach((mesh, floorId) => {
+          if (floorId !== selected) mesh.visible = false;
+        });
+      }
 
       controls.update();
       renderer.render(scene, camera);
@@ -355,7 +367,6 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
 
     return () => {
       window.cancelAnimationFrame(raf);
-      observer.disconnect();
       controls.dispose();
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
@@ -371,6 +382,8 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
         }
       });
       renderer.dispose();
+      rendererRef.current = null;
+      cameraRef.current = null;
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
@@ -378,10 +391,10 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
   }, []);
 
   return (
-    <div className={styles.floorStackWrap}>
+    <div ref={wrapRef} className={styles.floorStackWrap}>
       <div
         ref={mountRef}
-        className={styles.floorStackCanvas}
+        className={`${styles.floorStackCanvas} ${exploded ? styles.expanded : ""}`}
         onDoubleClick={toggleExploded}
         aria-label="Interactive 3D floor stack — double-click to explode"
       />
@@ -396,7 +409,7 @@ export default function FloorStack3D({ telemetry, selectedFloor, onSelectFloor }
           onClick={toggleExploded}
           type="button"
         >
-          {explodedRef.current ? "Collapse" : "Explode"}
+          {exploded ? "Collapse" : "Explode"}
         </button>
       </div>
     </div>
