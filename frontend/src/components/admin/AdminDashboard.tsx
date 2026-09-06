@@ -105,7 +105,11 @@ export default function AdminDashboard() {
     }
 
     /* spawn marker */
-    ctx.strokeRect(fp.spawn.c * CS + 2, fp.spawn.r * CS + 2, CS - 5, CS - 5);
+    if (fp.spawn) {
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(fp.spawn.c * CS + 2, fp.spawn.r * CS + 2, CS - 5, CS - 5);
+    }
   }, [heatScenarioId, scenarioRuns]);
 
   return (
