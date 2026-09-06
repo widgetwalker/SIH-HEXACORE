@@ -1,46 +1,72 @@
 /**
- * Cross-tab BroadcastChannel bus for drill telemetry.
+ * Client-side Drill Event Bus (BroadcastChannel bridge).
  *
- * When a student runs a drill on /simulate, their EvacuationGame sends
- * telemetry frames on this channel so an open /command tab can consume
- * them without needing the backend WebSocket.
+ * When a backend WebSocket is unavailable, this module relays DRILL_TELEMETRY
+ * frames between the SimulatePage (publisher) and CommandPage (subscriber)
+ * across browser tabs — mimicking what a real WebSocket hub would do.
+ *
+ * When NEXT_PUBLIC_WS_URL is set, both sides use the real socket instead.
  */
 
+const CHANNEL_NAME = "drill_telemetry";
+
 export interface DrillTelemetryFrame {
+  type: "DRILL_TELEMETRY";
   user_id: string;
   floor: number;
   cell: [number, number];
   status: string;
+  /** ISO timestamp added by the publisher */
+  ts: string;
 }
 
-const CHANNEL_NAME = "safezone_drill_events";
+let channel: BroadcastChannel | null = null;
 
+function getChannel(): BroadcastChannel {
+  if (!channel) {
+    channel = new BroadcastChannel(CHANNEL_NAME);
+  }
+  return channel;
+}
+
+/**
+ * Publish a drill telemetry frame to all listeners (other tabs).
+ * The publisher's own tab also receives the message.
+ */
 export function publishDrillEvent(frame: DrillTelemetryFrame): void {
-  if (typeof window === "undefined" || !("BroadcastChannel" in window)) return;
   try {
-    const ch = new BroadcastChannel(CHANNEL_NAME);
-    ch.postMessage(frame);
-    ch.close();
+    getChannel().postMessage(frame);
   } catch {
-    // Silently ignore — BroadcastChannel may be unavailable in some contexts.
+    // BroadcastChannel may be unavailable in some environments
   }
 }
 
+/**
+ * Subscribe to drill telemetry frames.
+ * Returns an unsubscribe function.
+ * Ignores frames published by the same `excludeUserId` (the local player).
+ */
 export function subscribeDrillEvents(
-  onFrame: (frame: DrillTelemetryFrame) => void,
+  handler: (frame: DrillTelemetryFrame) => void,
+  excludeUserId?: string,
 ): () => void {
-  if (typeof window === "undefined" || !("BroadcastChannel" in window)) {
-    return () => {};
+  const ch = getChannel();
+  const listener = (event: MessageEvent<DrillTelemetryFrame>) => {
+    const frame = event.data;
+    if (frame?.type !== "DRILL_TELEMETRY") return;
+    if (excludeUserId && frame.user_id === excludeUserId) return;
+    handler(frame);
+  };
+  ch.addEventListener("message", listener);
+  return () => ch.removeEventListener("message", listener);
+}
+
+/**
+ * Clean up the shared channel (call on app unmount).
+ */
+export function destroyDrillEventBus(): void {
+  if (channel) {
+    channel.close();
+    channel = null;
   }
-  const ch = new BroadcastChannel(CHANNEL_NAME);
-  const handler = (event: MessageEvent<DrillTelemetryFrame>) => {
-    if (event.data && typeof event.data.user_id === "string") {
-      onFrame(event.data);
-    }
-  };
-  ch.addEventListener("message", handler);
-  return () => {
-    ch.removeEventListener("message", handler);
-    ch.close();
-  };
 }

@@ -37,14 +37,30 @@ type Phase = "briefing" | "running" | "ended";
 /* Mitra: deterministic opening line, seeded from real game state before the AI takes over */
 function getMitraTip(gs: GameState | null): string {
   if (!gs) return "I'm tracking your route. Amber doorways block fire & smoke until you push through them.";
-  if (gs.status === "won") return "Clean evacuation logged ✓ Your run is on the command analytics dashboard.";
-  if (gs.status === "lost") return "Run logged. Check your debrief - smoke exposure and panic are the usual killers.";
-  if (gs.panic > 70) return "Panic spiking! Stop and hold B - box-breathe: 4s in, 4s hold, 4s out.";
+  if (gs.status === "won") return "Clean evacuation logged. Your run is on the command analytics dashboard.";
+  if (gs.status === "lost") return "Run logged. Check your debrief. Smoke exposure and panic are the usual killers.";
+  if (gs.message.startsWith("YOU ARE IN")) return gs.message;
+  if (gs.panic > 70) return "Panic spiking! Stop and hold B. Box breathe: 4 seconds in, 4 seconds hold, 4 seconds out.";
   if (gs.breathing) return "Good. Move again once panic drops below 40.";
-  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen critical. Crawl (SHIFT) straight to the nearest beacon - no detours.";
-  if (gs.crouching) return "Smart crawling. Doorways slow the spread - use them as firebreaks.";
-  if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go.";
-  return "Stay low, keep moving. I'm tracking your route and logging every decision. Ask me anything.";
+  if (gs.oxygen < 25 && !gs.crouching) return "Oxygen critical! Crawl now. Press SHIFT to crawl straight to the nearest beacon.";
+  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen dropping. Crawl with SHIFT to slow smoke intake.";
+  if (gs.crouching) return "Smart crawling. Doorways slow the spread. Use them as firebreaks.";
+  if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go now.";
+  return "Stay low, keep moving. I am tracking your route and logging every decision. Ask me anything.";
+}
+
+function isInHazard(gs: GameState | null): boolean {
+  if (!gs || gs.status !== "running") return false;
+  return gs.message.startsWith("YOU ARE IN") || gs.panic > 65 || (gs.oxygen < 30 && !gs.crouching);
+}
+
+function getHazardAlert(gs: GameState | null): string {
+  if (!gs) return "";
+  if (gs.message.startsWith("YOU ARE IN")) return gs.message;
+  if (gs.panic > 70) return "Danger! Panic critical. Stop and box breathe now. Hold B.";
+  if (gs.oxygen < 25 && !gs.crouching) return "Danger! Oxygen critical. Crawl with SHIFT to the nearest exit.";
+  if (gs.oxygen < 30 && !gs.crouching) return "Warning. Oxygen low. Crawl with SHIFT to reduce smoke intake.";
+  return "";
 }
 
 interface MitraTurn {
@@ -302,12 +318,30 @@ export default function SimulatePage() {
   /* hands-free coaching: speak Mitra's tip whenever it changes, while voice is on */
   useEffect(() => {
     if (!voiceOn || phase === "briefing") return;
+    if (isInHazard(gs)) return;
     const tip = getMitraTip(gs);
     if (tip === lastSpokenRef.current) return;
     lastSpokenRef.current = tip;
     speak(tip);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn, gs, phase]);
+  }, [voiceOn, phase, gs?.message, gs?.panic, gs?.oxygen, gs?.crouching, gs?.breathing, gs?.time]);
+
+  /* danger voice alerts: speak immediately on entering hazard, repeat every 6s */
+  const lastHazardRef = useRef("");
+  useEffect(() => {
+    if (!voiceOn || phase === "briefing") return;
+    const msg = getHazardAlert(gs);
+    if (!msg) { lastHazardRef.current = ""; return; }
+    if (msg === lastHazardRef.current) return;
+    lastHazardRef.current = msg;
+    speak(msg);
+    const interval = setInterval(() => {
+      const current = getHazardAlert(gs);
+      if (current && current === lastHazardRef.current) speak(current);
+    }, 6000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, phase, gs?.message, gs?.panic, gs?.oxygen, gs?.crouching]);
 
   const onState = (s: GameState) => {
     setGs(s);
@@ -332,6 +366,9 @@ export default function SimulatePage() {
     lastDistRef.current = null;
     nextBubbleAtRef.current = 0;
     lastUrgentAtRef.current = 0;
+    lastSpokenRef.current = "";
+    lastHazardRef.current = "";
+    if (speechSupported.tts && !voiceOn) setVoiceOn(true);
   };
 
   const fmt = fmtTime;

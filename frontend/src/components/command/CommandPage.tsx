@@ -1,21 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { applyWebSocketTelemetry, applyEmergencyBroadcast, createMockTelemetryStream, createWebSocketTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry, type CommandAlert, type DrillTelemetryMessage, type WebSocketConnectionStatus, type WebSocketTelemetryMessage, type EmergencyBroadcastMessage } from "./telemetry";
 import { subscribeDrillEvents, type DrillTelemetryFrame } from "./drillEventBus";
 import LiveThreatBanner, { type LiveThreatAlert } from "./LiveThreatBanner";
 import IncidentInjectionDeck, { type IncidentType } from "./IncidentInjectionDeck";
+import { speak, speakAlert, stopSpeaking, isSpeechSupported } from "@/components/shared/speech";
 
-const MultiFloorVisualizer = dynamic(
-  () => import("./MultiFloorVisualizer"),
-  { ssr: false }
-);
-
-
-const ConstellationField = dynamic(
-  () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
+const FloorStack3D = dynamic(
+  () => import("./FloorStack3D"),
   { ssr: false }
 );
 
@@ -131,6 +126,13 @@ export default function CommandPage() {
     alerts: ALERTS.map((a) => ({ ...a, source: a.source })),
   }));
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>("disconnected");
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const lastSpokenAlertRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSpeechSupported(isSpeechSupported());
+  }, []);
 
   // Live threat alert state (mock for now - would be populated by WebSocket in production)
   const [liveAlert, setLiveAlert] = useState<LiveThreatAlert | null>({
@@ -193,6 +195,19 @@ export default function CommandPage() {
   }, []);
 
   useEffect(() => {
+    if (!voiceOn || !telemetry.alerts.length) return;
+    const newest = telemetry.alerts[0];
+    if (newest.id !== lastSpokenAlertRef.current) {
+      lastSpokenAlertRef.current = newest.id;
+      speakAlert(newest.id, `${newest.severity} from ${newest.source}: ${newest.message}`);
+    }
+  }, [voiceOn, telemetry.alerts]);
+
+  useEffect(() => {
+    return () => stopSpeaking();
+  }, []);
+
+  useEffect(() => {
     // Try real WebSocket first; fall back to BroadcastChannel bus + mock seed.
     const liveStream = createWebSocketTelemetryStream((raw) => {
       const message = raw as WebSocketTelemetryMessage;
@@ -244,11 +259,6 @@ export default function CommandPage() {
         </div>
       )}
 
-      {/* Background */}
-      <div className={styles.bgLayer}>
-        <ConstellationField variant="defense-lines" style={{ width: "100%", height: "100%" }} />
-      </div>
-
       <div className={styles.dashboard}>
         <LiveThreatBanner
           alert={liveAlert}
@@ -266,6 +276,28 @@ export default function CommandPage() {
             <span className={styles.connectionStatus} data-status={telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "live" : connectionStatus === "connected" ? "connected" : "mock"}>
               {telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "WEBSOCKET LIVE" : connectionStatus === "connected" ? "WEBSOCKET CONNECTED" : "MOCK LINK"}
             </span>
+            {speechSupported && (
+              <button
+                type="button"
+                className={`${styles.voiceToggle} ${voiceOn ? styles.voiceToggleOn : ""}`}
+                onClick={() => {
+                  const next = !voiceOn;
+                  setVoiceOn(next);
+                  if (!next) {
+                    stopSpeaking();
+                    lastSpokenAlertRef.current = null;
+                  } else if (telemetry.alerts.length) {
+                    const a = telemetry.alerts[0];
+                    lastSpokenAlertRef.current = a.id;
+                    speakAlert(a.id, `${a.severity} from ${a.source}: ${a.message}`);
+                  }
+                }}
+                title={voiceOn ? "Mute emergency voice alerts" : "Enable voice alerts for emergency broadcasts"}
+                aria-label={voiceOn ? "Mute emergency voice alerts" : "Enable voice alerts for emergency broadcasts"}
+              >
+                {voiceOn ? "🔊" : "🔈"}
+              </button>
+            )}
             <span className={`mono ${styles.clock}`}>{clock}</span>
           </div>
         </div>
@@ -312,50 +344,20 @@ export default function CommandPage() {
             </div>
           </div>
 
-          <div className={`${styles.panel} ${styles.visualizerPanel}`}>
-            <div className={styles.panelHeader}>
-              <span className="hud-label">MULTI-FLOOR 3D VIEW</span>
-              <span className="mono caption" style={{ color: "var(--text-faint)" }}>GROUND - 5F</span>
-            </div>
-            <MultiFloorVisualizer
-              floors={telemetry.floors}
-              selectedFloor={selectedFloor}
-              onSelectFloor={(floorId) => setSelectedFloor(floorId)}
-            />
-          </div>
-
-          {/* Center: Campus map placeholder */}
+          {/* Center: 3D Floor Stack */}
           <div className={`${styles.panel} ${styles.blueprintPanel}`}>
             <div className={styles.panelHeader}>
-              <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
+              <span className="hud-label">FLOOR STACK — LIVE</span>
               <span className="badge badge-red badge-pulse" style={{ fontSize: "0.6rem" }}>LIVE</span>
             </div>
-            <div className={styles.mapArea}>
-              <div className={styles.mapPlaceholder}>
-                {/* Simplified building outline */}
-                <svg viewBox="0 0 400 300" className={styles.mapSvg}>
-                  <rect x="80" y="40" width="240" height="220" rx="4" fill="none" stroke="var(--border-default)" strokeWidth="1" />
-                  {/* Floors */}
-                  {[0,1,2,3,4,5].map((i) => (
-                    <g key={i} onClick={() => setSelectedFloor(`${5-i}F`)} style={{ cursor: "pointer" }}>
-                      <line x1="80" y1={40 + i * 36.67} x2="320" y2={40 + i * 36.67} stroke="var(--border-subtle)" strokeWidth="0.5" />
-                      <text x="75" y={40 + i * 36.67 + 20} fill={selectedFloor === `${5-i}F` ? "var(--accent-teal)" : "var(--text-faint)"} fontSize="8" fontFamily="var(--font-mono)" textAnchor="end">{5-i}F</text>
-                    </g>
-                  ))}
-                  {/* Fire indicator on 4F */}
-                  <circle cx="200" cy={40 + 36.67 + 18} r="14" fill="rgba(239,68,68,0.15)" stroke="var(--accent-red)" strokeWidth="1">
-                    <animate attributeName="r" values="14;18;14" dur="1.5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
-                  </circle>
-                  <text x="200" y={40 + 36.67 + 22} fill="var(--accent-red)" fontSize="10" textAnchor="middle" fontWeight="bold">🔥</text>
-                  {/* Evac route arrow */}
-                  <path d="M200,95 L200,260 L340,260" fill="none" stroke="var(--accent-teal)" strokeWidth="2" strokeDasharray="6 3" opacity="0.7">
-                    <animate attributeName="stroke-dashoffset" values="0;-18" dur="1s" repeatCount="indefinite" />
-                  </path>
-                  <text x="345" y="264" fill="var(--accent-teal)" fontSize="8" fontFamily="var(--font-mono)">EXIT →</text>
-                </svg>
-              </div>
-            </div>
+            <FloorStack3D
+              telemetry={telemetry}
+              selectedFloor={selectedFloor}
+              onSelectFloor={(floorId) => {
+                setSelectedFloor(floorId);
+                showToast(`Floor ${floorId} selected`);
+              }}
+            />
           </div>
 
         </div>

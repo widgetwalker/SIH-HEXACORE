@@ -46,8 +46,13 @@ const CERTIFICATES: Certificate[] = [
   },
 ];
 
+interface ProfileViewProps {
+  profile?: CadetProfile | null;
+  onOpenEdit?: () => void;
+}
+
 export default function ProfileView({ profile, onOpenEdit }: ProfileViewProps) {
-  const handlePrintCertificate = () => {
+  const handlePrintCertificate = (title: string) => {
     window.print();
   };
 
@@ -91,7 +96,7 @@ export default function ProfileView({ profile, onOpenEdit }: ProfileViewProps) {
       {profile ? (
         <div className={styles.profileOverviewCard}>
           <div className={styles.profileOverviewLeft}>
-            <ProfileAvatar profile={profile} size="medium" className={styles.profileAvatarLarge} />
+            <ProfileAvatar profile={profile} size="large" />
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Cadet {profile.name}</h3>
@@ -154,7 +159,7 @@ export default function ProfileView({ profile, onOpenEdit }: ProfileViewProps) {
                 {cert.status === "verified" ? (
                   <button
                     className={styles.certBtn}
-                    onClick={handlePrintCertificate}
+                    onClick={() => handlePrintCertificate(cert.title)}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
