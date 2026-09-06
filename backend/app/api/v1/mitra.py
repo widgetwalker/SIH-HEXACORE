@@ -1,19 +1,16 @@
 """
 Mitra crisis-companion chat endpoint.
 
-This used to live entirely in the Next.js frontend (frontend/src/app/api/mitra/route.ts),
-which meant every developer needed their own GEMINI_API_KEY in frontend/.env.local
-just to see Mitra respond. Moved here so the key lives once, on whoever runs
-this backend - the frontend just calls this endpoint, no key required on
-their machine at all.
-
-Logic (system prompt, context formatting, Gemini request shape) is a direct
-port of the removed Next.js route - unchanged behavior, different runtime.
+The Gemini key lives once on the backend. When GEMINI_API_KEY is set, Mitra
+uses Gemini for smart contextual replies. When it's not set, a local
+rule-based fallback kicks in so the entire app works out of the box — no
+key, no external API, no errors.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -68,6 +65,75 @@ def _format_context(context: MitraContext | None) -> str:
     return "\n".join(lines)
 
 
+# ── Local rule-based fallback (no API key needed) ──────────────────────
+
+_LOCAL_RULES: list[tuple[list[str], str]] = [
+    # Emergency state — checked first if context has live game state
+    (["oxygen", "critical"], "Oxygen is critical — crouch low and move toward the nearest exit now."),
+    (["panic", "high"], "You're panicking. Stop, hold B for box-breathing, then continue."),
+    (["oxygen", "low"], "The smoke is thick — crouch down with SHIFT and keep moving."),
+    (["panic", "check"], "Take a breath. Hold B for box-breathing: 4s in, 4 hold, 4 out."),
+
+    # Earthquake
+    (["earthquake", "after"], "After shaking stops: check for injuries, move to open ground, avoid damaged buildings."),
+    (["earthquake"], "Drop, Cover, and Hold On under a sturdy table. Protect your head and neck."),
+
+    # Fire
+    (["fire", "smoke"], "Stay low where the air is clearer. Crawl to the nearest exit."),
+    (["fire", "door"], "Feel the door with the back of your hand. If it's hot, find another way out."),
+    (["fire"], "Get low, cover your mouth, and crawl to the nearest exit. Never use elevators."),
+
+    # Flood
+    (["flood", "stay"], "Move to the highest floor. Never go into floodwater — 6 inches can knock you down."),
+    (["flood"], "Move to higher ground immediately. Avoid walking or driving through floodwater."),
+
+    # Cyclone / storm
+    (["cyclone"], "Get to an interior room with no windows. Stay away from glass and exterior walls."),
+    (["storm"], "Get to an interior room with no windows. Stay away from glass and exterior walls."),
+
+    # Gas leak
+    (["gas"], "Do NOT turn on lights or use matches. Open windows, evacuate, and call emergency services."),
+
+    # Chemical spill
+    (["chemical"], "Move upwind and uphill. Remove contaminated clothing. Do not touch the substance."),
+
+    # Evacuation
+    (["exit"], "Follow the nearest marked exit. Use stairs, never elevators. Stay low if there's smoke."),
+    (["evacuate"], "Follow the nearest marked exit. Use stairs, never elevators. Stay low if there's smoke."),
+
+    # Assembly
+    (["assembly"], "Go to your designated assembly point. Do a headcount and report to the coordinator."),
+
+    # Greetings
+    (["hello"], "Hey! I'm Mitra, your safety buddy. Ask me about earthquakes, fires, floods, or any drill question."),
+    (["hi"], "Hey! I'm Mitra, your safety buddy. Ask me about earthquakes, fires, floods, or any drill question."),
+]
+
+
+def _local_reply(message: str, context: MitraContext | None) -> str:
+    """Return a local rule-based reply when no Gemini key is available."""
+    q = message.lower()
+
+    # Check live drill state first
+    if context and context.gameState:
+        gs = context.gameState
+        if gs.oxygen < 25:
+            return "Oxygen is critical — crouch low and move toward the nearest exit now."
+        if gs.panic > 75:
+            return "Hold B to box-breathe: 4 seconds in, 4 hold, 4 out. Stay calm."
+        if gs.oxygen < 40:
+            return "The smoke is thick — crouch down with SHIFT and keep moving."
+        if gs.panic > 50:
+            return "You're panicking. Stop, hold B for box-breathing, then continue."
+
+    # Match keywords against rules
+    for keywords, reply in _LOCAL_RULES:
+        if all(k in q for k in keywords):
+            return reply
+
+    return "I'm Mitra — I help with disaster safety. Ask me about fire, earthquake, flood, cyclone, gas leak, or evacuation."
+
+
 @router.post(
     "/mitra/chat",
     response_model=MitraChatResponse,
@@ -75,16 +141,16 @@ def _format_context(context: MitraContext | None) -> str:
     summary="Mitra crisis-companion chat",
 )
 async def mitra_chat(body: MitraChatRequest) -> MitraChatResponse:
-    if not settings.GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="Mitra isn't configured yet — missing GEMINI_API_KEY on the server.",
-        )
-
     message = body.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="message is required")
 
+    # ── Local fallback when no API key is configured ──
+    if not settings.GEMINI_API_KEY:
+        text = _local_reply(message, body.context)
+        return MitraChatResponse(text=text)
+
+    # ── Gemini API path ──
     history = body.history[-8:]
     context_block = _format_context(body.context)
 
