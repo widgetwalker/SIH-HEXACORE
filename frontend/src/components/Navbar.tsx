@@ -18,6 +18,23 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Lock body scroll and handle Escape key when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setMobileOpen(false);
+      };
+      window.addEventListener("keydown", onKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", onKeyDown);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [mobileOpen]);
+
   return (
     <nav
       className={`${styles.navbar} ${scrolled ? styles.scrolled : ""} ${
@@ -135,12 +152,82 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Full-screen Mobile Menu Overlay */}
       {mobileOpen && (
-        <div className={styles.mobileMenu}>
-          <Link href="/learn" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Learn</Link>
-          <Link href="/simulate" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Simulate</Link>
-          <Link href="/command" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Command Hub</Link>
+        <div className={styles.mobileMenu} role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+          <div className={styles.mobileMenuHeader}>
+            <div className={styles.logo}>
+              <span className={styles.logoText}>
+                Safe<span className={styles.logoAccent}>Zone</span>
+              </span>
+              {mode === "emergency" && (
+                <span className={`badge badge-red badge-pulse ${styles.emergencyBadge}`}>
+                  LIVE
+                </span>
+              )}
+            </div>
+            <button
+              className={styles.mobileCloseBtn}
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          <div className={styles.mobileNavLinks}>
+            <Link
+              href="/learn"
+              prefetch={true}
+              className={`${styles.mobileLink} ${mode === "learning" ? styles.mobileLinkActive : ""}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <span>🎓 Learn & Modules</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+            <Link
+              href="/simulate"
+              prefetch={true}
+              className={`${styles.mobileLink} ${mode === "simulation" ? styles.mobileLinkActive : ""}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <span>🎮 3D Simulation</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+            <Link
+              href="/command"
+              prefetch={true}
+              className={`${styles.mobileLink} ${mode === "command" ? styles.mobileLinkActive : ""}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <span>📡 Command Hub</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+          </div>
+
+          <div className={styles.mobileMenuFooter}>
+            <Link
+              href="/command"
+              prefetch={true}
+              className={styles.mobileAlertBanner}
+              onClick={() => setMobileOpen(false)}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span>{mode === "emergency" ? "SACHET EMERGENCY ALERT ACTIVE" : "NDMA System Normal — No Active Alerts"}</span>
+            </Link>
+          </div>
         </div>
       )}
     </nav>

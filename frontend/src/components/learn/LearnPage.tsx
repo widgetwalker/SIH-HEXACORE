@@ -14,6 +14,9 @@ import GameModal from "./games/GameModal";
 import DropCoverHoldGame from "./games/DropCoverHoldGame";
 import GoBagBuilder from "./games/GoBagBuilder";
 import PassExtinguisherGame from "./games/PassExtinguisherGame";
+import LeaderboardView from "./LeaderboardView";
+import SettingsView from "./SettingsView";
+import ProfileView from "./ProfileView";
 import styles from "./LearnPage.module.css";
 
 const EXPLORERS_TIER_ID = 1;
@@ -144,6 +147,24 @@ export default function LearnPage() {
   const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
   const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>(loadTierScores);
   const [activeGameModule, setActiveGameModule] = useState<string | null>(null);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+
+  // Lock body scroll and close on Escape when mobile drawer is open
+  useEffect(() => {
+    if (showMobileDrawer) {
+      document.body.style.overflow = "hidden";
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setShowMobileDrawer(false);
+      };
+      window.addEventListener("keydown", onKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", onKeyDown);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [showMobileDrawer]);
 
   useEffect(() => {
     try {
@@ -274,122 +295,230 @@ export default function LearnPage() {
 
         {/* Main content */}
         <main className={styles.main}>
-          {/* Tier selector */}
-          <section className={styles.tierSection}>
-            <h2 className="heading-lg">Select Your Tier</h2>
-            <div className={styles.tierGrid}>
-              {TIERS.map((t) => (
-                <button
-                  key={t.id}
-                  className={`${styles.tierCard} ${activeTier === t.id ? styles.tierActive : ""}`}
-                  onClick={() => setActiveTier(t.id)}
-                  style={{ "--tier-color": `var(--accent-${t.color})` } as React.CSSProperties}
-                >
-                  <span className={styles.tierIcon}>{t.icon}</span>
-                  <span className={styles.tierAge}>Ages {t.age}</span>
-                  <span className={styles.tierName}>{t.label}</span>
-                  <div className={styles.tierProgress}>
-                    <div className="progress-track">
-                      <div className="progress-bar" style={{ width: `${(t.completed / t.modules) * 100}%`, background: `var(--accent-${t.color})` }} />
-                    </div>
-                    <span className={styles.tierCount}>{t.completed}/{t.modules}</span>
-                  </div>
-                </button>
-              ))}
+          {/* Mobile Quick Bar (visible only on mobile < 768px) */}
+          <div className={styles.mobileTopBar}>
+            <div className={styles.mobileTopBarLeft}>
+              <div className={styles.mobileAvatar}>D</div>
+              <div>
+                <div className={styles.mobileTopName}>Cadet Dheeraj</div>
+                <div className={styles.mobileTopProgress}>
+                  Readiness: <strong style={{ color: "var(--accent-teal)" }}>35%</strong> • {activeTab}
+                </div>
+              </div>
             </div>
-          </section>
+            <button
+              className={styles.mobileStatsBtn}
+              onClick={() => setShowMobileDrawer(true)}
+              aria-label="Open Stats and Menu"
+            >
+              📊 Stats & Menu
+            </button>
+          </div>
 
-          {/* Modules list */}
-          <section className={styles.modulesSection}>
-            <div className={styles.modulesHeader}>
-              <h2 className="heading-lg">Learning Modules</h2>
-              <span className="badge badge-teal">Tier {activeTier}</span>
-            </div>
-            <div className={styles.modulesList}>
-              {MODULES.map((base) => {
-                const real = getRealModule(activeTier, base.id);
-                const isRealTierModule = !!real;
-                const m = real
-                  ? {
-                      ...base,
-                      title: real.name,
-                      icon: real.icon,
-                      duration: `${real.estMinutes} min`,
-                      status: tierModuleStatus(activeTier, base.id),
-                      score: tierScores[activeTier]?.[base.id] ?? null,
-                    }
-                  : base;
-                return (
-                <div
-                  key={m.id}
-                  className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
-                  onClick={() => {
-                    if (m.status === "locked") {
-                      showToast("🔒 Complete previous modules to unlock this drill");
-                      return;
-                    }
-                    setSelectedModule(m.id);
-                    if (isRealTierModule) {
-                      setViewer({ tierId: activeTier, moduleId: m.id });
-                    } else if (m.game) {
-                      setActiveGameModule(m.id);
-                    } else {
-                      showToast(`Loaded "${m.title}"`);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={m.status !== "locked" ? 0 : -1}
-                >
-                  <span className={styles.moduleIcon}>{m.icon}</span>
-                  <div className={styles.moduleInfo}>
-                    <h3 className={styles.moduleTitle}>{m.title}</h3>
-                    <div className={styles.moduleMeta}>
-                      <span className={`badge ${m.type === "Simulation" ? "badge-blue" : m.type === "Interactive" ? "badge-teal" : "badge-violet"}`}>{m.type}</span>
-                      <span className={styles.moduleDuration}>{m.duration}</span>
-                    </div>
-                  </div>
-                  <div className={styles.moduleRight}>
-                    {m.status === "completed" && (
-                      <div className={styles.moduleScore}>
-                        <span className={styles.scoreVal}>{m.score}%</span>
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="var(--accent-teal)" strokeWidth="1.5"/><path d="M6 9l2 2 4-4" stroke="var(--accent-teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          {activeTab === "Dashboard" && (
+            <>
+              {/* Tier selector */}
+              <section className={styles.tierSection}>
+                <h2 className="heading-lg">Select Your Tier</h2>
+                <div className={styles.tierGrid}>
+                  {TIERS.map((t) => (
+                    <button
+                      key={t.id}
+                      className={`${styles.tierCard} ${activeTier === t.id ? styles.tierActive : ""}`}
+                      onClick={() => setActiveTier(t.id)}
+                      style={{ "--tier-color": `var(--accent-${t.color})` } as React.CSSProperties}
+                    >
+                      <span className={styles.tierIcon}>{t.icon}</span>
+                      <span className={styles.tierAge}>Ages {t.age}</span>
+                      <span className={styles.tierName}>{t.label}</span>
+                      <div className={styles.tierProgress}>
+                        <div className="progress-track">
+                          <div className="progress-bar" style={{ width: `${(t.completed / t.modules) * 100}%`, background: `var(--accent-${t.color})` }} />
+                        </div>
+                        <span className={styles.tierCount}>{t.completed}/{t.modules}</span>
                       </div>
-                    )}
-                    {m.status === "in-progress" && <span className="badge badge-amber">In Progress</span>}
-                    {m.status === "locked" && (
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={styles.lockIcon}>
-                        <rect x="4" y="8" width="10" height="8" rx="2" stroke="var(--text-faint)" strokeWidth="1.5"/>
-                        <path d="M6 8V6a3 3 0 016 0v2" stroke="var(--text-faint)" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
-                    )}
-                  </div>
+                    </button>
+                  ))}
                 </div>
-                );
-              })}
-            </div>
-          </section>
+              </section>
 
-          {/* Badges */}
-          <section className={styles.badgesSection}>
-            <h2 className="heading-lg">Achievement Badges</h2>
-            <div className={styles.badgesGrid}>
-              {BADGES.map((b) => (
-                <div
-                  key={b.name}
-                  className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}
-                  onClick={() => showToast(b.earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <span className={styles.badgeEmoji}>{b.icon}</span>
-                  <span className={styles.badgeName}>{b.name}</span>
-                  {b.earned && <span className={styles.badgeCheck}>✓</span>}
+              {/* Modules list */}
+              <section className={styles.modulesSection}>
+                <div className={styles.modulesHeader}>
+                  <h2 className="heading-lg">Learning Modules</h2>
+                  <span className="badge badge-teal">Tier {activeTier}</span>
                 </div>
-              ))}
-            </div>
-          </section>
+                <div className={styles.modulesList}>
+                  {MODULES.map((base) => {
+                    const real = getRealModule(activeTier, base.id);
+                    const isRealTierModule = !!real;
+                    const m = real
+                      ? {
+                          ...base,
+                          title: real.name,
+                          icon: real.icon,
+                          duration: `${real.estMinutes} min`,
+                          status: tierModuleStatus(activeTier, base.id),
+                          score: tierScores[activeTier]?.[base.id] ?? null,
+                        }
+                      : base;
+                    return (
+                    <div
+                      key={m.id}
+                      className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
+                      onClick={() => {
+                        if (m.status === "locked") {
+                          showToast("🔒 Complete previous modules to unlock this drill");
+                          return;
+                        }
+                        setSelectedModule(m.id);
+                        if (isRealTierModule) {
+                          setViewer({ tierId: activeTier, moduleId: m.id });
+                        } else if (m.game) {
+                          setActiveGameModule(m.id);
+                        } else {
+                          showToast(`Loaded "${m.title}"`);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={m.status !== "locked" ? 0 : -1}
+                    >
+                      <span className={styles.moduleIcon}>{m.icon}</span>
+                      <div className={styles.moduleInfo}>
+                        <h3 className={styles.moduleTitle}>{m.title}</h3>
+                        <div className={styles.moduleMeta}>
+                          <span className={`badge ${m.type === "Simulation" ? "badge-blue" : m.type === "Interactive" ? "badge-teal" : "badge-violet"}`}>{m.type}</span>
+                          <span className={styles.moduleDuration}>{m.duration}</span>
+                        </div>
+                      </div>
+                      <div className={styles.moduleRight}>
+                        {m.status === "completed" && (
+                          <div className={styles.moduleScore}>
+                            <span className={styles.scoreVal}>{m.score}%</span>
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="var(--accent-teal)" strokeWidth="1.5"/><path d="M6 9l2 2 4-4" stroke="var(--accent-teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                        )}
+                        {m.status === "in-progress" && <span className="badge badge-amber">In Progress</span>}
+                        {m.status === "locked" && (
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={styles.lockIcon}>
+                            <rect x="4" y="8" width="10" height="8" rx="2" stroke="var(--text-faint)" strokeWidth="1.5"/>
+                            <path d="M6 8V6a3 3 0 016 0v2" stroke="var(--text-faint)" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Badges */}
+              <section className={styles.badgesSection}>
+                <h2 className="heading-lg">Achievement Badges</h2>
+                <div className={styles.badgesGrid}>
+                  {BADGES.map((b) => (
+                    <div
+                      key={b.name}
+                      className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}
+                      onClick={() => showToast(b.earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <span className={styles.badgeEmoji}>{b.icon}</span>
+                      <span className={styles.badgeName}>{b.name}</span>
+                      {b.earned && <span className={styles.badgeCheck}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+
+          {activeTab === "Leaderboard" && <LeaderboardView />}
+          {activeTab === "Settings" && <SettingsView />}
+          {activeTab === "My Certificates" && <ProfileView />}
         </main>
       </div>
+
+      {/* Mobile Off-Canvas Drawer (Screens < 768px) */}
+      {showMobileDrawer && (
+        <div className={styles.mobileDrawerOverlay} onClick={() => setShowMobileDrawer(false)}>
+          <div className={styles.mobileDrawerContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.mobileDrawerHeader}>
+              <span className={styles.mobileDrawerTitle}>Cadet Profile & Stats</span>
+              <button
+                className={styles.mobileDrawerClose}
+                onClick={() => setShowMobileDrawer(false)}
+                aria-label="Close drawer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.sidebarProfile}>
+              <div className={styles.profileAvatar}>D</div>
+              <div className={styles.profileInfo}>
+                <span className={styles.profileName}>Cadet Dheeraj</span>
+                <span className={styles.profileRole}>Student Responder • Grade 7</span>
+              </div>
+            </div>
+
+            <div className="divider" style={{ margin: "12px 0" }} />
+
+            <div className={styles.sidebarSection}>
+              <span className="label" style={{ color: "var(--text-faint)", padding: "0 12px" }}>Progress</span>
+              <div className={styles.progressRing}>
+                <svg viewBox="0 0 100 100" className={styles.ringsSvg}>
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--accent-teal)" strokeWidth="6"
+                    strokeDasharray={`${2 * Math.PI * 42}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - 0.35)}`}
+                    strokeLinecap="round" transform="rotate(-90 50 50)" style={{ filter: "drop-shadow(0 0 6px rgba(0,212,170,0.5))" }} />
+                </svg>
+                <div className={styles.ringCenter}>
+                  <span className={styles.ringValue}>35%</span>
+                  <span className={styles.ringLabel}>Overall</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="divider" style={{ margin: "12px 0" }} />
+
+            <div className={styles.sidebarSection}>
+              <span className="label" style={{ color: "var(--text-faint)", padding: "0 12px" }}>Quick Stats</span>
+              <div className={styles.quickStats}>
+                <div className={styles.quickStat}><span className={styles.qsVal}>5</span><span className={styles.qsLbl}>Lessons Done</span></div>
+                <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-amber)" }}>91%</span><span className={styles.qsLbl}>Avg Score</span></div>
+                <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-blue)" }}>2h</span><span className={styles.qsLbl}>Study Time</span></div>
+                <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-violet)" }}>3</span><span className={styles.qsLbl}>Drills Run</span></div>
+              </div>
+            </div>
+
+            <div className="divider" style={{ margin: "12px 0" }} />
+
+            <nav className={styles.sidebarNav}>
+              {[
+                { label: "Dashboard" },
+                { label: "My Certificates" },
+                { label: "Leaderboard" },
+                { label: "Settings" },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  className={`${styles.navItem} ${activeTab === item.label ? styles.navItemActive : ""}`}
+                  onClick={() => {
+                    setActiveTab(item.label);
+                    setShowMobileDrawer(false);
+                    showToast(`Switched to ${item.label}`);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
 
       {viewer && getRealModule(viewer.tierId, viewer.moduleId) && (
         <ModuleViewer

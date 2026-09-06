@@ -96,6 +96,609 @@
 .badgeName { font-size: 0.8125rem; font-weight: 600; text-align: center; }
 .badgeCheck { position: absolute; top: 8px; right: 10px; color: var(--accent-teal); font-size: 0.75rem; font-weight: 800; }
 
-@media (max-width: 1024px) { .tierGrid { grid-template-columns: repeat(3, 1fr); } .badgesGrid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .layout { flex-direction: column; } .sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border-subtle); } .tierGrid { grid-template-columns: repeat(2, 1fr); } .main { padding: 20px 16px; } }
+/* ── Mobile Top Quick Bar ── */
+.mobileTopBar {
+  display: none;
+}
+
+/* ── Mobile Stats & Navigation Drawer ── */
+.mobileDrawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 16, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 10000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+.mobileDrawerContent {
+  width: 320px;
+  max-width: 88vw;
+  height: 100dvh;
+  background: #0A0F1E;
+  border-left: 1px solid var(--border-default);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 16px;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobileDrawerTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mobileDrawerClose {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Sub-view Container & Layout (Leaderboard, Settings, Profile) ── */
+.subViewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subViewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* KPI Bar */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.kpiCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.15s ease;
+}
+.kpiCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.kpiLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.kpiValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.kpiSub {
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+}
+
+/* Filter Row */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filterBtn {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.filterBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.filterBtnActive {
+  background: rgba(0, 212, 170, 0.12);
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+
+/* Leaderboard List */
+.leaderboardList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leaderboardCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: all 0.15s ease;
+}
+.leaderboardCard:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+}
+.leaderboardCurrentUser {
+  border-color: var(--accent-teal);
+  box-shadow: 0 0 16px rgba(0, 212, 170, 0.2);
+  background: rgba(0, 212, 170, 0.04);
+}
+
+.rankBadge {
+  width: 36px;
+  font-size: 1.125rem;
+  font-weight: 800;
+  text-align: center;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.cadetInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cadetName {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.cadetGrade {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.cadetBadges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.miniBadge {
+  font-size: 1rem;
+}
+
+.cadetStats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.statCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.statVal {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.statLbl {
+  font-size: 0.625rem;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Settings View Styles */
+.settingsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingsCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingsCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settingsCardIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.settingsCardTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.settingsCardDesc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.settingName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settingDesc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Switch Toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.15);
+  transition: 0.2s;
+  border-radius: 24px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--accent-teal);
+}
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.settingSelect {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settingInput {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+}
+.settingInput:focus {
+  border-color: var(--accent-teal);
+  box-shadow: 0 0 0 1px var(--accent-teal);
+}
+
+/* Profile / Certificate Styles */
+.profileOverviewCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.profileOverviewLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profileAvatarLarge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--bg-primary);
+  box-shadow: 0 0 16px rgba(0, 212, 170, 0.4);
+}
+
+.readinessMeter {
+  width: 280px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.readinessTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.certificateGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.certificateCard {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: all 0.15s ease;
+}
+.certificateCard:hover {
+  border-color: var(--border-strong);
+}
+.certPending {
+  opacity: 0.6;
+}
+
+.certIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.certBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.certId {
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.certTitle {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.certMeta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.certAction {
+  flex-shrink: 0;
+}
+
+.certBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid var(--accent-teal);
+  color: var(--accent-teal);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.certBtn:hover {
+  background: var(--accent-teal);
+  color: #0A0F1E;
+}
+
+.certBtnDisabled {
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-faint);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: not-allowed;
+}
+
+/* ── Responsive Rules ── */
+@media (max-width: 1024px) {
+  .tierGrid { grid-template-columns: repeat(3, 1fr); }
+  .badgesGrid { grid-template-columns: repeat(2, 1fr); }
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+    padding-top: 60px;
+  }
+  .sidebar {
+    display: none; /* Collapses completely on mobile screens */
+  }
+  .mobileTopBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+  .mobileTopBarLeft {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mobileAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.875rem;
+    color: var(--bg-primary);
+  }
+  .mobileTopName {
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+  .mobileTopProgress {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .mobileStatsBtn {
+    background: rgba(0, 212, 170, 0.12);
+    border: 1px solid var(--accent-teal);
+    color: var(--accent-teal);
+    padding: 8px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .main {
+    padding: 16px 14px 40px;
+    gap: 24px;
+  }
+  .tierGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .kpiGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .certificateCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .certAction {
+    width: 100%;
+  }
+  .certBtn, .certBtnDisabled {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 
