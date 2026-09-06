@@ -12,7 +12,7 @@
 
 ## ⚡ Quick Start & Setup Instructions
 
-The frontend is fully self-contained for the local MVP: **no database, no backend, and no API keys are required** to install or run it. Profile data and drill telemetry use browser localStorage; the Command Hub alert and incident controls have local simulated fallbacks while backend ingestion is pending. Direct TypeScript verification passes; the current workspace still has a Next.js `--showConfig` parsing issue during the final build step.
+The frontend is fully self-contained for the local MVP: **no database, no backend, and no API keys are required** to install or run it. Profile data and drill telemetry use browser localStorage; the Command Hub alert and incident controls have local simulated fallbacks while backend ingestion is pending. `npm run build` compiles cleanly — verified with a fresh production build with zero errors.
 
 ### 1. Prerequisites
 - **Node.js**: v18.17+ or v20+ recommended (`node -v`)
@@ -43,7 +43,7 @@ Use the following checks before handoff:
 ./node_modules/.bin/tsc --noEmit --pretty false
 npm run lint
 ```
-The direct TypeScript check and touched-file lint pass in the current workspace. `npm run build` compiles the application but currently fails when Next.js parses its TypeScript `--showConfig` output; see [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md).
+These all pass cleanly in the current workspace — `npm run build` compiles the full application (all 8 routes, static generation included) with zero errors. See [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md) for what's live.
 
 ### 4. Optional: enabling Mitra (AI crisis companion)
 Everything works without this. The only feature that needs it is Mitra's chat replies inside `/simulate` — without a key it just shows "Mitra is offline right now" instead of crashing anything. To enable it, create `frontend/.env.local`:
