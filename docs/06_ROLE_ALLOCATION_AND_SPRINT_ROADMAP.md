@@ -1,6 +1,6 @@
 # 06. Team Role Allocation, RACI Matrix & Sprint Roadmap (Target: Sept 9 MVP)
 
-> **Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+> **Implementation Status:** This document is the ownership and task roadmap. The built-vs-planned truth is maintained in [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md). Last task reconciliation: September 6, 2026.
 
 
 Based on the core research document and team composition, this blueprint specifies the **Role Allocation, Task Ownership, RACI Matrix, and Day-by-Day Sprint Execution Roadmap** to deliver the Smart India Hackathon (SIH) MVP by **September 9th, 2026**.
@@ -20,7 +20,7 @@ Based on the core research document and team composition, this blueprint specifi
 |                             • Three.js / R3F 3D Simulation Canvas, "Mitra" AI Voice/Text UI      |
 |                                                                                                  |
 |   4. I.SRAVYA           ──► Frontend                                                             |
-|                             • Next.js 15 PWA Core, EOC Dashboard, Floor Map UI, Gamification     |
+|                             • Next.js 16.3.2 PWA Core, EOC Dashboard, Floor Map UI, Gamification |
 |                                                                                                  |
 |   5. TRINAYANI D        ──► Research                                                             |
 |                             • NDMA Curriculum, 5 Age Tiers, 150+ Question Bank, Badging          |
@@ -47,10 +47,12 @@ Based on the core research document and team composition, this blueprint specifi
   - Validate Benchmarks: Validated sub-15ms reroute benchmarks in `backend/app/services/pathfinder.py` (`tests/test_pathfinder_benchmark.py` and `benchmarks/benchmark_pathfinder.py`): initial search avg 0.18ms (p95 0.41ms), dynamic reroute avg 0.12ms (p95 0.25ms), all passing.
   - Visual Assets: Created production-grade vector SVG architecture flowchart `docs/assets/gnn_astar_routing_architecture.svg` (and `frontend/public/assets/gnn_astar_routing_architecture.svg`) for the pitch deck.
 
-- **Active Issue 1.3: UI/UX for Mandatory Onboarding & Live Disaster Ingestion**
-  - Design the mandatory Cadet Onboarding modal (Name, Age, Grade, School) blocking non-home routes.
-  - Design the `/profile` page hierarchy and the "Edit Profile" drawer.
-  - Design the Live Disaster Alert early-warning ticker card and Incident Injection panel on `/command`.
+- [x] **Issue 1.3: UI/UX for Mandatory Onboarding & Live Disaster Ingestion — frontend UI complete**
+  - Cadet onboarding modal and edit drawer are implemented with responsive `100dvh` handling.
+  - Profile data is bound to `safezone_cadet_profile_v1` across Learn, Navbar, and the dedicated Profile surface.
+  - `/command` has the Live Threat Banner and Incident Injection Deck.
+  - Built-in vector avatars and local image upload are available from Profile settings.
+  - Remaining route interception and backend live-ingestion work is tracked under Issues 2.6 and 3.3.
 
 ### 2. I. Sravya - Frontend Core
 - [x] **Task 2.1: Implement Mobile Navigation & Backdrop Blur (COMPLETED in Task 1.1)**
@@ -71,10 +73,11 @@ Based on the core research document and team composition, this blueprint specifi
   - **Dynamic Progress Ring:** Calculate live aggregate tier completion percentage on `/learn` sidebar instead of static 35%.
 
 - **Active Issue 2.6: Mandatory Cadet Onboarding Gate & Dedicated /profile Route**
-  - Exempt home page (`/`), but intercept navigation to `/learn`, `/simulate`, `/command`, or `/profile` if no `safezone_cadet_profile` exists.
-  - Onboard Name, Age, Grade, School; automatically assign NDMA tier based on age.
-  - Build `frontend/src/app/profile/page.tsx` integrating Overview, Certificates, Leaderboard, and Settings.
-  - Link navbar avatar to `/profile` and display user's initial.
+  - [x] Onboarding form, age-based tier assignment, local profile persistence, and LearnPage profile/edit integration.
+  - [x] Dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections.
+  - [x] Navbar profile avatar routes to `/profile`; profile/avatar updates propagate through the shared browser event.
+  - [x] Profile settings support six built-in vector avatars and local image upload.
+  - [ ] Exempt home page (`/`), but intercept navigation to `/learn`, `/simulate`, `/command`, or `/profile` if no profile exists.
 
 ### 3. Venkataraman C.V - Backend Lead
 - **Task 3.1: Implement Persistent Telemetry API**
@@ -82,8 +85,10 @@ Based on the core research document and team composition, this blueprint specifi
 - **Task 3.2: Multi-User WebSocket Load Test**
   - Simulate 50-100 concurrent clients on `backend/tests/load_test_client.py`.
 - **Active Issue 3.3: Live Disaster Alert Ingestion & WebSocket Incident Injection**
-  - Build `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed (filtered strictly for critical incidents).
-  - Connect `webhooks.py` and `websocket_manager.py` to broadcast manual campus emergency incident injections (electrical fire, chemical spill, gas leak) to all connected clients.
+  - [x] Frontend banner and incident-injection control contracts are implemented; local simulated fallback is available.
+  - [ ] Build `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed (filtered strictly for critical incidents).
+  - [ ] Connect `webhooks.py` and `websocket_manager.py` to broadcast manual campus emergency incident injections (electrical fire, chemical spill, gas leak) to all connected clients.
+  - [ ] Map backend events into the `LiveThreatAlert` interface documented in `frontend/INTEGRATION_GUIDE.md`.
 
 ### 4. Manha AK - AI + 3D Frontend
 - **Task 4.1: Interactive 3D Multi-Floor Stack in /command**
@@ -119,7 +124,7 @@ Based on the core research document and team composition, this blueprint specifi
 | **UI/UX Design System & Brand Identity** | **A / R** | I | C | C | C | C |
 | **Curriculum & Age-Tiered Matrices** | I | I | C | C | **A / R** | C |
 | **Multi-Agency SOPs & CAP Standards** | I | C | I | I | C | **A / R** |
-| **Next.js 15 PWA & UI Implementation** | C | C | C | **A / R** | C | I |
+| **Next.js 16.3.2 PWA & UI Implementation** | C | C | C | **A / R** | C | I |
 | **Three.js 3D Simulation Canvas** | C | I | **A / R** | C | I | I |
 | **FastAPI, PostGIS & WebSocket Hub** | C | **A / R** | C | C | I | I |
 | **GenAI Dynamic Scenario Synthesizer** | **A / R** | C | C | I | C | C |
@@ -142,7 +147,7 @@ Based on the core research document and team composition, this blueprint specifi
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
 |   [ SPRINT 1: FOUNDATION & DESIGN ] (Aug 23 - Aug 27)                                            |
-|   • UI/UX Design Tokens & Wireframes, Next.js 15 + FastAPI Scaffolding, PostGIS, NDMA Ingestion  |
+|   • UI/UX Design Tokens & Wireframes, Next.js 16.3.2 + FastAPI Scaffolding, PostGIS, NDMA Ingestion |
 |                                                                                                  |
 |   [ SPRINT 2: CORE ENGINES ] (Aug 28 - Sep 1)                                                    |
 |   • Three.js 3D Simulation, WebSocket Gateway, Student Learning Portal, AI Baselines            |
@@ -162,7 +167,7 @@ Based on the core research document and team composition, this blueprint specifi
 
 #### Sprint 1: Foundations, Design & Architecture (Aug 23 - Aug 27)
 
-- **Day 1 (Aug 23):** Repository initialization, CI/CD setup, Next.js 15 + FastAPI scaffolding, Tailwind design tokens & Figma theme (Dheeraj, I.Sravya, Venkataraman).
+- **Day 1 (Aug 23):** Repository initialization, CI/CD setup, Next.js 16.3.2 + FastAPI scaffolding, CSS design tokens & Figma theme (Dheeraj, I.Sravya, Venkataraman).
 - **Day 2 (Aug 24):** Database ERD implementation in PostgreSQL 16 + PostGIS extension; Redis cache configuration (Venkataraman).
 - **Day 3 (Aug 25):** Ingest NDMA/NFPA curriculum data and question bank into structured JSON fixtures (Trinayani, Rahul).
 - **Day 4 (Aug 26):** Basic 2D floorplan coordinate schema and graph node adjacency definitions (Venkataraman, Dheeraj).

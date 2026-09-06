@@ -7,22 +7,28 @@ Run from inside this `frontend/` folder (where `package.json` lives):
 ```bash
 npm install
 npm run dev     # Turbopack @ http://localhost:3000
-npm run build   # production check (must stay green)
+npm run build   # production compilation check
+./node_modules/.bin/tsc --noEmit --pretty false   # direct type check
 ```
 On PowerShell, `&&` isn't a valid separator between commands — run each line above on its own, or join with `;`.
 
 Requires Node 18.17+ / 20+ · Next.js 16.3.2 (App Router, Turbopack) · React 19 · Three.js r149
 
-No `.env` file, database, or backend is required — the whole app installs, builds, and runs on a bare clone. The only optional piece is `GEMINI_API_KEY` in `.env.local`, which powers Mitra's chat replies in `/simulate`; without it Mitra just shows "offline" instead of breaking anything.
+No `.env` file, database, or backend is required for the local MVP. Profile data
+and drill telemetry use localStorage, and the Command Hub has simulated alert
+and incident fallbacks. The only optional piece is `GEMINI_API_KEY` in
+`.env.local`, which powers Mitra's chat replies in `/simulate`; without it
+Mitra just shows "offline" instead of breaking anything.
 
 ## Routes
 | Route | File | What lives there |
 |-------|------|------------------|
 | `/` | `src/app/page.tsx` → `LandingPage` | ImmersiveScene WebGL backdrop, hero, stats, pillars, radar CTA |
-| `/learn` | `src/app/learn/page.tsx` | 5 age tiers + modules + badges |
+| `/learn` | `src/app/learn/page.tsx` | 5 age tiers + modules + badges + cadet onboarding/profile flow |
 | `/simulate` | `src/app/simulate/page.tsx` | Briefing → playable drill (`EvacuationGame`) → generated debrief |
-| `/command` | `src/app/command/page.tsx` | Floor matrix + blueprint SVG + CAP feed |
+| `/command` | `src/app/command/page.tsx` | Floor matrix + blueprint SVG + telemetry feed + threat banner + incident injection deck |
 | `/admin` | `src/app/admin/page.tsx` | KPIs + canvas heatmap + drill log |
+| `/profile` | `src/app/profile/page.tsx` | Dashboard, Certificates, Settings, Leaderboard, profile editing, avatar selection/upload |
 
 ## Simulation controls (`/simulate`)
 WASD/Arrows move · SHIFT crawl (saves O₂ in smoke) · B hold box-breathe (drops panic) · walk into amber **D**oor to open (doors block fire/smoke until opened) · reach any green **E** beacon to evacuate.
@@ -49,6 +55,23 @@ WASD/Arrows move · SHIFT crawl (saves O₂ in smoke) · B hold box-breathe (dro
 
 ## Telemetry
 `telemetry.ts` → `saveRun/loadRuns` → `localStorage` key `safezone_drill_runs_v1` (cap 500). `generateDebrief(run)` builds ✓/✗ lines from real behavior. Admin heatmap aggregates `routeHeat[]` per cell.
+
+## Profile and Command Hub integration
+
+The `/learn` and `/profile` flows store the cadet profile under
+`safezone_cadet_profile_v1`. `CadetOnboardingModal`, `ProfileView`,
+`EditProfileDrawer`, `Navbar`, and the Profile console share the `CadetProfile`
+contract in `src/types/profile.ts`. The Navbar subscribes to
+`safezone:cadet-profile-updated`, so name, tier, and avatar changes are visible
+across routes immediately. Profile settings include six built-in vector avatars
+and a local image upload capped at 1.5 MB.
+
+`/command` currently uses a seeded `LiveThreatAlert` and a simulated incident
+injection response. The UI contracts and pending backend payloads are in
+[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md).
+
+The browser/device checklist covers onboarding keyboard behavior, responsive
+layouts, contrast, reduced motion, and command alert/injection interaction.
 
 ## Conventions (read `AGENTS.md` before coding)
 - Check `node_modules/next/dist/docs/` for this Next.js version — APIs may differ from training data.

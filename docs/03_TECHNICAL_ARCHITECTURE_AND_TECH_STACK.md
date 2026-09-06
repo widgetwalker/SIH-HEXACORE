@@ -52,7 +52,7 @@ For the Smart India Hackathon (SIH) and nationwide school/college deployment, we
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
 |   [ 1. CLIENT TIER (Progressive Web Application) ]                                               |
-|   • Next.js 15 (React 19, App Router, Turbopack)                                                 |
+|   • Next.js 16.3.2 (React 19, App Router, Turbopack)                                              |
 |   • Three.js / React Three Fiber / Drei / Rapier Physics (3D WebGPU Canvas)                      |
 |   • Zustand (High-speed atomic client state) + TanStack Query v5                                 |
 |   • MapLibre GL / Canvas (Campus GIS Alert Overlays)                                             |
@@ -81,7 +81,7 @@ For the Smart India Hackathon (SIH) and nationwide school/college deployment, we
 ## 3. Detailed Component Breakdown & Advanced Libraries
 
 ### 3.1 Frontend Ecosystem
-- **Core Framework:** `Next.js 15` (Turbopack, Server-Side Rendering for ultra-fast initial page loads, React 19 Client Components for interactive canvases).
+- **Core Framework:** `Next.js 16.3.2` (Turbopack, Server-Side Rendering for ultra-fast initial page loads, React 19 Client Components for interactive canvases).
 - **3D Simulation & Graphics:**
   - `@react-three/fiber` & `@react-three/drei`: Declarative Three.js 3D rendering pipeline.
   - `@react-three/rapier`: Lightweight WebAssembly (Wasm) physics engine for rigid-body collisions, falling debris, and player navigation.

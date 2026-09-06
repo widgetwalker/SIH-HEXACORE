@@ -1,6 +1,6 @@
 BACKEND DEV: FastAPI Server, WebSockets & NDMA SACHET Ingestion
 
-> **📋 Last updated:** September 1, 2026 · Branch `feature/backend-websocket`
+> **📋 Last updated:** September 6, 2026 · Branch `feature/backend-websocket`
 >
 > This is the running playbook for the backend workstream. Sections marked
 > ✅ are complete; ⚠️ are partially done; ❌ are still planned. The high-level
@@ -92,8 +92,21 @@ rarely changes; this also lets the frontend keep its existing TypeScript
 | GET | `/api/v1/scenarios/{id}` | ❌ | Single scenario lookup (not needed yet — list endpoint covers it) |
 | POST | `/api/v1/telemetry/runs` | ❌ | Persist `RunTelemetry` payload (replaces localStorage). Schema already in `app/schemas/drill.py::RunTelemetryRequest`. |
 | GET | `/api/v1/telemetry/analytics` | ❌ | Aggregated KPIs + route heatmap matrix for `/admin` |
+| POST | `/api/v1/users/profile` | ❌ | Persist the frontend `CadetProfile` identity and computed NDMA tier. |
+| GET | `/api/v1/users/profile/{id}` | ❌ | Return a persisted cadet profile; `404` should keep onboarding available. |
+| GET | `/api/v1/alerts/live` | ❌ | Return critical Open-Meteo/USGS alerts mapped to the Command Hub banner. |
+| POST | `/api/v1/incidents/inject` | ❌ | Accept a drill incident type/floor and emit an emergency broadcast. |
 | POST | `/api/v1/reports/ndma` | ❌ | NDMA incident form (PDF or JSON) |
 | POST | `/api/v1/mitra/chat` | ❌ | Mitra crisis guidance LLM / rule endpoint |
+
+### Profile API contract note
+
+The pending profile endpoints must preserve the frontend identity fields:
+`name`, `age`, `grade`, `school`, `tierId`, `tierName`, and `avatarId`. The
+browser MVP may also send an optional `avatarImage` data URL; a production
+implementation should replace that field with an object-storage URL and enforce
+an image size/content policy server-side. Until these endpoints land, the
+frontend uses `safezone_cadet_profile_v1` as its offline source of truth.
 
 ---
 
@@ -163,6 +176,27 @@ rarely changes; this also lets the frontend keep its existing TypeScript
 - Dedup by `cap_identifier` (`emergency_alerts.cap_identifier` has a `UNIQUE` constraint) — same alert arriving twice (poll + webhook) must not double-broadcast.
 
 **Target:** Sprint 3 Day 12.
+
+### Frontend handoff ready (September 6)
+
+The frontend now exposes a Command Hub `LiveThreatBanner` and
+`IncidentInjectionDeck`. Until this task is implemented, the page uses a seeded
+alert and a local two-second simulated injection response. Backend events should
+map to the following UI shape:
+
+```typescript
+type LiveThreatAlert = {
+  source: "Open-Meteo" | "USGS" | "NDMA-CAP" | "Campus-IoT";
+  severity: "CRITICAL" | "WARNING" | "ADVISORY";
+  title: string;
+  detail: string;
+  timestamp: string;
+};
+```
+
+The incident request contract is documented in
+`frontend/INTEGRATION_GUIDE.md`. Keep localStorage and local simulated
+behavior as the offline fallback until the API and broadcast path are live.
 
 ---
 

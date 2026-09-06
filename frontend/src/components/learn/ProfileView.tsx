@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
+import type { CadetProfile } from "@/types/profile";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./LearnPage.module.css";
+
+interface ProfileViewProps {
+  profile: CadetProfile | null;
+  onOpenEdit: () => void;
+}
 
 interface Certificate {
   id: string;
@@ -39,10 +46,21 @@ const CERTIFICATES: Certificate[] = [
   },
 ];
 
-export default function ProfileView() {
-  const handlePrintCertificate = (title: string) => {
+export default function ProfileView({ profile, onOpenEdit }: ProfileViewProps) {
+  const handlePrintCertificate = () => {
     window.print();
   };
+
+  // Calculate readiness score based on tier (mock for now)
+  const readinessScore = profile ? Math.min(50 + (profile.tierId * 8), 95) : 0;
+  const tierColors: Record<number, string> = {
+    1: "#00D4AA", // teal
+    2: "#3B82F6", // blue
+    3: "#8B5CF6", // violet
+    4: "#F59E0B", // amber
+    5: "#EF4444", // red
+  };
+  const tierColor = profile ? tierColors[profile.tierId] || "#00D4AA" : "#00D4AA";
 
   return (
     <div className={styles.subViewContainer}>
@@ -55,40 +73,57 @@ export default function ProfileView() {
             Official student emergency credentials, preparedness assessment, and accredited disaster response certificates.
           </p>
         </div>
-        <span className="badge badge-teal">NDMA Accredited</span>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <span className="badge badge-teal">NDMA Accredited</span>
+          {profile && (
+            <button
+              className="btn-secondary"
+              onClick={onOpenEdit}
+              style={{ padding: "6px 12px", fontSize: "0.8125rem" }}
+            >
+              ✏️ Edit Profile
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Profile Overview Card */}
-      <div className={styles.profileOverviewCard}>
-        <div className={styles.profileOverviewLeft}>
-          <div className={styles.profileAvatarLarge}>D</div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Cadet Dheeraj</h3>
-              <span className="badge badge-teal">Preparedness: Level 3</span>
-            </div>
-            <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-              SIH Demonstration Model High School • Academic Block B • Grade 7
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-faint)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>
-              ID: CADET-2026-0894 • Blood Group: O+ • Emergency Contact: Verified ✓
+      {profile ? (
+        <div className={styles.profileOverviewCard}>
+          <div className={styles.profileOverviewLeft}>
+            <ProfileAvatar profile={profile} size="medium" className={styles.profileAvatarLarge} />
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Cadet {profile.name}</h3>
+                <span className="badge badge-teal">Tier {profile.tierId}: {profile.tierName}</span>
+              </div>
+              <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
+                {profile.school} • {profile.grade}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-faint)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>
+                Age: {profile.age} • NDMA Cohort: {profile.tierName}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className={styles.readinessMeter}>
-          <div className={styles.readinessTop}>
-            <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>DISASTER READINESS</span>
-            <span style={{ fontSize: "1.25rem", color: "var(--accent-teal)", fontWeight: 800, fontFamily: "var(--font-mono)" }}>78%</span>
+          <div className={styles.readinessMeter}>
+            <div className={styles.readinessTop}>
+              <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>DISASTER READINESS</span>
+              <span style={{ fontSize: "1.25rem", color: tierColor, fontWeight: 800, fontFamily: "var(--font-mono)" }}>{readinessScore}%</span>
+            </div>
+            <div className="progress-track" style={{ height: "8px" }}>
+              <div className="progress-bar" style={{ width: `${readinessScore}%`, background: `linear-gradient(90deg, ${tierColor}, #3B82F6)` }} />
+            </div>
+            <span style={{ fontSize: "0.6875rem", color: "var(--text-faint)" }}>
+              {readinessScore >= 70 ? "Exceeds 70% threshold required for Campus Junior Warden" : "Continue learning to reach 70% threshold"}
+            </span>
           </div>
-          <div className="progress-track" style={{ height: "8px" }}>
-            <div className="progress-bar" style={{ width: "78%", background: "linear-gradient(90deg, #00D4AA, #3B82F6)" }} />
-          </div>
-          <span style={{ fontSize: "0.6875rem", color: "var(--text-faint)" }}>
-            Exceeds 70% threshold required for Campus Junior Warden
-          </span>
         </div>
-      </div>
+      ) : (
+        <div style={{ padding: "32px", textAlign: "center", color: "var(--text-muted)" }}>
+          <p>No profile found. Please complete onboarding to view your cadet profile.</p>
+        </div>
+      )}
 
       {/* Certificates Section */}
       <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px" }}>
@@ -119,7 +154,7 @@ export default function ProfileView() {
                 {cert.status === "verified" ? (
                   <button
                     className={styles.certBtn}
-                    onClick={() => handlePrintCertificate(cert.title)}
+                    onClick={handlePrintCertificate}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />

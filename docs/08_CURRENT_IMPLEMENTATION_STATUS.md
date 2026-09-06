@@ -1,11 +1,11 @@
 # 08. Current Implementation Status
 
-> **Last updated:** September 6, 2026 v5 · Branch `main` · **Build green (Next 16.3.2 + TS + framer-motion + GSAP)**
+> **Last updated:** September 6, 2026 v7 · Branch `main` · **Frontend profile surface complete; direct TypeScript check green**
 >
 > This document tracks what is **actually built and working** versus what remains
 > spec-only. It complements docs 01-07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
-> **Sept 6 v5 delta:** Mobile navigation overhaul and /learn mobile drawer (Task 1.1), sub-15ms dynamic A* reroute benchmarks across 6 floors and architecture assets (Task 1.2), live WebSocket & drill event bus integration (Task 2.4). Active issues documented for verbatim curriculum full-page reader (Issue 2.5), mandatory cadet onboarding & /profile route (Issue 2.6), live disaster ingestion & injection (Issue 3.3), and Mitra voice alert verbalization (Issue 4.3).
+> **Sept 6 v7 delta:** Added the dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections; Navbar profile routing; shared avatar synchronization; six vector avatar choices; and local image upload. Remaining work is route-wide onboarding interception (Issue 2.6), backend alert/profile/injection APIs (Issue 3.3), and browser/device QA.
 
 ---
 
@@ -14,14 +14,14 @@
 | Pillar / Module | Status | Notes |
 | :--- | :--- | :--- |
 | Landing & navigation shell | Built | `LandingPage` HazardScrollScene slow 360-degree scroll collapse, ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch, mobile menu full-screen overlay with opaque backdrop and scroll-lock (Task 1.1) |
-| Pillar I - Pedagogical Engine | Built / Active Issue | `LearnPage` with age-tiered curriculum, interactive sidebar nav, mobile quick bar and slide-over drawer, Settings/Profile/Leaderboard subviews built (Task 1.1). In Progress: Verbatim NDMA curriculum ingestion (103 sections across 28 modules), full-page scroll reader replacing modal popups, dynamic progress ring (Issue 2.5). |
-| User Identity & Profile | Active Issue | In Progress: Mandatory Cadet Onboarding gate blocking non-home routes (Name, Age, Grade, School), age-to-tier NDMA mapping, dedicated `/profile` route, avatar link to profile (Issue 2.6). |
+| Pillar I - Pedagogical Engine | Built / Active Issue | `LearnPage` with age-tiered curriculum, interactive sidebar nav, mobile quick bar and slide-over drawer, Settings/Profile/Leaderboard subviews, plus persisted cadet onboarding/edit flow (Task 1.1 / Issue 1.3). In Progress: Verbatim NDMA curriculum ingestion (103 sections across 28 modules), full-page scroll reader replacing modal popups, dynamic progress ring (Issue 2.5). |
+| User Identity & Profile | Frontend surface complete / Active Issue | Cadet onboarding, age-to-tier mapping, local profile persistence, shared Navbar identity, dedicated `/profile`, Dashboard, Certificates, Settings, Leaderboard, vector avatar choices, upload, and EditProfileDrawer are wired. Route-wide gating remains (Issue 2.6). |
 | Pillar II - Simulation Engine | Built | Playable 3D evacuation drills, 4 JSON scenarios, fire/smoke/door/blockages, NPC crowd, synthesized WebAudio, full run telemetry, per-hazard overlays. Dynamic A* rerouting benchmarked at sub-15ms (0.18ms initial, 0.12ms dynamic reroute across 6 floors to stairwell portals) with automated pytest and profiler (Task 1.2). |
 | Pillar II - Admin Analytics | Built | `/admin` dashboard: KPIs, canvas route & casualty heatmap, drill log table |
-| Pillar III - Command Hub | Built / Active Issue | `/command` page wired to live WebSocket & local drillEventBus for real-time telemetry updates (Task 2.4). In Progress: Live critical disaster alert ingestion (Open-Meteo flood/severe weather, USGS earthquake) and emergency incident injection panel (Issue 3.3). |
+| Pillar III - Command Hub | UI built / Active Issue | `/command` receives live telemetry through WebSocket/local drillEventBus and now includes the Live Threat Banner plus Incident Injection Deck with simulated fallbacks. Critical external alert ingestion and backend incident broadcast remain (Task 2.4 / Issue 3.3). |
 | Global FX Layer | Built | Custom cursor, RippleLink, parallax/tilt/reveal, framer-motion, ScenarioEffects, Geist font |
 | "Mitra" Crisis Companion | Rule-based + GSAP | Contextual coaching in sim. In Progress: Web Speech API voice alert verbalization for active emergency events (Issue 4.3). |
-| Backend / persistence | Built / Active Task | DynamicPathfinder service running with sub-millisecond graph routing. FastAPI WebSocket hub. In Progress: Telemetry run persistence endpoints (Task 3.1). |
+| Backend / persistence | Built / Active Task | DynamicPathfinder and FastAPI WebSocket hub are running. Profile, live-alert, incident-injection, and telemetry persistence endpoints remain pending; frontend contracts are documented in `frontend/INTEGRATION_GUIDE.md` (Tasks 3.1 / Issue 3.3). |
 | Multiplayer drill battles | Not started | Spec-only (docs 01/02) |
 | Mobile / touch controls | Not started | Current 3D game is keyboard-only (WASD/arrows + SHIFT/B) |
 
@@ -100,7 +100,9 @@ violations with timestamps, death/exit cells, scenario ID, and creation timestam
 
 ### 2.7 Learn Page (`LearnPage.tsx`)
 
-- Sidebar: profile avatar, SVG progress ring (35%), quick stats grid (lessons/score/time/drills), interactive nav tabs (Dashboard/Certificates/Leaderboard/Settings) with toast on switch
+- Sidebar: persisted cadet avatar/name/tier, SVG progress ring (35%), quick stats grid (lessons/score/time/drills), interactive nav tabs (Dashboard/Certificates/Leaderboard/Settings) with toast on switch
+- Cadet onboarding: first-use modal collects name, age, grade, and school, assigns an NDMA cohort, and saves `safezone_cadet_profile_v1` locally
+- Profile editing: `ProfileView` displays the saved identity/tier data and opens `EditProfileDrawer`; changing age recalculates the cohort
 - Age-tier selector: 5 tiers (Explorers 6-9, Rangers 10-13, Guardians 14-16, Sentinels 17-20, Wardens 21+) with progress bars, active selection state
 - Module cards: selectable with teal glow, locked modules show toast, completion scores
 - Achievement badges: clickable with earned/locked states, toast feedback
@@ -108,11 +110,14 @@ violations with timestamps, death/exit cells, scenario ID, and creation timestam
 ### 2.8 Command Hub (`CommandPage.tsx`)
 
 - Live clock (real-time HH:MM:SS), status strip (students/safe/trapped/unaccounted/safe rate)
-- Floor status matrix: selectable rows with teal left border, detailed toast per floor
+- Floor status matrix: selectable rows with restrained teal selection outline, detailed toast per floor
 - Campus blueprint SVG: interactive floor labels, animated fire indicator on 4F, animated evac route dashes
 - CAP alert feed: clickable alerts with source detail toast
 - Connected agencies: clickable rows with ping feedback toast
 - Action bar: Emergency Broadcast, QR Headcount Scan, Generate NDMA Report - all with simulated feedback toasts
+- Live Threat Banner: CRITICAL, WARNING, and ADVISORY states with acknowledge/protocol callbacks
+- Incident Injection Deck: transformer fire, chemical spill, and gas leak scenarios with floor selection and loading/disabled states
+- Current alert/injection source: seeded local alert plus simulated two-second response; real CAP/Open-Meteo/USGS ingestion remains a backend task
 
 ### 2.9 Navigation & Performance
 
@@ -180,6 +185,9 @@ Integrated live telemetry transport for the Command Hub:
 
 ### 2.15 Active Sprint Issues (September 6 - September 9)
 
+The frontend UI portion of Issues 1.3 and 3.3 is complete. The items below
+separate shipped local behavior from the remaining route/backend work.
+
 - **Issue 2.5: Verbatim Curriculum Ingestion & Full-Page Scroll Reader:**
   - Ingest verbatim NDMA curriculum across all 5 tiers (Explorers 11 sections, Rangers 18 sections, Guardians 23 sections, Sentinels 25 sections, Wardens 26 sections - total 103 sections across 28 modules) without truncation.
   - Eliminate modal popups (`ModuleViewer.tsx`) and build a dedicated full-page scroll layout (`/learn/[tierId]/[moduleId]` or inline reader with `<- Back to Modules`).
@@ -187,15 +195,11 @@ Integrated live telemetry transport for the Command Hub:
   - Mid-lesson progress persistence in `localStorage` (`safezone_module_progress_v1`) to resume reading at exact scroll positions.
   - Real-time aggregate progress ring calculation on `/learn` sidebar based on completed sections.
 - **Issue 2.6: Mandatory Cadet Onboarding Gate & Dedicated /profile Route:**
-  - Route interceptor: Visiting any page beyond the home page (`/`) requires an active cadet profile. If missing, a mandatory onboarding modal prompts for Cadet Name, Age, Grade / Standard, and School.
-  - Automated NDMA tier assignment based on age (5-7 Explorers, 8-10 Rangers, 11-13 Guardians, 14-17 Sentinels, 18+ Wardens).
-  - Dedicated `/profile` route (`frontend/src/app/profile/page.tsx`) with Cadet Identity card, Tier badge, Earned Certificates, Drill History, Leaderboard Standings, and Edit Profile drawer.
-  - Navbar avatar link updated to route directly to `/profile` displaying user initial.
+  - **Shipped:** `/learn` onboarding modal, automated NDMA tier assignment, local persistence, ProfileView, EditProfileDrawer, dedicated `/profile` route, four profile sections, Navbar avatar routing, and avatar picker/upload.
+  - **Remaining:** Route interceptor for `/learn`, `/simulate`, `/command`, and `/profile` when no profile exists.
 - **Issue 3.3: Real-Time Disaster Ingestion & WebSocket Incident Injection:**
-  - Automated ingestion of critical disaster feeds: Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed.
-  - Strict filtering: Surface only critical incidents (flood alerts, gale winds > 65 km/h, regional earthquakes > M4.5) to avoid notification fatigue.
-  - Prominent emergency ticker on `/command` displaying alert level, affected region, and immediate safety protocols.
-  - Incident injection control panel for campus safety officers to simulate localized emergencies (electrical fire, chemical spill, gas leak).
+  - **Shipped:** `/command` Live Threat Banner and Incident Injection Deck with local seeded/simulated behavior.
+  - **Remaining:** Automated Open-Meteo/USGS ingestion, critical-severity filtering, backend incident injection endpoint, and WebSocket mapping to `LiveThreatAlert`.
 - **Issue 4.3: Mitra AI Voice Crisis Alert Verbalization:**
   - Automatic voice broadcast via Web Speech API (`window.speechSynthesis`) when an emergency alert or incident injection is active, guiding occupants on `/simulate` and `/command`.
 
@@ -217,6 +221,8 @@ frontend/src/
 │   ├── Navbar.tsx             → Mode switcher, alert, avatar, mobile menu
 │   ├── landing/               → LandingPage + module CSS
 │   ├── learn/                 → LearnPage + module CSS
+│   ├── onboarding/            → CadetOnboardingModal + CSS module
+│   ├── profile/               → ProfilePage, AvatarPicker, ProfileAvatar, EditProfileDrawer
 │   ├── simulate/
 │   │   ├── SimulatePage.tsx   → Briefing/HUD/debrief shell
 │   │   ├── SimulatePage.module.css
@@ -236,6 +242,8 @@ frontend/src/
 │       ├── Reveal.tsx         → Intersection-observer fade-in
 │       ├── CountUp.tsx        → Animated number counter
 │       └── ConstellationField.tsx → Canvas particle system
+├── types/
+│   └── profile.ts             → CadetProfile localStorage contract
 ├── data/
 │   └── scenarios.json         → 4 scenario definitions (maps + configs)
 └── ...
@@ -247,14 +255,14 @@ frontend/src/
 
 | Layer | Blueprint (docs 03) | As built today |
 | :--- | :--- | :--- |
-| Framework | Next.js 15 PWA | Next.js 16.3.2 (App Router, Turbopack), React 19 |
+| Framework | Next.js 16.3.2 PWA | Next.js 16.3.2 (App Router, Turbopack), React 19 |
 | 3D | React Three Fiber + Rapier | Plain Three.js r149 + **HazardScrollScene** (PBR glass, ScrollTrigger 300% pin, water/fire shaders) + fallback `ImmersiveScene` |
 | Motion | framer-motion | **GSAP 3.13 + ScrollTrigger** (vignette `to`, Mitra `fromTo`, 3-act pin scrub) + CSS spring `cubic-bezier(0.16,1,0.3,1)` (HUD) + `react-spring` asset |
 | State | Zustand + TanStack Query | Local React state + `useState` |
 | Persistence | PostgreSQL + PostGIS, Redis | Browser localStorage (`safezone_drill_runs_v1`) |
 | AI services | GenAI scenarios, GNN routing, CV posture | None yet; Mitra is rule-based |
 | Audio | Asset-based | Fully synthesized WebAudio (zero external assets) |
-| Styling | Design system (var tokens) | CSS Modules + global design tokens (vars, utilities, animations) |
+| Styling | Design system (var tokens) | CSS Modules + global design tokens (vars, utilities, animations); no Tailwind runtime |
 | Build | - | Turbopack dev, Next.js production build |
 
 ---
@@ -262,10 +270,10 @@ frontend/src/
 ## 5. Known Gaps vs. Blueprint
 
 - Vertical multi-floor evacuation (Ground-5th hierarchy, doc 02 §2.3) - current drills are single-floor grids
-- Multiplayer drill battles, WebSocket transport, CAP/SACHET ingestion, EOC headcount - spec-only
+- Multiplayer drill battles, CAP/SACHET ingestion, and EOC headcount - spec-only; WebSocket drill telemetry is implemented
 - GenAI scenario synthesis, GNN dynamic rerouting, DDA adaptive difficulty, CV posture validation - spec-only
 - Offline-first service worker / IndexedDB caching - not started
-- Backend API, database, authentication - not started (telemetry in localStorage)
+- Profile, live-alert, incident-injection, and telemetry persistence APIs remain pending; the frontend currently uses localStorage fallbacks
 - Mobile / touch input for simulation - keyboard-only currently
 
 ---
@@ -275,29 +283,29 @@ frontend/src/
 | Route | Page | Description |
 | :--- | :--- | :--- |
 | `/` | Landing | Immersive hero, stats, pillars, emergency CTA |
-| `/learn` | Learning Portal | Age tiers, modules, badges, sidebar nav, full-page reader |
+| `/learn` | Learning Portal | Age tiers, modules, badges, sidebar nav, and current modal module reader; full-page reader remains planned |
 | `/simulate` | Simulation | Scenario picker -> playable drill -> generated debrief |
 | `/command` | Command Hub | Floor matrix, campus map, live alerts, incident injection, action bar |
 | `/admin` | Admin Analytics | KPIs, heatmap, drill log (Pillar 2->3 telemetry) |
-| `/profile` | Cadet Profile | Cadet identity card, tier badge, certificates, leaderboard, settings |
+| `/profile` | Cadet Profile Console | Dashboard, Certificates, Settings, Leaderboard, edit drawer, avatar picker/upload |
 
 ---
 
 ## 7. Next Steps & Developer Task Breakdown (Active Sprint)
 
 ### Dheeraj: AI & Design Lead
-1. **Cadet Onboarding Gate & Modal UX (Issue 1.3 / 2.6):** Design and implement the modal overlay interceptor that blocks non-home routes until Cadet Name, Age, Grade, and School are entered.
-2. **Profile View & Settings Polish:** Complete the `/profile` page hierarchy and ensure dark-mode token alignment across all interactive components.
-3. **Live Alert Card & Injection Panel Design (Issue 1.3 / 3.3):** Design the Command Hub emergency warning ticker and drill incident injection controls.
+1. **[x] Cadet Onboarding UI & Profile Edit Flow (Issue 1.3):** Modal, local profile contract, LearnPage wiring, tier assignment, ProfileView, EditProfileDrawer, and shared avatar identity are complete.
+2. **[x] Dedicated `/profile` route (Issue 2.6):** Profile console, Navbar avatar routing, global Settings entry, built-in avatars, and local image upload are complete. Route-wide onboarding interception remains.
+3. **[x] Live Alert Card & Injection Panel UI (Issue 1.3 / 3.3):** Command Hub banner and incident controls are complete with local simulated fallbacks.
 
 ### I. Sravya: Frontend Core
 1. **Verbatim Curriculum Ingestion (Issue 2.5):** Ingest verbatim NDMA curriculum across all 5 age tiers (103 sections across 28 modules) from the approved source blueprints.
 2. **Full-Page Scroll Reader (Issue 2.5):** Replace modal popups (`ModuleViewer.tsx`) with a full-page scroll layout featuring a top neon-teal progress bar, `localStorage` mid-lesson progress persistence, and dynamic aggregate progress calculation for the `/learn` sidebar progress ring.
-3. **Mandatory Onboarding Gate Interception & /profile Route (Issue 2.6):** Implement route guard in `frontend/src/` for `/learn`, `/simulate`, `/command`, and build `frontend/src/app/profile/page.tsx`. Link the Navbar avatar directly to `/profile`.
+3. **Mandatory Onboarding Gate Interception (Issue 2.6):** Implement route guard in `frontend/src/` for `/learn`, `/simulate`, `/command`, and `/profile`. The dedicated profile surface and Navbar routing are shipped; route-wide gating remains.
 
 ### Venkataraman C.V: Backend Lead
-1. **Live Disaster Feed Ingestion API (Issue 3.3):** Create `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed, strictly filtered for critical severity incidents.
-2. **Campus Incident Injection & WebSocket Broadcast (Issue 3.3):** Implement API endpoints to trigger manual school emergency simulations (fire, chemical spill, gas leak) and broadcast `EMERGENCY_BROADCAST` to all active WebSocket clients.
+1. **Live Disaster Feed Ingestion API (Issue 3.3):** Create `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed, strictly filtered for critical severity incidents. Map results to the frontend `LiveThreatAlert` contract.
+2. **Campus Incident Injection & WebSocket Broadcast (Issue 3.3):** Implement API endpoints to trigger manual school emergency simulations (fire, chemical spill, gas leak) and broadcast `EMERGENCY_BROADCAST` to all active WebSocket clients. The frontend deck is ready for this handoff.
 3. **Persistent Telemetry Endpoints (Task 3.1):** Build `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` to persist simulation runs to PostgreSQL.
 
 ### Manha AK: AI & 3D Frontend
@@ -309,4 +317,3 @@ frontend/src/
 1. **Live Pitch Multi-Device Script (Task 5.1):** Coordinate 3-device live demonstration (Mobile student `/learn`, Laptop 3D sim `/simulate`, Main Screen Command Hub `/command`).
 2. **SIH Pitch Deck (Task 5.2):** Finalize problem statement, dual-engine hybrid architecture, and national deployment roadmap slides.
 3. **Multi-Agency SOP Documentation (Task 5.3):** Verify NDRF/SDMA/Fire SOP protocols and Indian school floorplan seed data.
-

@@ -17,6 +17,12 @@ import PassExtinguisherGame from "./games/PassExtinguisherGame";
 import LeaderboardView from "./LeaderboardView";
 import SettingsView from "./SettingsView";
 import ProfileView from "./ProfileView";
+import CadetOnboardingModal from "@/components/onboarding/CadetOnboardingModal";
+import EditProfileDrawer from "@/components/profile/EditProfileDrawer";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import type { CadetFormData } from "@/components/onboarding/CadetOnboardingModal";
+import type { CadetProfile } from "@/types/profile";
+import { DEFAULT_AVATAR_ID, loadCadetProfile, saveCadetProfile } from "@/types/profile";
 import styles from "./LearnPage.module.css";
 
 const EXPLORERS_TIER_ID = 1;
@@ -145,9 +151,15 @@ export default function LearnPage() {
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
   const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
-  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>(loadTierScores);
+  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
+  const [tierScoresHydrated, setTierScoresHydrated] = useState(false);
   const [activeGameModule, setActiveGameModule] = useState<string | null>(null);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+
+  // Cadet profile state - load from localStorage on mount
+  const [cadetProfile, setCadetProfile] = useState<CadetProfile | null>(null);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [showEditDrawer, setShowEditDrawer] = useState(false);
 
   // Lock body scroll and close on Escape when mobile drawer is open
   useEffect(() => {
@@ -167,12 +179,36 @@ export default function LearnPage() {
   }, [showMobileDrawer]);
 
   useEffect(() => {
+    /* localStorage is loaded after the shared server/client first render. */
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setTierScores(loadTierScores());
+    setTierScoresHydrated(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  useEffect(() => {
+    if (!tierScoresHydrated) return;
     try {
       window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(tierScores));
     } catch {
       /* storage full or unavailable - non-fatal, progress just won't survive a reload */
     }
-  }, [tierScores]);
+  }, [tierScores, tierScoresHydrated]);
+
+  // Sync cadet profile to localStorage whenever it changes
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    const savedProfile = loadCadetProfile();
+    setCadetProfile(savedProfile);
+    setShowOnboardingModal(!savedProfile);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  useEffect(() => {
+    if (cadetProfile) {
+      saveCadetProfile(cadetProfile);
+    }
+  }, [cadetProfile]);
 
   /* first module in a tier's list is always unlocked; each next one unlocks
      once the previous is completed - real sequential progression, not mock data */
@@ -192,10 +228,32 @@ export default function LearnPage() {
     setTimeout(() => setToast(null), duration);
   };
 
+  // Handle onboarding submission
+  const handleOnboardingSubmit = (profile: CadetFormData) => {
+    const nextProfile: CadetProfile = { ...profile, avatarId: DEFAULT_AVATAR_ID };
+    setCadetProfile(nextProfile);
+    setShowOnboardingModal(false);
+    showToast(`✅ Welcome, Cadet ${profile.name}! Profile saved.`, 3000);
+  };
+
+  // Handle profile edit
+  const handleProfileEdit = (profile: Omit<CadetProfile, "avatarId" | "avatarImage">) => {
+    setCadetProfile((current) => ({
+      ...profile,
+      avatarId: current?.avatarId || DEFAULT_AVATAR_ID,
+      avatarImage: current?.avatarImage,
+    }));
+    setShowEditDrawer(false);
+    showToast(`✅ Profile updated successfully!`, 2500);
+  };
+
   /* Round trip from a "simulation"-type checkpoint's real /simulate drill:
      applies the score, jumps to the right tier, and surfaces the module's
      own PDF checkpoint explanation as a toast — since the drill happened on
      a different page, this is the only place that content can be shown. */
+  // This effect intentionally projects a one-time URL result into local page state
+  // before removing the query string from the address bar.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const result = searchParams.get("moduleResult");
     if (!result) return;
@@ -217,6 +275,7 @@ export default function LearnPage() {
     router.replace("/learn");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className={styles.page}>
@@ -232,10 +291,10 @@ export default function LearnPage() {
         {/* Sidebar */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarProfile}>
-            <div className={styles.profileAvatar}>D</div>
+            <ProfileAvatar profile={cadetProfile} size="small" />
             <div className={styles.profileInfo}>
-              <span className={styles.profileName}>Cadet</span>
-              <span className={styles.profileRole}>Student Responder</span>
+              <span className={styles.profileName}>{cadetProfile?.name || "Cadet"}</span>
+              <span className={styles.profileRole}>{cadetProfile?.tierName || "Student Responder"}</span>
             </div>
           </div>
 
@@ -298,9 +357,9 @@ export default function LearnPage() {
           {/* Mobile Quick Bar (visible only on mobile < 768px) */}
           <div className={styles.mobileTopBar}>
             <div className={styles.mobileTopBarLeft}>
-              <div className={styles.mobileAvatar}>D</div>
+              <ProfileAvatar profile={cadetProfile} size="small" />
               <div>
-                <div className={styles.mobileTopName}>Cadet Dheeraj</div>
+                <div className={styles.mobileTopName}>Cadet {cadetProfile?.name || ""}</div>
                 <div className={styles.mobileTopProgress}>
                   Readiness: <strong style={{ color: "var(--accent-teal)" }}>35%</strong> • {activeTab}
                 </div>
@@ -436,7 +495,7 @@ export default function LearnPage() {
 
           {activeTab === "Leaderboard" && <LeaderboardView />}
           {activeTab === "Settings" && <SettingsView />}
-          {activeTab === "My Certificates" && <ProfileView />}
+          {activeTab === "My Certificates" && <ProfileView profile={cadetProfile} onOpenEdit={() => setShowEditDrawer(true)} />}
         </main>
       </div>
 
@@ -456,10 +515,10 @@ export default function LearnPage() {
             </div>
 
             <div className={styles.sidebarProfile}>
-              <div className={styles.profileAvatar}>D</div>
+              <ProfileAvatar profile={cadetProfile} size="small" />
               <div className={styles.profileInfo}>
-                <span className={styles.profileName}>Cadet Dheeraj</span>
-                <span className={styles.profileRole}>Student Responder • Grade 7</span>
+                <span className={styles.profileName}>{cadetProfile?.name || "Cadet"}</span>
+                <span className={styles.profileRole}>{cadetProfile?.tierName || "Student Responder"} • {cadetProfile?.grade || "N/A"}</span>
               </div>
             </div>
 
@@ -557,6 +616,21 @@ export default function LearnPage() {
           </GameModal>
         );
       })()}
+
+      {/* Cadet Onboarding Modal - shown on first visit */}
+      <CadetOnboardingModal
+        isOpen={showOnboardingModal}
+        onSubmit={handleOnboardingSubmit}
+        onClose={() => setShowOnboardingModal(false)}
+      />
+
+      {/* Edit Profile Drawer */}
+      <EditProfileDrawer
+        isOpen={showEditDrawer}
+        initialData={cadetProfile || undefined}
+        onSave={handleProfileEdit}
+        onClose={() => setShowEditDrawer(false)}
+      />
     </div>
   );
 }

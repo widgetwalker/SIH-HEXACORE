@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { CADET_PROFILE_UPDATED_EVENT, loadCadetProfile, type CadetProfile } from "@/types/profile";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
@@ -11,11 +13,29 @@ interface NavbarProps {
 export default function Navbar({ mode = "learning" }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profile, setProfile] = useState<CadetProfile | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setProfile(loadCadetProfile());
+    /* eslint-enable react-hooks/set-state-in-effect */
+    const onProfileUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<CadetProfile>).detail;
+      setProfile(detail || loadCadetProfile());
+    };
+    const onStorage = () => setProfile(loadCadetProfile());
+    window.addEventListener(CADET_PROFILE_UPDATED_EVENT, onProfileUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(CADET_PROFILE_UPDATED_EVENT, onProfileUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   // Lock body scroll and handle Escape key when mobile menu is open
@@ -112,6 +132,15 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
             <span className={styles.modeTabDot} />
             Command
           </Link>
+          <Link
+            href="/profile?tab=settings"
+            prefetch={true}
+            className={styles.modeTab}
+            id="nav-settings"
+          >
+            <span className={styles.modeTabDot} />
+            Settings
+          </Link>
         </div>
 
         {/* Right actions */}
@@ -131,14 +160,14 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           </Link>
 
           <Link
-            href="/learn"
+            href="/profile"
             prefetch={true}
             className={styles.avatar}
             aria-label="User Profile"
             title="User Profile"
             style={{ textDecoration: "none" }}
           >
-            D
+            <ProfileAvatar profile={profile} size="small" className={styles.navAvatar} />
           </Link>
 
           <button
@@ -208,6 +237,17 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
               onClick={() => setMobileOpen(false)}
             >
               <span>📡 Command Hub</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+            <Link
+              href="/profile"
+              prefetch={true}
+              className={`${styles.mobileLink} ${mode === "learning" ? "" : ""}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <span>Profile & settings</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
