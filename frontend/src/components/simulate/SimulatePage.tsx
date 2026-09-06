@@ -195,7 +195,8 @@ export default function SimulatePage() {
     setMitraInput("");
     setMitraLoading(true);
     try {
-      const res = await fetch("/api/mitra", {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${backendUrl}/api/v1/mitra/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
