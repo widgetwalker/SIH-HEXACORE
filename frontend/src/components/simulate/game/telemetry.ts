@@ -54,6 +54,7 @@ export interface DebriefLine {
 
 const STORAGE_KEY = "safezone_drill_runs_v1";
 const MAX_RUNS = 500;
+const BACKEND_URL = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_BACKEND_URL) || "http://localhost:8000";
 
 export function saveRun(run: RunTelemetry): void {
   if (typeof window === "undefined") return;
@@ -64,6 +65,40 @@ export function saveRun(run: RunTelemetry): void {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
   } catch {
     /* storage full or unavailable - telemetry loss is non-fatal */
+  }
+
+  /* fire-and-forget POST to backend — localStorage is the source of truth */
+  fetch(`${BACKEND_URL}/api/v1/telemetry/runs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...run, userId: "anonymous" }),
+  }).catch(() => {
+    /* backend unreachable — localStorage fallback already saved */
+  });
+}
+
+export async function loadRunsFromAPI(): Promise<RunTelemetry[] | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/runs`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data) ? (data as RunTelemetry[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadAnalyticsFromAPI(): Promise<{
+  kpis: { total_drills: number; success_rate: number; safe_headcount_pct: number; avg_escape_time_sec: number; avg_peak_panic: number; top_failure_mode: string; top_failure_count: number };
+  heatmap: { cols: number; rows: number; heat: number[]; casualty_cells: number[][]; exit_cells: number[][]; spawn_cell: number[] | null };
+  per_scenario: Record<string, { total_drills: number; success_rate: number; safe_headcount_pct: number; avg_escape_time_sec: number; avg_peak_panic: number; top_failure_mode: string; top_failure_count: number }>;
+} | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/analytics`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
 }
 

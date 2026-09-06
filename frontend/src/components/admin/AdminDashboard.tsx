@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { loadRuns, fmtTime, topViolation, VIOLATION_LABELS, type RunTelemetry } from "@/components/simulate/game/telemetry";
+import { loadRuns, loadRunsFromAPI, fmtTime, topViolation, VIOLATION_LABELS, type RunTelemetry } from "@/components/simulate/game/telemetry";
 import { parseFloorplan, SCENARIOS } from "@/components/simulate/game/floorplan";
 import styles from "./AdminDashboard.module.css";
 
@@ -19,7 +19,11 @@ export default function AdminDashboard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    setRuns(loadRuns());
+    loadRunsFromAPI().then((apiRuns) => {
+      setRuns(apiRuns ?? loadRuns());
+    }).catch(() => {
+      setRuns(loadRuns());
+    });
   }, []);
 
   const scenarioRuns = useMemo(
