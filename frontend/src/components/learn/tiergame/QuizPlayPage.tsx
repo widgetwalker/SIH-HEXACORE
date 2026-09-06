@@ -10,10 +10,12 @@ import styles from "./QuizPlayPage.module.css";
 
 interface Props {
   tierId: number;
+  moduleId: string;
+  moduleName: string;
   level: QuizLevel;
 }
 
-export default function QuizPlayPage({ tierId, level }: Props) {
+export default function QuizPlayPage({ tierId, moduleId, moduleName, level }: Props) {
   const router = useRouter();
   const [questionIdx, setQuestionIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -37,7 +39,7 @@ export default function QuizPlayPage({ tierId, level }: Props) {
     if (isLast) {
       setDone(true);
       if (!saved) {
-        saveQuizScore(tierId, level.level, scorePct);
+        saveQuizScore(moduleId, level.level, scorePct);
         setSaved(true);
       }
       return;
@@ -74,8 +76,8 @@ export default function QuizPlayPage({ tierId, level }: Props) {
               <button className="btn btn-ghost" onClick={retry}>
                 Retry Level
               </button>
-              <button className="btn btn-primary" onClick={() => router.push(`/learn/quiz/${tierId}`)}>
-                Back to Quiz Levels →
+              <button className="btn btn-primary" onClick={() => router.push(`/learn/quiz/${tierId}/${moduleId}`)}>
+                Back to Levels →
               </button>
             </div>
           </div>
@@ -95,6 +97,8 @@ export default function QuizPlayPage({ tierId, level }: Props) {
             {TIER_NAMES[tierId] ?? "Quiz"} Arena
           </button>
           <span>›</span>
+          <button onClick={() => router.push(`/learn/quiz/${tierId}/${moduleId}`)}>{moduleName}</button>
+          <span>›</span>
           <span className={styles.breadcrumbCurrent}>Level {level.level}</span>
         </nav>
 
@@ -108,7 +112,9 @@ export default function QuizPlayPage({ tierId, level }: Props) {
           Question {questionIdx + 1} of {level.questions.length}
         </p>
 
-        <h1 className={styles.levelTitle}>{level.title}</h1>
+        <h1 className={styles.levelTitle}>
+          {moduleName} — Level {level.level}
+        </h1>
 
         <div className={styles.questionCard}>
           <p className={styles.prompt}>{question.prompt}</p>

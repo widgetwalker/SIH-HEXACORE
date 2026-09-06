@@ -1,0 +1,128 @@
+.page {
+  background: var(--bg-void);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 96px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+.breadcrumb button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: inherit;
+}
+.breadcrumb button:hover {
+  color: var(--accent-teal);
+}
+.breadcrumbCurrent {
+  color: var(--text-secondary);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 0 28px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 28px;
+}
+.badge {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-teal);
+  background: var(--accent-teal-dim);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.subtitle {
+  color: var(--text-faint);
+  font-size: 0.9rem;
+}
+
+.moduleGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moduleCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+.moduleCard:hover {
+  border-color: var(--accent-teal);
+}
+
+.moduleIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.moduleInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.moduleName {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.moduleMeta {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.levelBadge {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-faint);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-void);
+  border: 1px solid var(--border-default);
+}
+.levelBadgeDone {
+  color: var(--accent-teal);
+  border-color: var(--accent-teal);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 88px 16px 64px;
+  }
+}

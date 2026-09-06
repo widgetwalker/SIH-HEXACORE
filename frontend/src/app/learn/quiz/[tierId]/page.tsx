@@ -2,20 +2,20 @@
 
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import QuizLevelSelectPage from "@/components/learn/tiergame/QuizLevelSelectPage";
-import { QUIZ_LEVELS_BY_TIER } from "@/components/learn/tiergame/quizRegistry";
+import QuizModuleSelectPage from "@/components/learn/tiergame/QuizModuleSelectPage";
+import { QUIZ_MODULES_BY_TIER } from "@/components/learn/tiergame/quizRegistry";
 
 export default function LearnQuizTierPage() {
   const params = useParams<{ tierId: string }>();
   const router = useRouter();
   const tierId = Number(params.tierId);
-  const levels = QUIZ_LEVELS_BY_TIER[tierId];
+  const modules = QUIZ_MODULES_BY_TIER[tierId];
 
   useEffect(() => {
-    if (!levels) router.replace("/learn");
-  }, [levels, router]);
+    if (!modules) router.replace("/learn");
+  }, [modules, router]);
 
-  if (!levels) return null;
+  if (!modules) return null;
 
-  return <QuizLevelSelectPage tierId={tierId} levels={levels} />;
+  return <QuizModuleSelectPage tierId={tierId} modules={modules} />;
 }

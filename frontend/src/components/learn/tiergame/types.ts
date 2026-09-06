@@ -37,9 +37,11 @@ export function moduleCompletionPct(mod: TierModuleContent, sectionsRead: Set<st
   return Math.round((read / mod.sections.length) * 100);
 }
 
-/* Quiz Arena: a standalone, per-tier knowledge check separate from the
-   per-module reading checkpoints - 5 levels per tier, 5 questions per level,
-   increasing in difficulty. */
+/* Quiz Arena: a standalone knowledge check separate from the per-module
+   reading checkpoints - one quiz per real module (Earthquake, Fire
+   Evacuation, Know Your Building, Chemical Spill, Cyclone & Flood,
+   Multi-Hazard, ...), each with 5 levels of 5 questions, increasing in
+   difficulty within that module's own hazard topic. */
 export interface QuizOption {
   text: string;
   correct: boolean;
@@ -54,6 +56,13 @@ export interface QuizQuestion {
 
 export interface QuizLevel {
   level: number;
-  title: string;
   questions: QuizQuestion[];
+}
+
+export interface QuizModule {
+  /** Matches the real TierModuleContent.id it quizzes on, e.g. "guardians-m1". */
+  moduleId: string;
+  name: string;
+  icon: string;
+  levels: QuizLevel[];
 }
