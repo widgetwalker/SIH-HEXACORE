@@ -15,7 +15,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Integer, ForeignKey, Numeric, TIMESTAMP
+from sqlalchemy import String, Integer, BigInteger, ForeignKey, Numeric, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -130,9 +130,10 @@ class DrillRun(Base):
     __tablename__ = "drill_runs"
 
     run_id: Mapped[str] = mapped_column(String(255), primary_key=True)
-    drill_session_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("drill_sessions.id", ondelete="CASCADE"), nullable=False
+    drill_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("drill_sessions.id", ondelete="CASCADE"), nullable=True
     )
+    user_id: Mapped[str] = mapped_column(String(255), default="anonymous", nullable=False)
     scenario_id: Mapped[str] = mapped_column(String(100), nullable=False)
     scenario_name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False)  # "won" | "lost"
@@ -152,7 +153,7 @@ class DrillRun(Base):
     route_heat: Mapped[list[float]] = mapped_column(JSONB, default=list)  # flat rows*cols visit counts
     cols: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     rows: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    created_at: Mapped[int] = mapped_column(Integer, nullable=False)  # client millisecond timestamp
+    created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)  # client millisecond timestamp
 
     drill_session: Mapped["DrillSession"] = relationship(
         "DrillSession", back_populates="runs", cascade="all, delete-orphan"
