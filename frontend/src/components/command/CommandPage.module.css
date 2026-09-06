@@ -25,6 +25,18 @@
 .topLeft { display: flex; align-items: center; gap: 12px; }
 .topRight { display: flex; align-items: center; gap: 16px; }
 .clock { font-size: 1.25rem; font-weight: 700; color: var(--accent-teal); letter-spacing: 0.08em; }
+.voiceToggle {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.voiceToggle:hover { background: rgba(0, 212, 170, 0.1); border-color: var(--accent-teal); }
+.voiceToggleOn { background: rgba(0, 212, 170, 0.15); border-color: var(--accent-teal); color: var(--accent-teal); box-shadow: 0 0 10px rgba(0, 212, 170, 0.2); }
 
 /* Stat strip */
 .statStrip { display: flex; gap: 10px; }

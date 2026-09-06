@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { applyWebSocketTelemetry, applyEmergencyBroadcast, createMockTelemetryStream, createWebSocketTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry, type CommandAlert, type DrillTelemetryMessage, type WebSocketConnectionStatus, type WebSocketTelemetryMessage, type EmergencyBroadcastMessage } from "./telemetry";
 import { subscribeDrillEvents, type DrillTelemetryFrame } from "./drillEventBus";
+import { speak, speakAlert, stopSpeaking, isSpeechSupported } from "@/components/shared/speech";
 
 const FloorStack3D = dynamic(
   () => import("./FloorStack3D"),
@@ -123,6 +124,13 @@ export default function CommandPage() {
     alerts: ALERTS.map((a) => ({ ...a, source: a.source })),
   }));
   const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>("disconnected");
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const lastSpokenAlertRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSpeechSupported(isSpeechSupported());
+  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -135,6 +143,19 @@ export default function CommandPage() {
       setClock(`${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}`);
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!voiceOn || !telemetry.alerts.length) return;
+    const newest = telemetry.alerts[0];
+    if (newest.id !== lastSpokenAlertRef.current) {
+      lastSpokenAlertRef.current = newest.id;
+      speakAlert(newest.id, `${newest.severity} from ${newest.source}: ${newest.message}`);
+    }
+  }, [voiceOn, telemetry.alerts]);
+
+  useEffect(() => {
+    return () => stopSpeaking();
   }, []);
 
   useEffect(() => {
@@ -200,6 +221,28 @@ export default function CommandPage() {
             <span className={styles.connectionStatus} data-status={telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "live" : connectionStatus === "connected" ? "connected" : "mock"}>
               {telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "WEBSOCKET LIVE" : connectionStatus === "connected" ? "WEBSOCKET CONNECTED" : "MOCK LINK"}
             </span>
+            {speechSupported && (
+              <button
+                type="button"
+                className={`${styles.voiceToggle} ${voiceOn ? styles.voiceToggleOn : ""}`}
+                onClick={() => {
+                  const next = !voiceOn;
+                  setVoiceOn(next);
+                  if (!next) {
+                    stopSpeaking();
+                    lastSpokenAlertRef.current = null;
+                  } else if (telemetry.alerts.length) {
+                    const a = telemetry.alerts[0];
+                    lastSpokenAlertRef.current = a.id;
+                    speakAlert(a.id, `${a.severity} from ${a.source}: ${a.message}`);
+                  }
+                }}
+                title={voiceOn ? "Mute emergency voice alerts" : "Enable voice alerts for emergency broadcasts"}
+                aria-label={voiceOn ? "Mute emergency voice alerts" : "Enable voice alerts for emergency broadcasts"}
+              >
+                {voiceOn ? "🔊" : "🔈"}
+              </button>
+            )}
             <span className={`mono ${styles.clock}`}>{clock}</span>
           </div>
         </div>
