@@ -14,8 +14,10 @@ Core idea:
 from __future__ import annotations
 
 import heapq
+import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import select
@@ -58,32 +60,71 @@ class DynamicPathfinder:
         self._path_cache: dict[str, PathResult] = {}
 
     async def initialize(self) -> None:
-        """Load floor data from database on startup."""
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(Floor)
-                .where(Floor.is_accessible == True)
-                .order_by(Floor.floor_number)
-            )
-            floors = result.scalars().all()
+        """Load floor data from database on startup, falling back to schema JSON."""
+        try:
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(Floor)
+                    .where(Floor.is_accessible == True)
+                    .order_by(Floor.floor_number)
+                )
+                floors = result.scalars().all()
 
-        for floor in floors:
-            floor_num = floor.floor_number
-            grid = floor.floor_grid or []
+            for floor in floors:
+                floor_num = floor.floor_number
+                grid = floor.floor_grid or []
 
+                self._floors[floor_num] = {
+                    "nodes": floor.graph_nodes_json or [],
+                    "edges": floor.graph_edges_json or [],
+                    "grid": grid,
+                }
+
+                # Parse exit cells from the ASCII grid (character 'E')
+                exits = []
+                for row_idx, row_str in enumerate(grid):
+                    for col_idx, ch in enumerate(row_str):
+                        if ch == "E":
+                            exits.append((col_idx, row_idx))
+                self._exits[floor_num] = exits if exits else [(23, 0), (23, 13)]
+        except Exception:
+            pass
+
+        if not self._floors:
+            self.load_from_schema_file()
+
+    def load_from_schema_file(self, schema_path: Optional[Path] = None) -> None:
+        """Load floor grids directly from floorplan_graph_schema.json without requiring DB."""
+        if schema_path is None:
+            schema_path = Path(__file__).resolve().parents[3] / "data" / "floorplan_graph_schema.json"
+
+        if not schema_path.exists():
+            return
+
+        with open(schema_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        for floor in data.get("floors", []):
+            floor_num = floor.get("floor_number", 0)
+            grid = floor.get("grid", [])
             self._floors[floor_num] = {
-                "nodes": floor.graph_nodes_json or [],
-                "edges": floor.graph_edges_json or [],
+                "nodes": floor.get("nodes", []),
+                "edges": floor.get("edges", []),
                 "grid": grid,
             }
-
-            # Parse exit cells from the ASCII grid (character 'E')
             exits = []
             for row_idx, row_str in enumerate(grid):
                 for col_idx, ch in enumerate(row_str):
                     if ch == "E":
                         exits.append((col_idx, row_idx))
-            self._exits[floor_num] = exits if exits else [(23, 0), (23, 13)]
+            if not exits:
+                # Find open stairwell egress cells on this floor
+                for c in [5, 10, 15, 20]:
+                    for r, row_str in enumerate(grid):
+                        if 0 <= r < len(grid) and 0 <= c < len(row_str) and row_str[c] in (".", "D"):
+                            exits.append((c, r))
+                            break
+            self._exits[floor_num] = exits if exits else [(18, 11), (18, 12)]
 
     def _is_valid_cell(self, col: int, row: int, floor: int) -> bool:
         """Check if cell is within bounds and not a wall."""
