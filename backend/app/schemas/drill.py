@@ -49,6 +49,7 @@ class RunTelemetryRequest(BaseModel):
     """
 
     runId: str
+    userId: str = Field(default="anonymous", description="Student/user ID who completed the run")
     scenarioId: str
     scenarioName: str
     status: Literal["won", "lost"]

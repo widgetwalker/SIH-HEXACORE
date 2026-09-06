@@ -10,6 +10,7 @@ class KPIData(BaseModel):
 
     total_drills: int
     success_rate: float = Field(..., ge=0.0, le=1.0)
+    safe_headcount_pct: float = Field(..., ge=0.0, le=100.0)
     avg_escape_time_sec: float
     avg_peak_panic: float
     top_failure_mode: str
