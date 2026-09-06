@@ -28,6 +28,18 @@ class Settings(BaseSettings):
     # JWT auth - not used until Sprint 3, placeholder for now.
     JWT_SECRET_KEY: str = "change-me-in-env-file"
     JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str | None = None
+    JWT_AUDIENCE: str | None = None
+
+    # Gemini key for the /api/v1/mitra/chat endpoint. Lives here (server-side
+    # only) instead of in every developer's frontend/.env.local - empty by
+    # default so a fresh clone still boots, Mitra just replies with a clear
+    # "not configured" error until someone sets this.
+    GEMINI_API_KEY: str = ""
+
+    # NDMA SACHET webhook secret (HMAC-SHA256 signature verification).
+    # Leave empty in dev to allow loopback-only calls without a signature.
+    SACHET_WEBHOOK_SECRET: str = ""
 
     # extra="ignore": a local .env may carry keys other branches/features
     # use (e.g. GEMINI_API_KEY for the Mitra backend) that this branch's

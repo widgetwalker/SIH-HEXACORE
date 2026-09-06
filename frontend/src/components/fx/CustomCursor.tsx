@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-/** Glowing dot + trailing ring cursor. Disabled on touch devices. */
+/** Glowing dot + trailing ring cursor. Disabled on touch devices and during SSR. */
 export default function CustomCursor() {
+  const [mounted, setMounted] = useState(false);
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
     const dot = dotRef.current;
     const ring = ringRef.current;
@@ -49,13 +55,16 @@ export default function CustomCursor() {
       window.removeEventListener("mouseover", onOver);
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [mounted]);
+
+  if (!mounted) return null;
 
   return (
     <>
       <div
         ref={dotRef}
         aria-hidden="true"
+        suppressHydrationWarning
         style={{
           position: "fixed",
           top: -3,
@@ -73,6 +82,7 @@ export default function CustomCursor() {
       <div
         ref={ringRef}
         aria-hidden="true"
+        suppressHydrationWarning
         style={{
           position: "fixed",
           top: -17,

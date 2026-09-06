@@ -79,6 +79,8 @@ export function parseFloorplan(scenario: Scenario): ParsedFloorplan {
 
   const idxOf = (c: number, r: number) => r * cols + c;
 
+  const emptyCells: { c: number; r: number }[] = [];
+
   for (let r = 0; r < rows; r++) {
     const padded = scenario.map[r].padEnd(cols, "#");
     grid.push(padded.split(""));
@@ -99,8 +101,26 @@ export function parseFloorplan(scenario: Scenario): ParsedFloorplan {
         case "P":
           spawn = { c, r };
           break;
+        case ".":
+          emptyCells.push({ c, r });
+          break;
       }
     }
+  }
+
+  // Dynamic randomization of spawn and exit
+  if (emptyCells.length >= 2) {
+    const spawnIdx = Math.floor(Math.random() * emptyCells.length);
+    let exitIdx = Math.floor(Math.random() * emptyCells.length);
+    while (exitIdx === spawnIdx) {
+      exitIdx = Math.floor(Math.random() * emptyCells.length);
+    }
+
+    spawn = emptyCells[spawnIdx];
+    const newExit = emptyCells[exitIdx];
+    // Overwrite the hardcoded exits and spawn
+    exits.length = 0; 
+    exits.push({ c: newExit.c, r: newExit.r, idx: idxOf(newExit.c, newExit.r) });
   }
 
   return { rows, cols, at: (c, r) => grid[r]?.[c] ?? "#", walls, doors, fireSeeds, exits, spawn, idxOf };

@@ -13,6 +13,16 @@ uvicorn app.main:app --reload
 
 Visit http://localhost:8000/api/v1/health — you should see `{"status": "ok"}`.
 
+## Current API scope
+
+The current backend workstream has health, building, scenario, and WebSocket
+drill-telemetry support. Profile persistence, live Open-Meteo/USGS alert
+ingestion, incident injection, and telemetry analytics are still pending.
+
+The frontend is already prepared for those handoffs. See
+`../frontend/INTEGRATION_GUIDE.md` for request/response shapes and the
+`../docs/09_BACKEND_IMPLEMENTATION.md` status table.
+
 ## Option B: Run with Docker Compose (needed from Day 2, once the database is used)
 
 Run this from the REPO ROOT, not from inside `backend/` — the compose file

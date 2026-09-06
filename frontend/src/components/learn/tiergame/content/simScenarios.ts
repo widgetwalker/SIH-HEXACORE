@@ -61,7 +61,7 @@ export const LEARN_SCENARIOS: Record<string, Scenario> = {
     spreadChance: 0.35,
     fogDensity: 0.02,
     colors: { flame: "#ff7a1a", glow: "#ef4444", smoke: "#30363f" },
-    map: FIRE_MAP,
+    floors: [FIRE_MAP],
     blockages: [],
   },
   "guardians-m6": {
@@ -77,7 +77,7 @@ export const LEARN_SCENARIOS: Record<string, Scenario> = {
     spreadChance: 0.35,
     fogDensity: 0.02,
     colors: { flame: "#ff7a1a", glow: "#ef4444", smoke: "#30363f" },
-    map: MULTIHAZARD_MAP,
+    floors: [MULTIHAZARD_MAP],
     blockages: [
       {
         t: 45,
@@ -101,7 +101,7 @@ export const LEARN_SCENARIOS: Record<string, Scenario> = {
     spreadChance: 0.48,
     fogDensity: 0.02,
     colors: { flame: "#ff7a1a", glow: "#ef4444", smoke: "#30363f" },
-    map: FIRE_MAP,
+    floors: [FIRE_MAP],
     blockages: [],
   },
   "sentinels-m6": {
@@ -117,7 +117,7 @@ export const LEARN_SCENARIOS: Record<string, Scenario> = {
     spreadChance: 0.46,
     fogDensity: 0.02,
     colors: { flame: "#ff7a1a", glow: "#ef4444", smoke: "#30363f" },
-    map: MULTIHAZARD_MAP,
+    floors: [MULTIHAZARD_MAP],
     blockages: [
       {
         t: 35,
@@ -141,7 +141,7 @@ export const LEARN_SCENARIOS: Record<string, Scenario> = {
     spreadChance: 0.52,
     fogDensity: 0.02,
     colors: { flame: "#ff7a1a", glow: "#ef4444", smoke: "#30363f" },
-    map: FIRE_MAP,
+    floors: [FIRE_MAP],
     blockages: [],
   },
   "wardens-m6": {
@@ -157,7 +157,7 @@ export const LEARN_SCENARIOS: Record<string, Scenario> = {
     spreadChance: 0.52,
     fogDensity: 0.02,
     colors: { flame: "#ff7a1a", glow: "#ef4444", smoke: "#30363f" },
-    map: MULTIHAZARD_MAP,
+    floors: [MULTIHAZARD_MAP],
     blockages: [
       {
         t: 30,

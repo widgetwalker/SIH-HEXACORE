@@ -1,0 +1,80 @@
+/* Mobile touch controls for the evacuation drill — virtual joystick +
+   hold-buttons for crouch/box-breathe. Hidden on precise-pointer (mouse)
+   devices so desktop keeps the keyboard-only HUD. */
+
+.touchControls {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.joystickBase {
+  position: absolute;
+  left: 24px;
+  bottom: 28px;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: rgba(5, 8, 16, 0.55);
+  border: 1px solid var(--border-teal);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.joystickKnob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(0, 212, 170, 0.35);
+  border: 1px solid var(--accent-teal);
+  box-shadow: var(--glow-teal-sm);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.actionButtons {
+  position: absolute;
+  right: 20px;
+  bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.actionBtn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: rgba(5, 8, 16, 0.65);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  touch-action: none;
+  user-select: none;
+  transition: background 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+}
+
+.actionBtnActive {
+  background: rgba(0, 212, 170, 0.35);
+  border-color: var(--accent-teal);
+  box-shadow: var(--glow-teal-sm);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .touchControls {
+    display: none;
+  }
+}

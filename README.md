@@ -12,7 +12,7 @@
 
 ## ⚡ Quick Start & Setup Instructions
 
-The frontend is fully self-contained: **no database, no backend, and no API keys are required** to install, build, or run it. Everything in `/`, `/learn`, `/simulate`, `/command`, and `/admin` works out of the box on a bare clone — verified with a clean `npm run build` and zero environment variables set.
+The frontend is fully self-contained for the local MVP: **no database, no backend, and no API keys are required** to install or run it. Profile data and drill telemetry use browser localStorage; the Command Hub alert and incident controls have local simulated fallbacks while backend ingestion is pending. `npm run build` compiles cleanly — verified with a fresh production build with zero errors.
 
 ### 1. Prerequisites
 - **Node.js**: v18.17+ or v20+ recommended (`node -v`)
@@ -38,7 +38,12 @@ Either way this installs every dependency and starts the dev server (Turbopack) 
 npm run build
 npm run start
 ```
-This must stay green with zero TypeScript/build errors — that's the actual CI/submission bar, not just `npm run dev` working.
+Use the following checks before handoff:
+```bash
+./node_modules/.bin/tsc --noEmit --pretty false
+npm run lint
+```
+These all pass cleanly in the current workspace — `npm run build` compiles the full application (all 8 routes, static generation included) with zero errors. See [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md) for what's live.
 
 ### 4. Optional: enabling Mitra (AI crisis companion)
 Everything works without this. The only feature that needs it is Mitra's chat replies inside `/simulate` — without a key it just shows "Mitra is offline right now" instead of crashing anything. To enable it, create `frontend/.env.local`:
@@ -55,8 +60,9 @@ GEMINI_API_KEY=your-key-here
 | **`/`** | **Landing Experience** | Immersive 3D wireframe campus tower, interactive hazard selector, pillars showcase, and emergency live CTA. |
 | **`/learn`** | **Pedagogical Portal** | 5 Age-Tiered safety curriculums (Explorers to Wardens), interactive module cards, progress gauges, and badges. |
 | **`/simulate`** | **3D Evacuation Drill** | Playable Three.js WebGL simulation with dynamic fire spread, smoke oxygen depletion, panic cognitive freeze, door firebreaks, NPC crowd, and synthesized WebAudio. |
-| **`/command`** | **Incident Command Hub** | Live campus blueprint, real-time floor matrix (safe/trapped/missing), CAP alert feed, agency pings, and emergency action bar. |
+| **`/command`** | **Incident Command Hub** | Live campus blueprint, floor matrix (safe/trapped/missing), telemetry feed, live-threat banner, simulated incident injection deck, agency pings, and emergency action bar. |
 | **`/admin`** | **Command Analytics** | Aggregated KPI cards, canvas route and casualty heatmap, and recent drill telemetry logs. |
+| **`/profile`** | **Cadet Profile Console** | Dashboard, certificates, settings, leaderboard, edit profile, six vector avatar choices, and device image upload. |
 
 ---
 
@@ -83,7 +89,9 @@ GEMINI_API_KEY=your-key-here
 | **[05. Knowledge Graph & Ontology](./docs/05_KNOWLEDGE_GRAPH_AND_ONTOLOGY.md)** | Master Domain Ontology, Semantic Triples, Ground-5th Floor Spatial Knowledge Graph, JSON-LD Schemas. |
 | **[06. Team Role Allocation & Roadmap](./docs/06_ROLE_ALLOCATION_AND_SPRINT_ROADMAP.md)** | 6-Member Work Breakdown, RACI Matrix & Day-by-Day Sprint to Sept 9. |
 | **[07. Dynamic Scenarios & Decision Matrices](./docs/07_DYNAMIC_SCENARIOS_AND_DECISION_MATRICES.md)** | Universal Prohibitions, Floor-by-Floor (Gnd-5th) Rules, Dynamic Fire & Hazards, Compound Disasters, Exit Trees. |
-| **[08. Current Implementation Status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md)** | **Live Ground-Truth Status**: 5 live routes, Three.js drill engine, 4 data-driven scenarios, telemetry, admin dashboard, next steps. |
+| **[08. Current Implementation Status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md)** | **Live Ground-Truth Status**: 6 live routes, Three.js drill engine, 4 data-driven scenarios, telemetry, admin dashboard, profile console, next steps. |
+| **[09. Backend Implementation](./docs/09_BACKEND_IMPLEMENTATION.md)** | FastAPI, WebSocket, telemetry, profile, and live-alert endpoint status. |
+| **[Frontend Integration Guide](./frontend/INTEGRATION_GUIDE.md)** | Frontend storage schemas, component contracts, backend handoff payloads, and QA checklist. |
 
 ---
 

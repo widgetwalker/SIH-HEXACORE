@@ -1,6 +1,6 @@
 # 06. Team Role Allocation, RACI Matrix & Sprint Roadmap (Target: Sept 9 MVP)
 
-> **📋 Implementation Status:** This document describes the full design blueprint. For what is currently built and working, see [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md).
+> **Implementation Status:** This document is the ownership and task roadmap. The built-vs-planned truth is maintained in [08_CURRENT_IMPLEMENTATION_STATUS.md](./08_CURRENT_IMPLEMENTATION_STATUS.md). Last task reconciliation: September 6, 2026.
 
 
 Based on the core research document and team composition, this blueprint specifies the **Role Allocation, Task Ownership, RACI Matrix, and Day-by-Day Sprint Execution Roadmap** to deliver the Smart India Hackathon (SIH) MVP by **September 9th, 2026**.
@@ -20,7 +20,7 @@ Based on the core research document and team composition, this blueprint specifi
 |                             • Three.js / R3F 3D Simulation Canvas, "Mitra" AI Voice/Text UI      |
 |                                                                                                  |
 |   4. I.SRAVYA           ──► Frontend                                                             |
-|                             • Next.js 15 PWA Core, EOC Dashboard, Floor Map UI, Gamification     |
+|                             • Next.js 16.3.2 PWA Core, EOC Dashboard, Floor Map UI, Gamification |
 |                                                                                                  |
 |   5. TRINAYANI D        ──► Research                                                             |
 |                             • NDMA Curriculum, 5 Age Tiers, 150+ Question Bank, Badging          |
@@ -33,51 +33,87 @@ Based on the core research document and team composition, this blueprint specifi
 
 ---
 
-## 1. Individual Member Work Breakdown Structure (WBS)
+## 1. Individual Member Work Breakdown Structure (WBS) - Final Stretch
+
+> **CRITICAL DEADLINE:** All tasks listed below must be completed by the **7th night**.
 
 ### 1. Dheeraj - AI + Design
+- [x] **Task 1.1: Mobile UI/UX Fixes & Component Hierarchy (COMPLETED)**
+  - Mobile Menu Clashing: Defined CSS in `Navbar.module.css` with solid opaque backdrop (`background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(16px); z-index: 9999; height: 100dvh; position: fixed; inset: 0;`), completely hiding underlying page text.
+  - Redesign /learn on Mobile: Added mobile stats bar and off-canvas slide-over drawer on `< 768px`, allowing "Select Your Tier" and Interactive Modules to show directly above the fold.
+  - Design System Consistency: Built `LeaderboardView.tsx`, `SettingsView.tsx`, and `ProfileView.tsx` with unified dark-mode design tokens (Geist typography, cyan `#00D4AA`, amber `#F59E0B`).
 
-- **Generative Scenario Engine:** Build the LLM structured scenario generation pipeline with Pydantic JSON schemas, outputting realistic dynamic disaster scenarios (hazards, cascading triggers, room blockages).
-- **GNN & Dynamic Pathfinding:** Implement real-time dynamic graph routing (Dynamic A* / Dijkstra with hazard weight penalty function) for sub-15ms recalculation during corridor blockages.
-- **Computer Vision Posture Evaluator:** Implement edge MediaPipe Pose / YOLOv8-pose skeleton tracker for "Drop, Cover, Hold On" webcam posture compliance during live drills.
-- **Adaptive DDA Engine:** Model student panic telemetry and reaction latency to tailor dynamic simulation difficulty.
-- **UI/UX Design System & Visual Assets:** Lead the visual design identity, Figma design tokens, HUD overlay styling (Panic Meter, Oxygen gauge, Heart-rate animation), 3D level layout aesthetics, badge artwork, and visual slides for the SIH submission deck.
+- [x] **Task 1.2: Scenario Generation & A* Rerouting Visuals (COMPLETED)**
+  - Validate Benchmarks: Validated sub-15ms reroute benchmarks in `backend/app/services/pathfinder.py` (`tests/test_pathfinder_benchmark.py` and `benchmarks/benchmark_pathfinder.py`): initial search avg 0.18ms (p95 0.41ms), dynamic reroute avg 0.12ms (p95 0.25ms), all passing.
+  - Visual Assets: Created production-grade vector SVG architecture flowchart `docs/assets/gnn_astar_routing_architecture.svg` (and `frontend/public/assets/gnn_astar_routing_architecture.svg`) for the pitch deck.
 
-### 2. Venkataraman C.V - Backend
+- [x] **Issue 1.3: UI/UX for Mandatory Onboarding & Live Disaster Ingestion — frontend UI complete**
+  - Cadet onboarding modal and edit drawer are implemented with responsive `100dvh` handling.
+  - Profile data is bound to `safezone_cadet_profile_v1` across Learn, Navbar, and the dedicated Profile surface.
+  - `/command` has the Live Threat Banner and Incident Injection Deck.
+  - Built-in vector avatars and local image upload are available from Profile settings.
+  - Remaining route interception and backend live-ingestion work is tracked under Issues 2.6 and 3.3.
 
-- **FastAPI Microservices:** Scaffold asynchronous REST endpoints for authentication, student progress, campus registry, and drill orchestration.
-- **Real-Time WebSocket Gateway:** Build high-throughput Socket.io / Redis Pub-Sub server to broadcast sub-50ms hazard state changes to 5,000+ concurrent clients.
-- **Spatial Database (PostGIS):** Design relational & spatial schemas for campus blueprints, floor corridors, geofenced hazard zones (`ST_DWithin`), and student location records.
-- **CAP / SACHET Ingestion Pipeline:** Create automated polling & webhook worker to ingest NDMA SACHET / IMD CAP v1.2 XML/JSON emergency feeds.
-- **Security & RBAC:** Implement JWT authentication with role-based policies (Student, Warden, Admin, NDRF, Fire/Police).
+### 2. I. Sravya - Frontend Core
+- [x] **Task 2.1: Implement Mobile Navigation & Backdrop Blur (COMPLETED in Task 1.1)**
+- [x] **Task 2.2: Re-layout /learn for Mobile (COMPLETED in Task 1.1)**
+- [x] **Task 2.3: Build Settings, Profile & Leaderboard Views (COMPLETED in Task 1.1)**
+- [x] **Task 2.4: Connect /command to Live WebSocket (COMPLETED in PR #15)**
 
-### 3. Manha AK - AI + Frontend
+- **Active Issue 2.5: Ingest Verbatim Curriculum & Replace Popups with Full-Page Reader**
+  - **Prerequisite:** Sync directly with @Manha Ayyan Kuzhiyan on layout and 3D simulation integration.
+  - **No Popups:** Remove modal popups (`ModuleViewer.tsx` modal overlay) and build a dedicated full-page reading layout (e.g. `/learn/[tierId]/[moduleId]` or full-page reader view with `<- Back to Modules`).
+  - **Verbatim Ingestion:** Ingest all 5 tiers without truncation from the approved blueprints:
+    - Explorers (Ages 5-7): 4 modules, 11 sections (~19 min)
+    - Rangers (Ages 8-10): 6 modules, 18 sections (~44 min)
+    - Guardians (Ages 11-13): 6 modules, 23 sections (~66 min)
+    - Sentinels (Ages 14-17): 6 modules, 25 sections (~69 min)
+    - Wardens (Ages 18+): 6 modules, 26 sections (~69 min)
+  - **Scroll-Driven Progress:** Add top sticky neon-teal progress bar (`(window.scrollY / scrollableHeight) * 100`) and save progress in `localStorage` so students can leave midway and resume.
+  - **Dynamic Progress Ring:** Calculate live aggregate tier completion percentage on `/learn` sidebar instead of static 35%.
 
-- **3D Simulation Canvas (Three.js / React Three Fiber):** Build procedural 3D school building renderer (Ground to 5th Floor), camera controls, and character movement physics (`@react-three/rapier`).
-- **Hazard Particle Shaders:** Write custom GLSL shaders for realistic volumetric smoke dissipation, fire propagation, and thermal warning zones.
-- **"Mitra" AI Crisis Companion:** Integrate speech-to-text / text-to-speech conversational frontend with low-latency AI crisis counseling agent for trapped students.
-- **Canvas-to-State Bridge:** Connect real-time WebSocket telemetry to Three.js scene state for dynamic multiplayer drill rendering.
+- **Active Issue 2.6: Mandatory Cadet Onboarding Gate & Dedicated /profile Route**
+  - [x] Onboarding form, age-based tier assignment, local profile persistence, and LearnPage profile/edit integration.
+  - [x] Dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections.
+  - [x] Navbar profile avatar routes to `/profile`; profile/avatar updates propagate through the shared browser event.
+  - [x] Profile settings support six built-in vector avatars and local image upload.
+  - [ ] Exempt home page (`/`), but intercept navigation to `/learn`, `/simulate`, `/command`, or `/profile` if no profile exists.
 
-### 4. I.Sravya - Frontend
+### 3. Venkataraman C.V - Backend Lead
+- **Task 3.1: Implement Persistent Telemetry API**
+  - Create `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics`.
+- **Task 3.2: Multi-User WebSocket Load Test**
+  - Simulate 50-100 concurrent clients on `backend/tests/load_test_client.py`.
+- **Active Issue 3.3: Live Disaster Alert Ingestion & WebSocket Incident Injection**
+  - [x] Frontend banner and incident-injection control contracts are implemented; local simulated fallback is available.
+  - [ ] Build `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed (filtered strictly for critical incidents).
+  - [ ] Connect `webhooks.py` and `websocket_manager.py` to broadcast manual campus emergency incident injections (electrical fire, chemical spill, gas leak) to all connected clients.
+  - [ ] Map backend events into the `LiveThreatAlert` interface documented in `frontend/INTEGRATION_GUIDE.md`.
 
-- **PWA Architecture:** Scaffold Next.js 15 App Router structure, Workbox service worker caching strategy, and IndexedDB offline lesson persistence.
-- **Student Learning & Gamification Portal:** Build responsive UI for age-tiered curriculum, PASS fire extinguisher interactive module, badge showcase, and live leaderboards.
-- **Campus EOC & Multi-Agency Dashboard:** Build high-density command visualizer displaying live floor plans, real-time student headcount tally, and hazard heatmaps.
-- **Headcount QR/NFC Scanner:** Develop camera-based QR code scanner and manual roll-call interface for floor wardens at assembly zones.
+### 4. Manha AK - AI + 3D Frontend
+- **Task 4.1: Interactive 3D Multi-Floor Stack in /command**
+  - **Files:** `frontend/src/components/command/` (new `FloorStack3D.tsx`), `frontend/src/components/command/CommandPage.tsx`
+  - **Action:** Replace the 2D blueprint with an isometric 3D stacked floor viewer (Ground to 3rd Floor) built with Three.js. Add floor separation animation on click (exploded floor view). Render live 3D hazard pins (fire, smoke) and student dot positions on the active floor.
+- **Task 4.2: Replace localStorage with Backend Telemetry Dispatch**
+  - **Files:** `frontend/src/components/command/telemetry.ts`, `frontend/src/components/simulate/SimulatePage.tsx`, `frontend/src/app/admin/page.tsx`
+  - **Action:** Update `saveRun()` to `POST` run telemetry to the backend API (`/api/v1/telemetry/runs`), keeping `localStorage` as an offline fallback. Point the Admin Dashboard to read real KPIs from `GET /api/v1/telemetry/analytics`.
+- **Active Issue 4.3: Mitra AI Crisis Voice Verbalization for Live Ingested Alerts**
+  - Ensure that when an emergency alert is active, the Mitra voice bot on `/simulate` and `/command` automatically verbalizes the warning instructions aloud via Web Speech API (`window.speechSynthesis`).
 
-### 5. Trinayani D - Research
+### 5. Trinayani D & Rahul Nayak (Combined) - Pitch & Orchestration
 
-- **NDMA & International Standard Mapping:** Codify NDMA School Safety Guidelines, NFPA 10/101 fire codes, OSHA lab safety rules, and CDC heatwave standards into structured lesson matrices.
-- **Age-Tiered Educational Content:** Author interactive lessons, animations scripts, and storylines across all 5 age cohorts (5-7, 8-10, 11-13, 14-17, 18+).
-- **Comprehensive Question & Scenario Bank:** Develop 150+ validated decision-tree questions, hazard-spotting challenges, and extinguisher identification puzzles.
-- **Educational Impact Metrics:** Formulate pre-drill vs post-drill retention rubrics and certification scoring benchmarks.
+- **Task 5.1: Live Pitch Demo Script & Multi-Device Orchestration**
+  - **Action:** Orchestrate the 3-Minute Live Hackathon Pitch Flow across 3 devices:
+    - **Device 1 (Mobile - Student):** Student navigates redesigned `/learn` modules and triggers an interactive drill.
+    - **Device 2 (Laptop - 3D Sim):** Show 3D escape simulation in `/simulate` with real-time smoke physics and Mitra AI.
+    - **Device 3 (Main Screen - Command Hub):** Show `/command` updating live via WebSocket, displaying the 3D floor stack, panic gauges, and NDMA alerts.
+    - *Prepare cached demo states in case of venue network instability.*
 
-### 6. Rahul Nayak - Research
+- **Task 5.2: SIH Submission Deck & Presentation Slides**
+  - **Action:** Build the official SIH pitch deck covering Problem Statement, Solution, Tech Stack/Architecture, and Impact. Rehearse the judging Q&A.
 
-- **Multi-Agency Command SOPs:** Map real-world emergency response workflows between School Administration, NDRF, SDMA, Fire Stations, and Ambulance services.
-- **CAP v1.2 Protocol Schema Verification:** Validate alert data formats and geofencing parameters against official NDMA SACHET standards.
-- **Decision Trees & Floor Hazard Verification:** Verify and stress-test all floor-by-floor (Ground to 5th) evacuation matrices and compound disaster rules.
-- **SIH Hackathon Pitch & Documentation:** Lead the creation of the SIH submission deck, executive presentation, live demo script, and system audit reports.
+- **Task 5.3: Verification of Demo Seed Data & Multi-Agency SOPs**
+  - **Action:** Verify the school seed database (campus layout, classroom labels, extinguishers) reflects Indian school blueprints. Finalize the Multi-Agency SOP documentation linking the Command Hub to NDRF, SDMA, and Fire Services.
 
 ---
 
@@ -88,7 +124,7 @@ Based on the core research document and team composition, this blueprint specifi
 | **UI/UX Design System & Brand Identity** | **A / R** | I | C | C | C | C |
 | **Curriculum & Age-Tiered Matrices** | I | I | C | C | **A / R** | C |
 | **Multi-Agency SOPs & CAP Standards** | I | C | I | I | C | **A / R** |
-| **Next.js 15 PWA & UI Implementation** | C | C | C | **A / R** | C | I |
+| **Next.js 16.3.2 PWA & UI Implementation** | C | C | C | **A / R** | C | I |
 | **Three.js 3D Simulation Canvas** | C | I | **A / R** | C | I | I |
 | **FastAPI, PostGIS & WebSocket Hub** | C | **A / R** | C | C | I | I |
 | **GenAI Dynamic Scenario Synthesizer** | **A / R** | C | C | I | C | C |
@@ -103,7 +139,7 @@ Based on the core research document and team composition, this blueprint specifi
 
 ---
 
-## 3. Day-by-Day Sprint Roadmap (August 23 – September 9, 2026)
+## 3. Day-by-Day Sprint Roadmap (August 23 - September 9, 2026)
 
 ```text
 +--------------------------------------------------------------------------------------------------+
@@ -111,7 +147,7 @@ Based on the core research document and team composition, this blueprint specifi
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
 |   [ SPRINT 1: FOUNDATION & DESIGN ] (Aug 23 - Aug 27)                                            |
-|   • UI/UX Design Tokens & Wireframes, Next.js 15 + FastAPI Scaffolding, PostGIS, NDMA Ingestion  |
+|   • UI/UX Design Tokens & Wireframes, Next.js 16.3.2 + FastAPI Scaffolding, PostGIS, NDMA Ingestion |
 |                                                                                                  |
 |   [ SPRINT 2: CORE ENGINES ] (Aug 28 - Sep 1)                                                    |
 |   • Three.js 3D Simulation, WebSocket Gateway, Student Learning Portal, AI Baselines            |
@@ -129,15 +165,15 @@ Based on the core research document and team composition, this blueprint specifi
 
 ### Detailed Daily Milestone Schedule
 
-#### Sprint 1: Foundations, Design & Architecture (Aug 23 – Aug 27)
+#### Sprint 1: Foundations, Design & Architecture (Aug 23 - Aug 27)
 
-- **Day 1 (Aug 23):** Repository initialization, CI/CD setup, Next.js 15 + FastAPI scaffolding, Tailwind design tokens & Figma theme (Dheeraj, I.Sravya, Venkataraman).
+- **Day 1 (Aug 23):** Repository initialization, CI/CD setup, Next.js 16.3.2 + FastAPI scaffolding, CSS design tokens & Figma theme (Dheeraj, I.Sravya, Venkataraman).
 - **Day 2 (Aug 24):** Database ERD implementation in PostgreSQL 16 + PostGIS extension; Redis cache configuration (Venkataraman).
 - **Day 3 (Aug 25):** Ingest NDMA/NFPA curriculum data and question bank into structured JSON fixtures (Trinayani, Rahul).
 - **Day 4 (Aug 26):** Basic 2D floorplan coordinate schema and graph node adjacency definitions (Venkataraman, Dheeraj).
 - **Day 5 (Aug 27):** Sprint 1 Review & Architecture sync: Verify all local development environments run seamlessly.
 
-#### Sprint 2: Core Dual-Engine Development (Aug 28 – Sep 1)
+#### Sprint 2: Core Dual-Engine Development (Aug 28 - Sep 1)
 
 - **Day 6 (Aug 28):** Scaffold Three.js multi-floor building canvas and Rapier physics character controller (Manha, Dheeraj).
 - **Day 7 (Aug 29):** Build PWA student learning modules (5 age cohorts) with PASS simulator (I.Sravya, Trinayani).
@@ -145,14 +181,14 @@ Based on the core research document and team composition, this blueprint specifi
 - **Day 9 (Aug 31):** Build LLM scenario generator with JSON schema validation & baseline GNN pathfinding (Dheeraj).
 - **Day 10 (Sep 1):** Connect frontend 3D simulation to backend WebSocket hazard events (Manha, Venkataraman).
 
-#### Sprint 3: Command Hub & AI Frontier Systems (Sep 2 – Sep 5)
+#### Sprint 3: Command Hub & AI Frontier Systems (Sep 2 - Sep 5)
 
 - **Day 11 (Sep 2):** Develop Campus EOC Dashboard with real-time floor status visualizer and QR scanner (I.Sravya, Dheeraj).
 - **Day 12 (Sep 3):** Implement CAP v1.2 SACHET alert parser and geofenced automatic emergency mode switch (Venkataraman, Rahul).
 - **Day 13 (Sep 4):** Integrate "Mitra" multilingual crisis chatbot and WebAssembly MediaPipe posture detector (Manha, Dheeraj).
 - **Day 14 (Sep 5):** Multi-tenant role authentication test (Admin, Warden, Student, NDRF responder) (Venkataraman, I.Sravya).
 
-#### Sprint 4: Hardening, Polish & MVP Submission (Sep 6 – Sep 9)
+#### Sprint 4: Hardening, Polish & MVP Submission (Sep 6 - Sep 9)
 
 - **Day 15 (Sep 6):** End-to-end full system drill test: Simulate compound earthquake + fire on 4th floor with 100 virtual students.
 - **Day 16 (Sep 7):** Offline PWA stress test: Simulate complete network disconnect; verify cached lessons and WebRTC mesh sync.
