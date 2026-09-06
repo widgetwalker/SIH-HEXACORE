@@ -3,51 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import ModuleViewer from "./tiergame/ModuleViewer";
-import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
-import { SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6 } from "./tiergame/content/sentinels";
-import { WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6 } from "./tiergame/content/wardens";
-import type { TierModuleContent } from "./tiergame/types";
+import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, getRealModule } from "./tiergame/moduleRegistry";
 import styles from "./LearnPage.module.css";
-
-const GUARDIANS_TIER_ID = 3;
-const SENTINELS_TIER_ID = 4;
-const WARDENS_TIER_ID = 5;
-
-/* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
-   each module's own id prefix (e.g. "guardians-m1") so it can be matched
-   against the mock MODULES list's plain ids ("m1"). All 3 tiers from
-   docs/10_TIER_GAMES_SPECIFICATION.md are now wired up (18/18 modules). */
-const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleContent[] }> = {
-  [GUARDIANS_TIER_ID]: {
-    prefix: "guardians",
-    modules: [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6],
-  },
-  [SENTINELS_TIER_ID]: {
-    prefix: "sentinels",
-    modules: [SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6],
-  },
-  [WARDENS_TIER_ID]: {
-    prefix: "wardens",
-    modules: [WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6],
-  },
-};
-
-function getRealModule(tierId: number, moduleId: string): TierModuleContent | undefined {
-  const cfg = TIER_GAME_CONFIG[tierId];
-  if (!cfg) return undefined;
-  return cfg.modules.find((m) => m.id === `${cfg.prefix}-${moduleId}`);
-}
-
-/* Reverse-lookup for the /simulate round trip: given a full module id
-   (e.g. "guardians-m2"), find which tier owns it and its short id ("m2"). */
-function findModuleTier(fullModuleId: string): { tierId: number; shortId: string; module: TierModuleContent } | undefined {
-  for (const [tierIdStr, cfg] of Object.entries(TIER_GAME_CONFIG)) {
-    const mod = cfg.modules.find((m) => m.id === fullModuleId);
-    if (mod) return { tierId: Number(tierIdStr), shortId: mod.id.replace(`${cfg.prefix}-`, ""), module: mod };
-  }
-  return undefined;
-}
 
 const TIERS = [
   { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
@@ -98,6 +55,49 @@ const BADGES = [
   { name: "NDMA Certified", earned: false, icon: "🎖️" },
 ];
 
+/* Real completed/total for a tier with wired content (Guardians/Sentinels/
+   Wardens); tiers with no real content yet (Explorers/Rangers - no PDFs
+   exist for them) fall back to their placeholder counts instead of 0/0. */
+function tierCompletion(
+  tierId: number,
+  scores: Record<number, Record<string, number>>,
+  fallback: { completed: number; total: number }
+): { completed: number; total: number } {
+  const cfg = TIER_GAME_CONFIG[tierId];
+  if (!cfg) return fallback;
+  const tierScoreMap = scores[tierId] ?? {};
+  const completed = cfg.modules.filter((m) => tierScoreMap[m.id.replace(`${cfg.prefix}-`, "")] !== undefined).length;
+  return { completed, total: cfg.modules.length };
+}
+
+/* Sidebar-wide stats, computed live from real tierScores instead of the
+   hardcoded 35% / "5 Lessons Done" / "91% Avg Score" placeholders that used
+   to sit here regardless of actual progress. */
+function overallStats(scores: Record<number, Record<string, number>>) {
+  const totalModules = ALL_TIER_IDS.reduce((sum, tid) => sum + (TIER_GAME_CONFIG[tid]?.modules.length ?? 0), 0);
+  const allScores = ALL_TIER_IDS.flatMap((tid) => Object.values(scores[tid] ?? {}));
+  const completedCount = allScores.length;
+  const overallPct = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
+  const avgScore = completedCount > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / completedCount) : 0;
+
+  let studyMinutes = 0;
+  let drillsRun = 0;
+  for (const tid of ALL_TIER_IDS) {
+    const cfg = TIER_GAME_CONFIG[tid];
+    if (!cfg) continue;
+    const tierScoreMap = scores[tid] ?? {};
+    for (const m of cfg.modules) {
+      const id = m.id.replace(`${cfg.prefix}-`, "");
+      if (tierScoreMap[id] === undefined) continue;
+      studyMinutes += m.estMinutes;
+      if (m.type === "simulation") drillsRun += 1;
+    }
+  }
+  const studyTimeLabel = studyMinutes >= 60 ? `${(studyMinutes / 60).toFixed(1)}h` : `${studyMinutes}m`;
+
+  return { overallPct, completedCount, avgScore, studyTimeLabel, drillsRun };
+}
+
 export default function LearnPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,7 +105,6 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
   const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>(loadTierScores);
 
   useEffect(() => {
@@ -128,6 +127,8 @@ export default function LearnPage() {
     const prevId = cfg.modules[idx - 1].id.replace(`${cfg.prefix}-`, "");
     return scores[prevId] !== undefined ? "in-progress" : "locked";
   };
+
+  const stats = overallStats(tierScores);
 
   const showToast = (msg: string, duration = 2500) => {
     setToast(msg);
@@ -190,11 +191,11 @@ export default function LearnPage() {
                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--accent-teal)" strokeWidth="6"
                   strokeDasharray={`${2 * Math.PI * 42}`}
-                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - 0.35)}`}
+                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - stats.overallPct / 100)}`}
                   strokeLinecap="round" transform="rotate(-90 50 50)" style={{ filter: "drop-shadow(0 0 6px rgba(0,212,170,0.5))" }} />
               </svg>
               <div className={styles.ringCenter}>
-                <span className={styles.ringValue}>35%</span>
+                <span className={styles.ringValue}>{stats.overallPct}%</span>
                 <span className={styles.ringLabel}>Overall</span>
               </div>
             </div>
@@ -205,10 +206,10 @@ export default function LearnPage() {
           <div className={styles.sidebarSection}>
             <span className="label" style={{ color: "var(--text-faint)", padding: "0 12px" }}>Quick Stats</span>
             <div className={styles.quickStats}>
-              <div className={styles.quickStat}><span className={styles.qsVal}>5</span><span className={styles.qsLbl}>Lessons Done</span></div>
-              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-amber)" }}>91%</span><span className={styles.qsLbl}>Avg Score</span></div>
-              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-blue)" }}>2h</span><span className={styles.qsLbl}>Study Time</span></div>
-              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-violet)" }}>3</span><span className={styles.qsLbl}>Drills Run</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal}>{stats.completedCount}</span><span className={styles.qsLbl}>Lessons Done</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-amber)" }}>{stats.avgScore}%</span><span className={styles.qsLbl}>Avg Score</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-blue)" }}>{stats.studyTimeLabel}</span><span className={styles.qsLbl}>Study Time</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-violet)" }}>{stats.drillsRun}</span><span className={styles.qsLbl}>Drills Run</span></div>
             </div>
           </div>
 
@@ -241,7 +242,9 @@ export default function LearnPage() {
           <section className={styles.tierSection}>
             <h2 className="heading-lg">Select Your Tier</h2>
             <div className={styles.tierGrid}>
-              {TIERS.map((t) => (
+              {TIERS.map((t) => {
+                const { completed, total } = tierCompletion(t.id, tierScores, { completed: t.completed, total: t.modules });
+                return (
                 <button
                   key={t.id}
                   className={`${styles.tierCard} ${activeTier === t.id ? styles.tierActive : ""}`}
@@ -253,12 +256,13 @@ export default function LearnPage() {
                   <span className={styles.tierName}>{t.label}</span>
                   <div className={styles.tierProgress}>
                     <div className="progress-track">
-                      <div className="progress-bar" style={{ width: `${(t.completed / t.modules) * 100}%`, background: `var(--accent-${t.color})` }} />
+                      <div className="progress-bar" style={{ width: `${total > 0 ? (completed / total) * 100 : 0}%`, background: `var(--accent-${t.color})` }} />
                     </div>
-                    <span className={styles.tierCount}>{t.completed}/{t.modules}</span>
+                    <span className={styles.tierCount}>{completed}/{total}</span>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -292,8 +296,8 @@ export default function LearnPage() {
                       return;
                     }
                     setSelectedModule(m.id);
-                    if (isRealTierModule) {
-                      setViewer({ tierId: activeTier, moduleId: m.id });
+                    if (isRealTierModule && real) {
+                      router.push(`/learn/${real.id}`);
                     } else {
                       showToast(`Loaded "${m.title}"`);
                     }
@@ -351,23 +355,6 @@ export default function LearnPage() {
           </section>
         </main>
       </div>
-
-      {viewer && getRealModule(viewer.tierId, viewer.moduleId) && (
-        <ModuleViewer
-          key={`${viewer.tierId}-${viewer.moduleId}`}
-          module={getRealModule(viewer.tierId, viewer.moduleId)!}
-          onClose={() => setViewer(null)}
-          onComplete={(scorePct) => {
-            const { tierId, moduleId } = viewer;
-            setTierScores((prev) => ({
-              ...prev,
-              [tierId]: { ...(prev[tierId] ?? {}), [moduleId]: scorePct },
-            }));
-            setViewer(null);
-            showToast(scorePct === 100 ? "✅ Module complete — nice work!" : "Module complete — review the checkpoint next time.");
-          }}
-        />
-      )}
     </div>
   );
 }
