@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
-import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
+import { applyWebSocketTelemetry, applyEmergencyBroadcast, createMockTelemetryStream, createWebSocketTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry, type WebSocketConnectionStatus, type WebSocketTelemetryMessage, type EmergencyBroadcastMessage } from "./telemetry";
+import { subscribeDrillEvents, type DrillTelemetryFrame } from "./drillEventBus";
 
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
@@ -19,10 +20,10 @@ const ConstellationField = dynamic(
 import styles from "./CommandPage.module.css";
 
 const ALERTS = [
-  { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
-  { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", msg: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
-  { id: 3, time: "22:42:05", severity: "Alert", source: "Campus IoT", msg: "Smoke detector triggered - Building A, Floor 4, Room 402.", color: "amber" },
-  { id: 4, time: "22:42:30", severity: "Info", source: "System", msg: "Automatic mode switch: Learning → Emergency Mode activated.", color: "blue" },
+  { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", message: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
+  { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", message: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
+  { id: 3, time: "22:42:05", severity: "Alert", source: "Campus IoT", message: "Smoke detector triggered - Building A, Floor 4, Room 402.", color: "amber" },
+  { id: 4, time: "22:42:30", severity: "Info", source: "System", message: "Automatic mode switch: Learning → Emergency Mode activated.", color: "blue" },
 ];
 
 const AGENCIES = [
@@ -123,7 +124,11 @@ export default function CommandPage() {
   const [clock, setClock] = useState("22:42:30");
   const [toast, setToast] = useState<string | null>(null);
   const [selectedFloor, setSelectedFloor] = useState<string | null>("4F");
-  const [telemetry, setTelemetry] = useState<CommandTelemetry>(getInitialCommandTelemetry);
+  const [telemetry, setTelemetry] = useState<CommandTelemetry>(() => ({
+    ...getInitialCommandTelemetry(),
+    alerts: ALERTS.map((a) => ({ ...a, source: a.source })),
+  }));
+  const [connectionStatus, setConnectionStatus] = useState<WebSocketConnectionStatus>("disconnected");
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -138,7 +143,40 @@ export default function CommandPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => createMockTelemetryStream(setTelemetry), []);
+  useEffect(() => {
+    // Try real WebSocket first; fall back to BroadcastChannel bus + mock seed.
+    const liveStream = createWebSocketTelemetryStream((raw) => {
+      const message = raw as WebSocketTelemetryMessage;
+      if (message.type === "EMERGENCY_BROADCAST") {
+        setTelemetry((previous) => applyEmergencyBroadcast(previous, message as EmergencyBroadcastMessage));
+      } else if (message.type === "DRILL_TELEMETRY") {
+        setTelemetry((previous) => applyWebSocketTelemetry(previous, message));
+      }
+    }, {}, setConnectionStatus);
+
+    if (liveStream) return liveStream;
+
+    // Subscribe to client-side BroadcastChannel bus (cross-tab drill telemetry)
+    const unsubBus = subscribeDrillEvents((frame: DrillTelemetryFrame) => {
+      setTelemetry((previous) =>
+        applyWebSocketTelemetry(previous, {
+          type: "DRILL_TELEMETRY",
+          user_id: frame.user_id,
+          floor: frame.floor,
+          cell: frame.cell,
+          status: frame.status,
+        }),
+      );
+    });
+
+    // Seed with mock data so the dashboard isn't empty before a drill starts
+    const unsubMock = createMockTelemetryStream(setTelemetry);
+
+    return () => {
+      unsubBus();
+      unsubMock();
+    };
+  }, []);
 
   const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);
@@ -170,6 +208,9 @@ export default function CommandPage() {
             <span className="mono caption" style={{ color: "var(--text-faint)" }}>Campus Emergency Operations Center</span>
           </div>
           <div className={styles.topRight}>
+            <span className={styles.connectionStatus} data-status={telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "live" : connectionStatus === "connected" ? "connected" : "mock"}>
+              {telemetry.liveParticipants && Object.keys(telemetry.liveParticipants).length > 0 ? "WEBSOCKET LIVE" : connectionStatus === "connected" ? "WEBSOCKET CONNECTED" : "MOCK LINK"}
+            </span>
             <span className={`mono ${styles.clock}`}>{clock}</span>
           </div>
         </div>
@@ -189,7 +230,6 @@ export default function CommandPage() {
           <div className={`${styles.panel} ${styles.floorMatrixPanel} crt-effect`}>
             <div className={styles.panelHeader}>
               <span className="hud-label">FLOOR STATUS MATRIX</span>
-              <span className="mono caption" style={{ color: "var(--accent-teal)" }}>{telemetry.source.toUpperCase()} LINK</span>
             </div>
             <div className={styles.floorList}>
               {telemetry.floors.map((f) => (
@@ -325,11 +365,11 @@ export default function CommandPage() {
                 <span className="hud-label">CAP ALERT FEED</span>
               </div>
               <div className={styles.alertFeed}>
-                {ALERTS.map((a) => (
+                {telemetry.alerts.map((a) => (
                   <div
                     key={a.id}
                     className={`${styles.alertItem} ${styles[`alert-${a.color}`]}`}
-                    onClick={() => showToast(`[${a.source}] ${a.msg}`)}
+                    onClick={() => showToast(`[${a.source}] ${a.message}`)}
                     role="button"
                     tabIndex={0}
                     style={{ cursor: "pointer" }}
@@ -337,7 +377,7 @@ export default function CommandPage() {
                     <span className={`mono ${styles.alertTime}`}>{a.time}</span>
                     <span className={`badge badge-${a.color} ${styles.alertSev}`}>{a.severity}</span>
                     <span className={styles.alertSrc}>{a.source}</span>
-                    <p className={styles.alertMsg}>{a.msg}</p>
+                    <p className={styles.alertMsg}>{a.message}</p>
                   </div>
                 ))}
               </div>
