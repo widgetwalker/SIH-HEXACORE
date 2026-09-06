@@ -7,10 +7,10 @@ import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
-  mode?: "learning" | "simulation" | "emergency" | "command";
+  mode?: "learning" | "simulation" | "emergency" | "command" | "none";
 }
 
-export default function Navbar({ mode = "learning" }: NavbarProps) {
+export default function Navbar({ mode = "none" }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<CadetProfile | null>(null);
