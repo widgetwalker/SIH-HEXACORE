@@ -58,7 +58,7 @@ class Scenario(BaseModel):
     spreadChance: float = Field(..., ge=0, le=1, description="Probability [0,1] that a cell ignites")
     fogDensity: float = Field(..., ge=0, le=1, description="Fog obscuration factor")
     colors: ScenarioColors
-    floors: List[List[str]] = Field(default_factory=list, description="Array of ASCII floor plans (z, row, col)")
+    map: List[str] = Field(default_factory=list, description="ASCII floor plan, one row per string")
     blockages: List[BlockageEvent] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

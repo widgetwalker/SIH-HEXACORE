@@ -61,7 +61,7 @@ SCENARIOS_DB: List[Scenario] = [
             "#.......#..F...........#",
             "########################",
         ]],
-        "blockages": []],
+        "blockages": [],
     },
     {
         "id": "quake-compound",
@@ -101,7 +101,7 @@ SCENARIOS_DB: List[Scenario] = [
                 "warnMessage": "Structural groaning - NE wing unstable, brace for aftershock!",
                 "message": "AFTERSHOCK! North-east wing sealed - reroute to the south-west beacon!",
             }
-        ]],
+        ],
     },
     {
         "id": "chem-spill",
@@ -133,7 +133,7 @@ SCENARIOS_DB: List[Scenario] = [
             "#......#.......#.......#",
             "########################",
         ]],
-        "blockages": []],
+        "blockages": [],
     },
     {
         "id": "blackout-fire",
@@ -165,7 +165,7 @@ SCENARIOS_DB: List[Scenario] = [
             "#.......#..F...........#",
             "########################",
         ]],
-        "blockages": []],
+        "blockages": [],
     },
 ]
 
@@ -419,13 +419,9 @@ async def generate_scenario(
 
     prompt = f"""
 Generate a highly creative, unique school disaster drill scenario for a '{hazard_label}' incident.
-The 'floors' array MUST contain 1 to 3 levels. Each level MUST be exactly 16 rows of 24 characters each.
+The map MUST be exactly 16 rows of 24 characters each.
 Rules for the map:
-'#' = Wall, '.' = Floor/Corridor, 'D' = Door.
-'P' = Player Start (Exactly one across all floors).
-'E' = Exit (At least one on the ground floor).
-'S' = Stairwell (must be placed at the exact same (row, col) on adjacent floors to link them).
-'F' = Fire Seed. 'W' = Water/Flood Seed.
+'#' = Wall, '.' = Floor/Corridor, 'D' = Door, 'P' = Player Start (Exactly one), 'E' = Exit (At least one), 'F' = Fire/Hazard Seed (At least one).
 Make the layout feel like a real school (classrooms, hallways, labs).
 Include dramatic blockages (corridor seal events) if difficulty > 2.
 """

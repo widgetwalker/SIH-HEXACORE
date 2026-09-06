@@ -33,7 +33,7 @@ export interface Scenario {
   spreadChance: number;
   fogDensity: number;
   colors: ScenarioColors;
-  floors: string[][];
+  map: string[];
   blockages?: BlockageEvent[];
 }
 
@@ -55,90 +55,73 @@ export interface ExitCell {
 export interface ParsedFloorplan {
   rows: number;
   cols: number;
+  /** grid[r][c] character */
   at: (c: number, r: number) => string;
   walls: Set<number>;
   doors: Set<number>;
-  stairs: Set<number>;
   fireSeeds: number[];
-  waterSeeds: number[];
   exits: ExitCell[];
-  spawn: { c: number; r: number } | null;
+  spawn: { c: number; r: number };
   idxOf: (c: number, r: number) => number;
 }
 
-export interface ParsedScenario {
-  floors: ParsedFloorplan[];
-  spawnFloor: number;
-}
+export function parseFloorplan(scenario: Scenario): ParsedFloorplan {
+  /* pad ragged rows with walls so a typo in JSON can never crash the sim */
+  const rows = scenario.map.length;
+  const cols = Math.max(...scenario.map.map((row) => row.length));
 
-export function parseFloorplan(scenario: Scenario): ParsedScenario {
-  const parsedFloors: ParsedFloorplan[] = [];
-  let globalSpawnFloor = 0;
+  const grid: string[][] = [];
+  const walls = new Set<number>();
+  const doors = new Set<number>();
+  const fireSeeds: number[] = [];
+  const exits: ExitCell[] = [];
+  let spawn = { c: 1, r: 1 };
 
-  for (let f = 0; f < scenario.floors.length; f++) {
-    const map = scenario.floors[f];
-    const rows = map.length;
-    const cols = Math.max(...map.map((row) => row.length));
+  const idxOf = (c: number, r: number) => r * cols + c;
 
-    const grid: string[][] = [];
-    const walls = new Set<number>();
-    const doors = new Set<number>();
-    const stairs = new Set<number>();
-    const fireSeeds: number[] = [];
-    const waterSeeds: number[] = [];
-    const exits: ExitCell[] = [];
-    let spawn: { c: number; r: number } | null = null;
+  const emptyCells: { c: number; r: number }[] = [];
 
-    const idxOf = (c: number, r: number) => r * cols + c;
-
-    for (let r = 0; r < rows; r++) {
-      const padded = map[r].padEnd(cols, "#");
-      grid.push(padded.split(""));
-      for (let c = 0; c < cols; c++) {
-        switch (padded[c]) {
-          case "#":
-            walls.add(idxOf(c, r));
-            break;
-          case "D":
-            doors.add(idxOf(c, r));
-            break;
-          case "S":
-            stairs.add(idxOf(c, r));
-            break;
-          case "F":
-            fireSeeds.push(idxOf(c, r));
-            break;
-          case "W":
-            waterSeeds.push(idxOf(c, r));
-            break;
-          case "E":
-            exits.push({ c, r, idx: idxOf(c, r) });
-            break;
-          case "P":
-            spawn = { c, r };
-            globalSpawnFloor = f;
-            break;
-        }
+  for (let r = 0; r < rows; r++) {
+    const padded = scenario.map[r].padEnd(cols, "#");
+    grid.push(padded.split(""));
+    for (let c = 0; c < cols; c++) {
+      switch (padded[c]) {
+        case "#":
+          walls.add(idxOf(c, r));
+          break;
+        case "D":
+          doors.add(idxOf(c, r));
+          break;
+        case "F":
+          fireSeeds.push(idxOf(c, r));
+          break;
+        case "E":
+          exits.push({ c, r, idx: idxOf(c, r) });
+          break;
+        case "P":
+          spawn = { c, r };
+          break;
+        case ".":
+          emptyCells.push({ c, r });
+          break;
       }
     }
-
-    parsedFloors.push({
-      rows,
-      cols,
-      at: (c, r) => {
-        if (r < 0 || r >= rows || c < 0 || c >= cols) return "#";
-        return grid[r][c];
-      },
-      walls,
-      doors,
-      stairs,
-      fireSeeds,
-      waterSeeds,
-      exits,
-      spawn,
-      idxOf,
-    });
   }
 
-  return { floors: parsedFloors, spawnFloor: globalSpawnFloor };
+  // Dynamic randomization of spawn and exit
+  if (emptyCells.length >= 2) {
+    const spawnIdx = Math.floor(Math.random() * emptyCells.length);
+    let exitIdx = Math.floor(Math.random() * emptyCells.length);
+    while (exitIdx === spawnIdx) {
+      exitIdx = Math.floor(Math.random() * emptyCells.length);
+    }
+
+    spawn = emptyCells[spawnIdx];
+    const newExit = emptyCells[exitIdx];
+    // Overwrite the hardcoded exits and spawn
+    exits.length = 0; 
+    exits.push({ c: newExit.c, r: newExit.r, idx: idxOf(newExit.c, newExit.r) });
+  }
+
+  return { rows, cols, at: (c, r) => grid[r]?.[c] ?? "#", walls, doors, fireSeeds, exits, spawn, idxOf };
 }

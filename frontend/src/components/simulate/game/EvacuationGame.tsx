@@ -123,12 +123,11 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
-    if (!scenario) return;
-    const scen = scenario;
-    const parsedScenario = parseFloorplan(scen);
-    const fp = parsedScenario.floors[0];
+
+    /* ── floorplan from JSON ── */
+    const scen: Scenario = scenario ?? SCENARIOS[0];
+    const fp = parseFloorplan(scen);
     const { rows, cols, walls, doors, fireSeeds, exits, spawn, idxOf } = fp;
-    if (!spawn) return;
     const TIME_LIMIT = scen.timeLimit;
 
     const cellToWorld = (c: number, r: number) =>
