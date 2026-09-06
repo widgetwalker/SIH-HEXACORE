@@ -11,6 +11,10 @@ const MultiFloorVisualizer = dynamic(
   { ssr: false }
 );
 
+const FloorStack3D = dynamic(
+  () => import("./FloorStack3D"),
+  { ssr: false }
+);
 
 const ConstellationField = dynamic(
   () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
@@ -269,38 +273,20 @@ export default function CommandPage() {
             />
           </div>
 
-          {/* Center: Campus map placeholder */}
+          {/* Center: 3D Floor Stack */}
           <div className={`${styles.panel} ${styles.blueprintPanel}`}>
             <div className={styles.panelHeader}>
-              <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
+              <span className="hud-label">FLOOR STACK — LIVE</span>
               <span className="badge badge-red badge-pulse" style={{ fontSize: "0.6rem" }}>LIVE</span>
             </div>
-            <div className={styles.mapArea}>
-              <div className={styles.mapPlaceholder}>
-                {/* Simplified building outline */}
-                <svg viewBox="0 0 400 300" className={styles.mapSvg}>
-                  <rect x="80" y="40" width="240" height="220" rx="4" fill="none" stroke="var(--border-default)" strokeWidth="1" />
-                  {/* Floors */}
-                  {[0,1,2,3,4,5].map((i) => (
-                    <g key={i} onClick={() => setSelectedFloor(`${5-i}F`)} style={{ cursor: "pointer" }}>
-                      <line x1="80" y1={40 + i * 36.67} x2="320" y2={40 + i * 36.67} stroke="var(--border-subtle)" strokeWidth="0.5" />
-                      <text x="75" y={40 + i * 36.67 + 20} fill={selectedFloor === `${5-i}F` ? "var(--accent-teal)" : "var(--text-faint)"} fontSize="8" fontFamily="var(--font-mono)" textAnchor="end">{5-i}F</text>
-                    </g>
-                  ))}
-                  {/* Fire indicator on 4F */}
-                  <circle cx="200" cy={40 + 36.67 + 18} r="14" fill="rgba(239,68,68,0.15)" stroke="var(--accent-red)" strokeWidth="1">
-                    <animate attributeName="r" values="14;18;14" dur="1.5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
-                  </circle>
-                  <text x="200" y={40 + 36.67 + 22} fill="var(--accent-red)" fontSize="10" textAnchor="middle" fontWeight="bold">🔥</text>
-                  {/* Evac route arrow */}
-                  <path d="M200,95 L200,260 L340,260" fill="none" stroke="var(--accent-teal)" strokeWidth="2" strokeDasharray="6 3" opacity="0.7">
-                    <animate attributeName="stroke-dashoffset" values="0;-18" dur="1s" repeatCount="indefinite" />
-                  </path>
-                  <text x="345" y="264" fill="var(--accent-teal)" fontSize="8" fontFamily="var(--font-mono)">EXIT →</text>
-                </svg>
-              </div>
-            </div>
+            <FloorStack3D
+              telemetry={telemetry}
+              selectedFloor={selectedFloor}
+              onSelectFloor={(floorId) => {
+                setSelectedFloor(floorId);
+                showToast(`Floor ${floorId} selected`);
+              }}
+            />
           </div>
 
         </div>

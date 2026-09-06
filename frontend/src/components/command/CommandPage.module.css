@@ -71,6 +71,31 @@
 .mapPlaceholder { width: 100%; height: 100%; position: relative; }
 .mapSvg { width: 100%; height: 100%; }
 
+/* Floor stack 3D */
+.floorStackWrap { display: flex; flex-direction: column; height: 100%; min-height: 380px; }
+.floorStackCanvas { flex: 1; min-height: 340px; width: 100%; cursor: pointer; background: #070d18; }
+.floorStackControls { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
+.floorStackLegend { display: flex; align-items: center; gap: 12px; color: var(--text-faint); font-size: 0.65rem; }
+.floorStackLegend span { display: inline-flex; align-items: center; gap: 5px; }
+.explodeBtn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.explodeBtn:hover {
+  background: rgba(0, 212, 170, 0.1);
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+
 /* Multi-floor visualizer */
 .visualizerWrap { padding: 12px 16px 14px; }
 .visualizerCanvas { height: clamp(330px, 35vw, 460px); width: 100%; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
