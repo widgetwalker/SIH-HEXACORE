@@ -321,6 +321,20 @@ export default function LearnPage() {
             </div>
           </section>
 
+          {/* Quiz Arena */}
+          <section className={styles.quizArenaSection}>
+            <div className={styles.quizArenaCard}>
+              <div className={styles.quizArenaInfo}>
+                <span className="badge badge-teal">🎯 Quiz Arena</span>
+                <h2 className="heading-lg">{TIERS.find((t) => t.id === activeTier)?.label ?? "Tier"} Knowledge Quiz</h2>
+                <p className={styles.quizArenaSubtitle}>5 levels · 5 questions each · test what you've learned</p>
+              </div>
+              <button className="btn btn-primary" onClick={() => router.push(`/learn/quiz/${activeTier}`)}>
+                Start Quiz Arena →
+              </button>
+            </div>
+          </section>
+
           {/* Badges */}
           <section className={styles.badgesSection}>
             <h2 className="heading-lg">Achievement Badges</h2>

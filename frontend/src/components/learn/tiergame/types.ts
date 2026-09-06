@@ -36,3 +36,24 @@ export function moduleCompletionPct(mod: TierModuleContent, sectionsRead: Set<st
   const read = mod.sections.filter((s) => sectionsRead.has(s.id)).length;
   return Math.round((read / mod.sections.length) * 100);
 }
+
+/* Quiz Arena: a standalone, per-tier knowledge check separate from the
+   per-module reading checkpoints - 5 levels per tier, 5 questions per level,
+   increasing in difficulty. */
+export interface QuizOption {
+  text: string;
+  correct: boolean;
+}
+
+export interface QuizQuestion {
+  id: string;
+  prompt: string;
+  options: QuizOption[];
+  explanation: string;
+}
+
+export interface QuizLevel {
+  level: number;
+  title: string;
+  questions: QuizQuestion[];
+}

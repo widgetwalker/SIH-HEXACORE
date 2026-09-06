@@ -6,19 +6,12 @@ import Navbar from "@/components/Navbar";
 import RouteMapChoice from "./RouteMapChoice";
 import { CheckpointCard, SimCheckpointPrompt } from "./CheckpointComponents";
 import { LEARN_SCENARIOS } from "./content/simScenarios";
+import { TIER_NAMES } from "./moduleRegistry";
 import type { TierModuleContent } from "./types";
 import styles from "./ModuleReaderPage.module.css";
 
 const TIER_SCORES_KEY = "safezone_tier_scores_v1";
 const PROGRESS_KEY_PREFIX = "safezone_progress_";
-
-const TIER_NAMES: Record<number, string> = {
-  1: "Explorers",
-  2: "Rangers",
-  3: "Guardians",
-  4: "Sentinels",
-  5: "Wardens",
-};
 
 function loadReadingProgress(moduleId: string): { progress: number; scrollY: number } | null {
   if (typeof window === "undefined") return null;

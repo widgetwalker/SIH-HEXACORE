@@ -12,6 +12,14 @@ export const SENTINELS_TIER_ID = 4;
 export const WARDENS_TIER_ID = 5;
 export const ALL_TIER_IDS = [EXPLORERS_TIER_ID, RANGERS_TIER_ID, GUARDIANS_TIER_ID, SENTINELS_TIER_ID, WARDENS_TIER_ID];
 
+export const TIER_NAMES: Record<number, string> = {
+  [EXPLORERS_TIER_ID]: "Explorers",
+  [RANGERS_TIER_ID]: "Rangers",
+  [GUARDIANS_TIER_ID]: "Guardians",
+  [SENTINELS_TIER_ID]: "Sentinels",
+  [WARDENS_TIER_ID]: "Wardens",
+};
+
 /* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
    each module's own id prefix (e.g. "guardians-m1") so it can be matched
    against the mock MODULES list's plain ids ("m1"). All 5 tiers are wired

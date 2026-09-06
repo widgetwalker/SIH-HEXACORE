@@ -85,6 +85,12 @@
 .scoreVal { font-weight: 700; color: var(--accent-teal); font-family: var(--font-mono); }
 .lockIcon { opacity: 0.5; }
 
+/* Quiz Arena */
+.quizArenaSection { display: flex; flex-direction: column; gap: 16px; }
+.quizArenaCard { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 28px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); }
+.quizArenaInfo { display: flex; flex-direction: column; gap: 8px; }
+.quizArenaSubtitle { color: var(--text-faint); font-size: 0.9rem; }
+
 /* Badges */
 .badgesSection { display: flex; flex-direction: column; gap: 16px; }
 .badgesGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
