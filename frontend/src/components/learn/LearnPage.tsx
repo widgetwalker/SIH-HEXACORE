@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, shortId } from "./tiergame/moduleRegistry";
+import { QUIZ_MODULES_BY_TIER, loadQuizScores, isLevelUnlocked, QUIZ_PASS_PCT } from "./tiergame/quizRegistry";
 import type { ModuleType } from "./tiergame/types";
 import { loadCadetProfile, type CadetProfile } from "@/lib/cadetProfile";
 import styles from "./LearnPage.module.css";
@@ -98,10 +99,12 @@ export default function LearnPage() {
   // match exactly (avoids a hydration mismatch) - real scores load right
   // after mount instead of during the initial render.
   const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
+  const [quizScores, setQuizScores] = useState<Record<string, Record<number, number>>>({});
   const skipNextSave = useRef(true);
 
   useEffect(() => {
     setTierScores(loadTierScores());
+    setQuizScores(loadQuizScores());
     const cadet = loadCadetProfile();
     setProfile(cadet);
     if (cadet) setActiveTier(cadet.tierId);
@@ -338,17 +341,50 @@ export default function LearnPage() {
             </div>
           </section>
 
-          {/* Quiz Arena */}
+          {/* Quiz Arena — per-module cards */}
           <section className={styles.quizArenaSection}>
-            <div className={styles.quizArenaCard}>
-              <div className={styles.quizArenaInfo}>
-                <span className="badge badge-teal">🎯 Quiz Arena</span>
-                <h2 className="heading-lg">{TIERS.find((t) => t.id === activeTier)?.label ?? "Tier"} Knowledge Quiz</h2>
-                <p className={styles.quizArenaSubtitle}>5 levels · 5 questions each · test what you've learned</p>
-              </div>
-              <button className="btn btn-primary" onClick={() => router.push(`/learn/quiz/${activeTier}`)}>
-                Start Quiz Arena →
-              </button>
+            <h2 className="heading-lg">🎯 Quiz Arena</h2>
+            <p style={{ color: "var(--text-faint)", fontSize: "0.9rem", marginTop: "-8px" }}>
+              Test what you've learned — {TIERS.find((t) => t.id === activeTier)?.label ?? "this tier"} · Ages {TIERS.find((t) => t.id === activeTier)?.age ?? ""}
+            </p>
+            <div className={styles.quizModuleGrid}>
+              {(QUIZ_MODULES_BY_TIER[activeTier] ?? []).map((qm) => {
+                const bestLevel = qm.levels.reduce((max, l) => {
+                  const s = quizScores[qm.moduleId]?.[l.level] ?? 0;
+                  return s >= QUIZ_PASS_PCT ? l.level : max;
+                }, 0);
+                const totalLevels = qm.levels.length;
+                const progressPct = Math.round((bestLevel / totalLevels) * 100);
+                return (
+                  <button
+                    key={qm.moduleId}
+                    className={styles.quizModuleCard}
+                    onClick={() => router.push(`/learn/quiz/${activeTier}/${qm.moduleId}`)}
+                  >
+                    <span className={styles.quizModuleIcon}>{qm.icon}</span>
+                    <div className={styles.quizModuleInfo}>
+                      <span className={styles.quizModuleName}>{qm.name}</span>
+                      <span className={styles.quizModuleMeta}>
+                        {totalLevels} levels · {bestLevel > 0 ? `${bestLevel}/${totalLevels} passed` : "Not started"}
+                      </span>
+                      <span className={styles.quizModuleAge}>Ages {TIERS.find((t) => t.id === activeTier)?.age ?? ""}</span>
+                    </div>
+                    <div className={styles.quizModuleProgress}>
+                      <svg width="36" height="36" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="var(--border-subtle)" strokeWidth="3" />
+                        <circle
+                          cx="18" cy="18" r="15" fill="none"
+                          stroke="var(--accent-teal)" strokeWidth="3"
+                          strokeDasharray={`${progressPct * 0.942} 100`}
+                          strokeLinecap="round"
+                          transform="rotate(-90 18 18)"
+                        />
+                      </svg>
+                      <span className={styles.quizModulePct}>{progressPct}%</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
