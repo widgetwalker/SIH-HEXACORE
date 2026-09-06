@@ -3,13 +3,72 @@
   min-height: 100vh;
 }
 
+.scrollBar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  height: 3px;
+  background: #00D4AA;
+  z-index: 99;
+  transition: width 0.1s linear;
+}
+
+.sectionPill {
+  position: fixed;
+  top: 76px;
+  right: 24px;
+  z-index: 98;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full, 999px);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 640px) {
+  .sectionPill {
+    top: auto;
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    text-align: center;
+  }
+}
+
 .container {
-  max-width: 760px;
+  max-width: 780px;
   margin: 0 auto;
   padding: 96px 24px 80px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+.breadcrumb button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: inherit;
+}
+.breadcrumb button:hover {
+  color: var(--accent-teal);
+}
+.breadcrumbCurrent {
+  color: var(--text-secondary);
 }
 
 .backBtn {

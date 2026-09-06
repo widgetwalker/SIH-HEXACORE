@@ -1,27 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, getRealModule } from "./tiergame/moduleRegistry";
+import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, shortId } from "./tiergame/moduleRegistry";
+import type { ModuleType } from "./tiergame/types";
 import styles from "./LearnPage.module.css";
 
 const TIERS = [
-  { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
-  { id: 2, age: "8–10", label: "Rangers", color: "blue", icon: "🛡️", modules: 6, completed: 3 },
-  { id: 3, age: "11–13", label: "Guardians", color: "violet", icon: "⚡", modules: 8, completed: 1 },
-  { id: 4, age: "14–17", label: "Sentinels", color: "amber", icon: "🔥", modules: 10, completed: 0 },
-  { id: 5, age: "18+", label: "Wardens", color: "red", icon: "🎖️", modules: 12, completed: 0 },
+  { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱" },
+  { id: 2, age: "8–10", label: "Rangers", color: "blue", icon: "🛡️" },
+  { id: 3, age: "11–13", label: "Guardians", color: "violet", icon: "⚡" },
+  { id: 4, age: "14–17", label: "Sentinels", color: "amber", icon: "🔥" },
+  { id: 5, age: "18+", label: "Wardens", color: "red", icon: "🎖️" },
 ];
 
-const MODULES = [
-  { id: "m1", title: "Earthquake: Drop, Cover, Hold On", type: "Interactive", duration: "12 min", status: "completed", score: 94, icon: "🌍" },
-  { id: "m2", title: "Fire Evacuation: PASS Method", type: "Simulation", duration: "18 min", status: "completed", score: 88, icon: "🔥" },
-  { id: "m3", title: "Floor-by-Floor Hazard Mapping", type: "Interactive", duration: "15 min", status: "in-progress", score: null, icon: "🗺️" },
-  { id: "m4", title: "Chemical Spill: Lab Safety Protocol", type: "Video + Quiz", duration: "10 min", status: "locked", score: null, icon: "🧪" },
-  { id: "m5", title: "Cyclone & Flood Shelter Procedures", type: "Interactive", duration: "14 min", status: "locked", score: null, icon: "🌊" },
-  { id: "m6", title: "Multi-Hazard Compound Drill", type: "Simulation", duration: "25 min", status: "locked", score: null, icon: "⚠️" },
-];
+const TYPE_LABEL: Record<ModuleType, string> = { interactive: "Interactive", simulation: "Simulation", "video-quiz": "Video + Quiz" };
 
 /* tierScores used to be in-memory only, which was fine while every module
    played out in a modal on this same page. Now "simulation"-type modules
@@ -55,16 +49,9 @@ const BADGES = [
   { name: "NDMA Certified", earned: false, icon: "🎖️" },
 ];
 
-/* Real completed/total for a tier with wired content (Guardians/Sentinels/
-   Wardens); tiers with no real content yet (Explorers/Rangers - no PDFs
-   exist for them) fall back to their placeholder counts instead of 0/0. */
-function tierCompletion(
-  tierId: number,
-  scores: Record<number, Record<string, number>>,
-  fallback: { completed: number; total: number }
-): { completed: number; total: number } {
+function tierCompletion(tierId: number, scores: Record<number, Record<string, number>>): { completed: number; total: number } {
   const cfg = TIER_GAME_CONFIG[tierId];
-  if (!cfg) return fallback;
+  if (!cfg) return { completed: 0, total: 0 };
   const tierScoreMap = scores[tierId] ?? {};
   const completed = cfg.modules.filter((m) => tierScoreMap[m.id.replace(`${cfg.prefix}-`, "")] !== undefined).length;
   return { completed, total: cfg.modules.length };
@@ -105,9 +92,21 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
-  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>(loadTierScores);
+  // Starts empty so the server-rendered markup and the client's first paint
+  // match exactly (avoids a hydration mismatch) - real scores load right
+  // after mount instead of during the initial render.
+  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
+  const skipNextSave = useRef(true);
 
   useEffect(() => {
+    setTierScores(loadTierScores());
+  }, []);
+
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
     try {
       window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(tierScores));
     } catch {
@@ -243,7 +242,7 @@ export default function LearnPage() {
             <h2 className="heading-lg">Select Your Tier</h2>
             <div className={styles.tierGrid}>
               {TIERS.map((t) => {
-                const { completed, total } = tierCompletion(t.id, tierScores, { completed: t.completed, total: t.modules });
+                const { completed, total } = tierCompletion(t.id, tierScores);
                 return (
                 <button
                   key={t.id}
@@ -273,55 +272,43 @@ export default function LearnPage() {
               <span className="badge badge-teal">Tier {activeTier}</span>
             </div>
             <div className={styles.modulesList}>
-              {MODULES.map((base) => {
-                const real = getRealModule(activeTier, base.id);
-                const isRealTierModule = !!real;
-                const m = real
-                  ? {
-                      ...base,
-                      title: real.name,
-                      icon: real.icon,
-                      duration: `${real.estMinutes} min`,
-                      status: tierModuleStatus(activeTier, base.id),
-                      score: tierScores[activeTier]?.[base.id] ?? null,
-                    }
-                  : base;
+              {(TIER_GAME_CONFIG[activeTier]?.modules ?? []).map((real) => {
+                const id = shortId(activeTier, real.id);
+                const status = tierModuleStatus(activeTier, id);
+                const score = tierScores[activeTier]?.[id] ?? null;
+                const typeLabel = TYPE_LABEL[real.type];
                 return (
                 <div
-                  key={m.id}
-                  className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
+                  key={real.id}
+                  className={`${styles.moduleCard} ${selectedModule === id ? styles.moduleSelected : ""} ${status === "locked" ? styles.moduleLocked : ""}`}
                   onClick={() => {
-                    if (m.status === "locked") {
+                    if (status === "locked") {
                       showToast("🔒 Complete previous modules to unlock this drill");
                       return;
                     }
-                    setSelectedModule(m.id);
-                    if (isRealTierModule && real) {
-                      router.push(`/learn/${real.id}`);
-                    } else {
-                      showToast(`Loaded "${m.title}"`);
-                    }
+                    setSelectedModule(id);
+                    router.push(`/learn/${real.id}`);
                   }}
                   role="button"
-                  tabIndex={m.status !== "locked" ? 0 : -1}
+                  tabIndex={status !== "locked" ? 0 : -1}
                 >
-                  <span className={styles.moduleIcon}>{m.icon}</span>
+                  <span className={styles.moduleIcon}>{real.icon}</span>
                   <div className={styles.moduleInfo}>
-                    <h3 className={styles.moduleTitle}>{m.title}</h3>
+                    <h3 className={styles.moduleTitle}>{real.name}</h3>
                     <div className={styles.moduleMeta}>
-                      <span className={`badge ${m.type === "Simulation" ? "badge-blue" : m.type === "Interactive" ? "badge-teal" : "badge-violet"}`}>{m.type}</span>
-                      <span className={styles.moduleDuration}>{m.duration}</span>
+                      <span className={`badge ${typeLabel === "Simulation" ? "badge-blue" : typeLabel === "Interactive" ? "badge-teal" : "badge-violet"}`}>{typeLabel}</span>
+                      <span className={styles.moduleDuration}>{real.estMinutes} min</span>
                     </div>
                   </div>
                   <div className={styles.moduleRight}>
-                    {m.status === "completed" && (
+                    {status === "completed" && (
                       <div className={styles.moduleScore}>
-                        <span className={styles.scoreVal}>{m.score}%</span>
+                        <span className={styles.scoreVal}>{score}%</span>
                         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="var(--accent-teal)" strokeWidth="1.5"/><path d="M6 9l2 2 4-4" stroke="var(--accent-teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
-                    {m.status === "in-progress" && <span className="badge badge-amber badge-pulse">In Progress</span>}
-                    {m.status === "locked" && (
+                    {status === "in-progress" && <span className="badge badge-amber badge-pulse">In Progress</span>}
+                    {status === "locked" && (
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={styles.lockIcon}>
                         <rect x="4" y="8" width="10" height="8" rx="2" stroke="var(--text-faint)" strokeWidth="1.5"/>
                         <path d="M6 8V6a3 3 0 016 0v2" stroke="var(--text-faint)" strokeWidth="1.5" strokeLinecap="round"/>
