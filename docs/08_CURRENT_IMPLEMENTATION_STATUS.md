@@ -14,13 +14,13 @@
 | Pillar / Module | Status | Notes |
 | :--- | :--- | :--- |
 | Landing & navigation shell | ✅ Built | `LandingPage` **HazardScrollScene** slow 360° (0→0.33 collapse), ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch |
-| Pillar I - Pedagogical Engine | ✅ UI built | `LearnPage` with age-tiered curriculum, interactive sidebar nav, module selection with toast feedback, achievement badges |
+| Pillar I - Pedagogical Engine | ✅ Built | `LearnPage` with age-tiered curriculum fully populated (Explorers to Wardens, 18 modules), interactive sidebar nav, module selection with toast feedback, achievement badges |
 | Pillar II - Simulation Engine | ✅ Built | Playable 3D evacuation drills, 4 JSON-driven scenarios, fire/smoke/door/blockage systems, NPC crowd (18 agents, BFS pathfinding), synthesized WebAudio, full run telemetry, **ScenarioEffects** per-hazard screen overlays (quake shake, fire spread, toxic gas, blackout), Geist font |
 | Pillar II - Admin Analytics | ✅ Built | `/admin` dashboard: KPIs (drills/success rate/avg escape/avg panic/top failure), canvas route & casualty heatmap, drill log table |
-| Pillar III - Command Hub | ✅ UI built | `/command` page: live clock, floor status matrix with selection, campus blueprint SVG, CAP alert feed, connected agencies, 3 action buttons with toast feedback |
+| Pillar III - Command Hub | ✅ Built | `/command` page wired to live WebSocket & local drillEventBus for real-time telemetry updates. Dynamic Floor Matrix, campus blueprint SVG, CAP alert feed, connected agencies. |
 | Global FX Layer | ✅ Built | Custom cursor, RippleLink, parallax/tilt/reveal · **Upgraded Aug 26 v4:** framer-motion, ScenarioEffects per-hazard overlays, Geist font, panic 220ms, emil motion audit |
 | "Mitra" Crisis Companion | ⚠️ Rule-based + GSAP | Reads live game state and coaches contextually (panic, smoke, oxygen, crouch, breathing); **GSAP `fromTo` slide/fade (0.3s power2.out) on open/close**; real LLM engine not yet wired |
-| Backend / persistence | ❌ Not started | Drill runs stored in browser `localStorage`; no server, DB, or auth yet |
+| Backend / persistence | ⚠️ Partially built | FastAPI structure, WebSocket Hub, Pathfinding, and Mitra endpoints merged. Telemetry POST/GET and DB persistence not yet wired to frontend. |
 | Multiplayer drill battles | ❌ Not started | Spec-only (docs 01/02) |
 | Mobile / touch controls | ❌ Not started | Current game is keyboard-only (WASD/arrows + SHIFT/B) |
 

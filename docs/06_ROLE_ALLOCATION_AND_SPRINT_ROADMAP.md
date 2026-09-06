@@ -33,51 +33,76 @@ Based on the core research document and team composition, this blueprint specifi
 
 ---
 
-## 1. Individual Member Work Breakdown Structure (WBS)
+## 1. Individual Member Work Breakdown Structure (WBS) - Final Stretch
+
+> **🚨 CRITICAL DEADLINE:** All tasks listed below must be completed by the **7th night**.
 
 ### 1. Dheeraj - AI + Design
 
-- **Generative Scenario Engine:** Build the LLM structured scenario generation pipeline with Pydantic JSON schemas, outputting realistic dynamic disaster scenarios (hazards, cascading triggers, room blockages).
-- **GNN & Dynamic Pathfinding:** Implement real-time dynamic graph routing (Dynamic A* / Dijkstra with hazard weight penalty function) for sub-15ms recalculation during corridor blockages.
-- **Computer Vision Posture Evaluator:** Implement edge MediaPipe Pose / YOLOv8-pose skeleton tracker for "Drop, Cover, Hold On" webcam posture compliance during live drills.
-- **Adaptive DDA Engine:** Model student panic telemetry and reaction latency to tailor dynamic simulation difficulty.
-- **UI/UX Design System & Visual Assets:** Lead the visual design identity, Figma design tokens, HUD overlay styling (Panic Meter, Oxygen gauge, Heart-rate animation), 3D level layout aesthetics, badge artwork, and visual slides for the SIH submission deck.
+- **Task 1.1: Mobile UI/UX Fixes & Component Hierarchy**
+  - **Mobile Menu Clashing:** Define the CSS styling for `Navbar.module.css` so the mobile menu has a solid opaque backdrop (`background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(16px); z-index: 9999; height: 100dvh;`), completely hiding underlying page text.
+  - **Redesign /learn on Mobile:** Provide the design layout so the large 35% progress ring, quick stats, and navigation tabs collapse into a drawer/hamburger menu on screens < 768px, allowing "Select Your Tier" and Interactive Modules to show directly above the fold.
+  - **Design System Consistency:** Ensure the new Settings, Profile, and Leaderboard views follow the unified dark-mode design tokens (Geist/Space Grotesk typography, cyan `#00D4AA`, amber `#F59E0B`).
 
-### 2. Venkataraman C.V - Backend
+- **Task 1.2: Scenario Generation & A* Rerouting Visuals**
+  - **Validate Benchmarks:** Validate sub-15ms reroute benchmarks in `backend/app/api/v1/pathfinder.py`.
+  - **Visual Assets:** Export clean SVG/PNG architecture flowcharts of the GNN/A* dynamic routing for Rahul and Trinayani to place into the pitch deck.
 
-- **FastAPI Microservices:** Scaffold asynchronous REST endpoints for authentication, student progress, campus registry, and drill orchestration.
-- **Real-Time WebSocket Gateway:** Build high-throughput Socket.io / Redis Pub-Sub server to broadcast sub-50ms hazard state changes to 5,000+ concurrent clients.
-- **Spatial Database (PostGIS):** Design relational & spatial schemas for campus blueprints, floor corridors, geofenced hazard zones (`ST_DWithin`), and student location records.
-- **CAP / SACHET Ingestion Pipeline:** Create automated polling & webhook worker to ingest NDMA SACHET / IMD CAP v1.2 XML/JSON emergency feeds.
-- **Security & RBAC:** Implement JWT authentication with role-based policies (Student, Warden, Admin, NDRF, Fire/Police).
+### 2. I. Sravya - Frontend Core
 
-### 3. Manha AK - AI + Frontend
+- **Task 2.1: Implement Mobile Navigation & Backdrop Blur**
+  - **Files:** `frontend/src/components/Navbar.tsx`, `frontend/src/components/Navbar.module.css`
+  - **Action:** Update `.mobileMenu` in `Navbar.module.css` to be a fixed full-screen overlay (`position: fixed; inset: 0;`). Lock body scroll when the mobile menu is open (`document.body.style.overflow = mobileOpen ? "hidden" : "unset"`).
 
-- **3D Simulation Canvas (Three.js / React Three Fiber):** Build procedural 3D school building renderer (Ground to 5th Floor), camera controls, and character movement physics (`@react-three/rapier`).
-- **Hazard Particle Shaders:** Write custom GLSL shaders for realistic volumetric smoke dissipation, fire propagation, and thermal warning zones.
-- **"Mitra" AI Crisis Companion:** Integrate speech-to-text / text-to-speech conversational frontend with low-latency AI crisis counseling agent for trapped students.
-- **Canvas-to-State Bridge:** Connect real-time WebSocket telemetry to Three.js scene state for dynamic multiplayer drill rendering.
+- **Task 2.2: Re-layout /learn for Mobile (Modules-First)**
+  - **Files:** `frontend/src/components/learn/LearnPage.tsx`, `frontend/src/components/learn/LearnPage.module.css`
+  - **Action:** On mobile (`@media (max-width: 768px)`), hide the top quick stats card and sub-tabs from the main scroll flow and place them behind a compact slide-over sidebar or modal triggered by a "View My Progress" button. Make the main page display the Tier cards and teaching modules immediately.
 
-### 4. I.Sravya - Frontend
+- **Task 2.3: Build Settings, Profile & Leaderboard Views**
+  - **Files:** `frontend/src/components/learn/LeaderboardView.tsx`, new `SettingsView.tsx`, new `ProfileView.tsx`
+  - **Action:** 
+    - **Settings View:** Toggles for audio/SFX, text-to-speech voice, reduced motion, and emergency contacts.
+    - **Profile View:** Student badge showcase, preparedness level, school name, and earned certificates.
+    - **Leaderboard View:** Top evacuation scores, drill speeds, and points ranking across grades.
 
-- **PWA Architecture:** Scaffold Next.js 15 App Router structure, Workbox service worker caching strategy, and IndexedDB offline lesson persistence.
-- **Student Learning & Gamification Portal:** Build responsive UI for age-tiered curriculum, PASS fire extinguisher interactive module, badge showcase, and live leaderboards.
-- **Campus EOC & Multi-Agency Dashboard:** Build high-density command visualizer displaying live floor plans, real-time student headcount tally, and hazard heatmaps.
-- **Headcount QR/NFC Scanner:** Develop camera-based QR code scanner and manual roll-call interface for floor wardens at assembly zones.
+*(Note: Task 2.4 Connect /command to Live WebSocket was completed in PR #15!)*
 
-### 5. Trinayani D - Research
+### 3. Venkataraman C.V - Backend Lead
 
-- **NDMA & International Standard Mapping:** Codify NDMA School Safety Guidelines, NFPA 10/101 fire codes, OSHA lab safety rules, and CDC heatwave standards into structured lesson matrices.
-- **Age-Tiered Educational Content:** Author interactive lessons, animations scripts, and storylines across all 5 age cohorts (5-7, 8-10, 11-13, 14-17, 18+).
-- **Comprehensive Question & Scenario Bank:** Develop 150+ validated decision-tree questions, hazard-spotting challenges, and extinguisher identification puzzles.
-- **Educational Impact Metrics:** Formulate pre-drill vs post-drill retention rubrics and certification scoring benchmarks.
+- **Task 3.1: Implement Persistent Telemetry API**
+  - **Files:** `backend/app/api/v1/telemetry.py` (new), `backend/app/main.py`
+  - **Action:** 
+    - Create `POST /api/v1/telemetry/runs`: Ingest run telemetry (student ID, run ID, completion time, peak panic index, oxygen level, route taken, survival result) and store in PostgreSQL/PostGIS.
+    - Create `GET /api/v1/telemetry/analytics`: Aggregate statistics (average exit times, bottlenecks, safe headcount percentages).
 
-### 6. Rahul Nayak - Research
+- **Task 3.2: Multi-User WebSocket Load Test**
+  - **Files:** `backend/tests/load_test_client.py`
+  - **Action:** Run load test simulating 50–100 concurrent WebSocket clients emitting drill updates. Validate message fan-out and ensure server latency stays below 50ms without dropped packets.
 
-- **Multi-Agency Command SOPs:** Map real-world emergency response workflows between School Administration, NDRF, SDMA, Fire Stations, and Ambulance services.
-- **CAP v1.2 Protocol Schema Verification:** Validate alert data formats and geofencing parameters against official NDMA SACHET standards.
-- **Decision Trees & Floor Hazard Verification:** Verify and stress-test all floor-by-floor (Ground to 5th) evacuation matrices and compound disaster rules.
-- **SIH Hackathon Pitch & Documentation:** Lead the creation of the SIH submission deck, executive presentation, live demo script, and system audit reports.
+### 4. Manha AK - AI + 3D Frontend
+
+- **Task 4.1: Interactive 3D Multi-Floor Stack in /command**
+  - **Files:** `frontend/src/components/command/` (new `FloorStack3D.tsx`), `frontend/src/components/command/CommandPage.tsx`
+  - **Action:** Replace the 2D blueprint with an isometric 3D stacked floor viewer (Ground to 3rd Floor) built with Three.js. Add floor separation animation on click (exploded floor view). Render live 3D hazard pins (fire, smoke) and student dot positions on the active floor.
+
+- **Task 4.2: Replace localStorage with Backend Telemetry Dispatch**
+  - **Files:** `frontend/src/components/command/telemetry.ts`, `frontend/src/components/simulate/SimulatePage.tsx`, `frontend/src/app/admin/page.tsx` (or AdminDashboard)
+  - **Action:** Update `saveRun()` to `POST` run telemetry to the backend API (`/api/v1/telemetry/runs`), keeping `localStorage` as an offline fallback. Point the Admin Dashboard to read real KPIs from `GET /api/v1/telemetry/analytics`.
+
+### 5. Trinayani D & Rahul Nayak (Combined) - Pitch & Orchestration
+
+- **Task 5.1: Live Pitch Demo Script & Multi-Device Orchestration**
+  - **Action:** Orchestrate the 3-Minute Live Hackathon Pitch Flow across 3 devices:
+    - **Device 1 (Mobile - Student):** Student navigates redesigned `/learn` modules and triggers an interactive drill.
+    - **Device 2 (Laptop - 3D Sim):** Show 3D escape simulation in `/simulate` with real-time smoke physics and Mitra AI.
+    - **Device 3 (Main Screen - Command Hub):** Show `/command` updating live via WebSocket, displaying the 3D floor stack, panic gauges, and NDMA alerts.
+    - *Prepare cached demo states in case of venue network instability.*
+
+- **Task 5.2: SIH Submission Deck & Presentation Slides**
+  - **Action:** Build the official SIH pitch deck covering Problem Statement, Solution, Tech Stack/Architecture, and Impact. Rehearse the judging Q&A.
+
+- **Task 5.3: Verification of Demo Seed Data & Multi-Agency SOPs**
+  - **Action:** Verify the school seed database (campus layout, classroom labels, extinguishers) reflects Indian school blueprints. Finalize the Multi-Agency SOP documentation linking the Command Hub to NDRF, SDMA, and Fire Services.
 
 ---
 
