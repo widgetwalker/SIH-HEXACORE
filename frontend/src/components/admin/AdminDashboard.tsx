@@ -49,7 +49,8 @@ export default function AdminDashboard() {
     if (!canvas) return;
     const scenario = SCENARIOS.find((s) => s.id === heatScenarioId);
     if (!scenario) return;
-    const fp = parseFloorplan(scenario);
+    const parsed = parseFloorplan(scenario);
+    const fp = parsed.floors[0];
     const CS = 26; // cell size px
     canvas.width = fp.cols * CS;
     canvas.height = fp.rows * CS;
@@ -104,8 +105,6 @@ export default function AdminDashboard() {
     }
 
     /* spawn marker */
-    ctx.strokeStyle = "#f59e0b";
-    ctx.lineWidth = 2;
     ctx.strokeRect(fp.spawn.c * CS + 2, fp.spawn.r * CS + 2, CS - 5, CS - 5);
   }, [heatScenarioId, scenarioRuns]);
 

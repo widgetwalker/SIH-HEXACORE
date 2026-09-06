@@ -43,7 +43,7 @@ SCENARIOS_DB: List[Scenario] = [
         "spreadChance": 0.45,
         "fogDensity": 0.02,
         "colors": {"flame": "#ff7a1a", "glow": "#ef4444", "smoke": "#30363f"},
-        "map": [
+        "floors": [[
             "########################",
             "#P........#........#...#",
             "#.........#........#...#",
@@ -60,8 +60,8 @@ SCENARIOS_DB: List[Scenario] = [
             "#.......#......#.......#",
             "#.......#..F...........#",
             "########################",
-        ],
-        "blockages": [],
+        ]],
+        "blockages": []],
     },
     {
         "id": "quake-compound",
@@ -75,7 +75,7 @@ SCENARIOS_DB: List[Scenario] = [
         "spreadChance": 0.42,
         "fogDensity": 0.02,
         "colors": {"flame": "#ff7a1a", "glow": "#ef4444", "smoke": "#30363f"},
-        "map": [
+        "floors": [[
             "########################",
             "#P.....#........#.....E#",
             "#......#...F....#......#",
@@ -92,7 +92,7 @@ SCENARIOS_DB: List[Scenario] = [
             "#......#........#...F..#",
             "#E.....#........#......#",
             "########################",
-        ],
+        ]],
         "blockages": [
             {
                 "t": 40,
@@ -101,7 +101,7 @@ SCENARIOS_DB: List[Scenario] = [
                 "warnMessage": "Structural groaning - NE wing unstable, brace for aftershock!",
                 "message": "AFTERSHOCK! North-east wing sealed - reroute to the south-west beacon!",
             }
-        ],
+        ]],
     },
     {
         "id": "chem-spill",
@@ -116,7 +116,7 @@ SCENARIOS_DB: List[Scenario] = [
         "fogDensity": 0.03,
         # Toxic gas: amber warning / sickly green gas plane; avoids fire-red connotation.
         "colors": {"flame": "#f59e0b", "glow": "#a3e635", "smoke": "#3f4e1f"},
-        "map": [
+        "floors": [[
             "########################",
             "#..P...#......#........#",
             "#......D..F...#...E....#",
@@ -132,8 +132,8 @@ SCENARIOS_DB: List[Scenario] = [
             "#..F...#...F...D....E..#",
             "#......#.......#.......#",
             "########################",
-        ],
-        "blockages": [],
+        ]],
+        "blockages": []],
     },
     {
         "id": "blackout-fire",
@@ -147,7 +147,7 @@ SCENARIOS_DB: List[Scenario] = [
         "spreadChance": 0.38,
         "fogDensity": 0.055,
         "colors": {"flame": "#ff9d3a", "glow": "#f59e0b", "smoke": "#1c222c"},
-        "map": [
+        "floors": [[
             "########################",
             "#P........#........#...#",
             "#.........#........#...#",
@@ -164,8 +164,8 @@ SCENARIOS_DB: List[Scenario] = [
             "#.......#......#.......#",
             "#.......#..F...........#",
             "########################",
-        ],
-        "blockages": [],
+        ]],
+        "blockages": []],
     },
 ]
 
@@ -202,7 +202,7 @@ _HAZARD_TEMPLATES = {
         "badge": "SCENARIO GEN \xb7 LAB FIRE",
         "hazardLabel": "FIRE",
         "colors": {"flame": "#ff7a1a", "glow": "#ef4444", "smoke": "#30363f"},
-        "map": [
+        "floors": [[
             "########################",
             "#P........#........#...#",
             "#.........#........#...#",
@@ -219,14 +219,14 @@ _HAZARD_TEMPLATES = {
             "#.......#......#.......#",
             "#.......#..F...........#",
             "########################",
-        ],
+        ]],
     },
     "TOXIC GAS": {
         "name": "Chemical Spill",
         "badge": "SCENARIO GEN \xb7 TOXIC GAS RELEASE",
         "hazardLabel": "TOXIC GAS",
         "colors": {"flame": "#f59e0b", "glow": "#a3e635", "smoke": "#3f4e1f"},
-        "map": [
+        "floors": [[
             "########################",
             "#..P...#......#........#",
             "#......D..F...#...E....#",
@@ -242,14 +242,14 @@ _HAZARD_TEMPLATES = {
             "#..F...#...F...D....E..#",
             "#......#.......#.......#",
             "########################",
-        ],
+        ]],
     },
     "QUAKE": {
         "name": "Quake + Fire",
         "badge": "SCENARIO GEN \xb7 COMPOUND QUAKE + FIRE",
         "hazardLabel": "FIRE",
         "colors": {"flame": "#ff7a1a", "glow": "#ef4444", "smoke": "#30363f"},
-        "map": [
+        "floors": [[
             "########################",
             "#P.....#........#.....E#",
             "#......#...F....#......#",
@@ -266,14 +266,14 @@ _HAZARD_TEMPLATES = {
             "#......#........#...F..#",
             "#E.....#........#......#",
             "########################",
-        ],
+        ]],
     },
     "BLACKOUT": {
         "name": "Blackout Drill",
         "badge": "SCENARIO GEN \xb7 NIGHT FIRE",
         "hazardLabel": "FIRE",
         "colors": {"flame": "#ff9d3a", "glow": "#f59e0b", "smoke": "#1c222c"},
-        "map": [
+        "floors": [[
             "########################",
             "#P........#........#...#",
             "#.........#........#...#",
@@ -290,7 +290,7 @@ _HAZARD_TEMPLATES = {
             "#.......#......#.......#",
             "#.......#..F...........#",
             "########################",
-        ],
+        ]],
     },
 }
 
@@ -386,9 +386,12 @@ async def generate_scenario(
                 },
                 "required": ["flame", "glow", "smoke"]
             },
-            "map": {
+            "floors": {
                 "type": "ARRAY",
-                "items": {"type": "STRING"}
+                "items": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"}
+                }
             },
             "blockages": {
                 "type": "ARRAY",
@@ -411,14 +414,18 @@ async def generate_scenario(
                 }
             }
         },
-        "required": ["id", "name", "badge", "hazardLabel", "difficulty", "brief", "timeLimit", "spreadInterval", "spreadChance", "fogDensity", "colors", "map", "blockages"]
+        "required": ["id", "name", "badge", "hazardLabel", "difficulty", "brief", "timeLimit", "spreadInterval", "spreadChance", "fogDensity", "colors", "floors", "blockages"]
     }
 
     prompt = f"""
 Generate a highly creative, unique school disaster drill scenario for a '{hazard_label}' incident.
-The map MUST be exactly 16 rows of 24 characters each.
+The 'floors' array MUST contain 1 to 3 levels. Each level MUST be exactly 16 rows of 24 characters each.
 Rules for the map:
-'#' = Wall, '.' = Floor/Corridor, 'D' = Door, 'P' = Player Start (Exactly one), 'E' = Exit (At least one), 'F' = Fire/Hazard Seed (At least one).
+'#' = Wall, '.' = Floor/Corridor, 'D' = Door.
+'P' = Player Start (Exactly one across all floors).
+'E' = Exit (At least one on the ground floor).
+'S' = Stairwell (must be placed at the exact same (row, col) on adjacent floors to link them).
+'F' = Fire Seed. 'W' = Water/Flood Seed.
 Make the layout feel like a real school (classrooms, hallways, labs).
 Include dramatic blockages (corridor seal events) if difficulty > 2.
 """

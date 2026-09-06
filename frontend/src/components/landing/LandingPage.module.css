@@ -6,7 +6,19 @@
 .page {
   position: relative;
   min-height: 100vh;
+  /* Local overrides for softer dark mode */
+  --bg-void: #1f1b1a; /* Warm dark brown/charcoal */
+  --bg-primary: #292524; /* Slightly lighter warm dark */
+  --text-primary: #fafaf9; /* Warm off-white */
+  --text-secondary: #d6d3d1;
+  --text-muted: #a8a29e;
+  --accent-teal: #9ca3af; /* Actually mute it to sage/slate */
+  --accent-blue: #a3b19b; /* Sage green */
+  --accent-amber: #d9b47e; /* Muted gold */
+  --accent-teal-glow: rgba(156, 163, 175, 0.2);
+  --font-heading: 'Playfair Display', serif;
   background: var(--bg-void);
+  color: var(--text-primary);
 }
 
 .progress {
@@ -45,11 +57,11 @@
 }
 .kicker { margin-bottom: 28px; }
 .title {
-  font-family: 'Space Grotesk', var(--font-sans);
-  font-size: clamp(2.8rem, 9vw, 8rem);
-  font-weight: 700;
-  line-height: 0.95;
-  letter-spacing: -0.04em;
+  font-family: var(--font-heading);
+  font-size: clamp(2.8rem, 9vw, 7rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
   display: flex;
   flex-direction: column;
   gap: 0.05em;
@@ -62,12 +74,12 @@
 }
 .word {
   display: inline-block;
-  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  background: linear-gradient(135deg, #d9b47e 0%, #d49a89 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: wordIn 0.65s var(--ease-out-expo) both;
-  filter: drop-shadow(0 0 24px rgba(239, 68, 68, 0.35));
+  filter: drop-shadow(0 0 16px rgba(212, 154, 137, 0.25));
 }
 @keyframes wordIn {
   from { opacity: 0; transform: translateY(40px) rotateX(70deg); }
@@ -100,9 +112,9 @@
   padding: 12px 18px;
   text-align: left;
 }
-.chipValueTeal { color: #00D4AA; }
-.chipValueBlue { color: #3B82F6; }
-.chipValueAmber { color: #F59E0B; }
+.chipValueTeal { color: var(--accent-teal); }
+.chipValueBlue { color: var(--accent-blue); }
+.chipValueAmber { color: var(--accent-amber); }
 .chipA { top: 24%; left: 6%; }
 .chipB { top: 38%; right: 7%; animation-delay: 1.2s; }
 .chipC { bottom: 20%; left: 12%; animation-delay: 2.1s; }
@@ -187,11 +199,11 @@
   position: relative;
 }
 .sectionTitle {
-  font-family: 'Space Grotesk', var(--font-sans);
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.03em;
+  font-family: var(--font-heading);
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   margin-bottom: 64px;
 }
 
