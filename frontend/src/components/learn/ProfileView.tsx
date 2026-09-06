@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import type { CadetProfile } from "@/types/profile";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./LearnPage.module.css";
 
 interface Certificate {
@@ -39,7 +41,12 @@ const CERTIFICATES: Certificate[] = [
   },
 ];
 
-export default function ProfileView() {
+interface ProfileViewProps {
+  profile?: CadetProfile | null;
+  onOpenEdit?: () => void;
+}
+
+export default function ProfileView({ profile, onOpenEdit }: ProfileViewProps) {
   const handlePrintCertificate = (title: string) => {
     window.print();
   };
@@ -61,17 +68,21 @@ export default function ProfileView() {
       {/* Profile Overview Card */}
       <div className={styles.profileOverviewCard}>
         <div className={styles.profileOverviewLeft}>
-          <div className={styles.profileAvatarLarge}>D</div>
+          <ProfileAvatar profile={profile} size="large" />
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Cadet Dheeraj</h3>
-              <span className="badge badge-teal">Preparedness: Level 3</span>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                {profile ? `Cadet ${profile.name.split(" ")[0]}` : "Cadet"}
+              </h3>
+              <span className="badge badge-teal">
+                Preparedness: {profile ? `Level ${profile.tierId}` : "Level 1"}
+              </span>
             </div>
             <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-              SIH Demonstration Model High School • Academic Block B • Grade 7
+              {profile ? `${profile.school} • Grade ${profile.grade}` : "SIH Demonstration Model High School"}
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-faint)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>
-              ID: CADET-2026-0894 • Blood Group: O+ • Emergency Contact: Verified ✓
+              ID: CADET-2026-0894 • Emergency Contact: Verified ✓
             </div>
           </div>
         </div>
