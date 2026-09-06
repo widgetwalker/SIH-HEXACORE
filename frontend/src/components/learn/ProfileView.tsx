@@ -5,10 +5,7 @@ import type { CadetProfile } from "@/types/profile";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./LearnPage.module.css";
 
-interface ProfileViewProps {
-  profile: CadetProfile | null;
-  onOpenEdit: () => void;
-}
+
 
 interface Certificate {
   id: string;
