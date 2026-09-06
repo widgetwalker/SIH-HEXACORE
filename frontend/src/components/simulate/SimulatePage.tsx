@@ -10,6 +10,8 @@ import { SCENARIOS } from "./game/floorplan";
 import { generateDebrief, saveRun, fmtTime, type DebriefLine, type RunTelemetry } from "./game/telemetry";
 import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
+import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
+import { loadCadetSettings } from "@/lib/cadetSettings";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -92,6 +94,7 @@ export default function SimulatePage() {
   const nextBubbleAtRef = useRef(0);
   const lastUrgentAtRef = useRef(0);
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { broadcasts } = useEmergencyBroadcasts();
   const goodLineIdxRef = useRef(0);
   const scenario = learnScenario ?? SCENARIOS[selIdx];
 
@@ -168,10 +171,21 @@ export default function SimulatePage() {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN";
+    utterance.lang = loadCadetSettings().mitraVoiceLang;
     utterance.rate = 1.05;
     window.speechSynthesis.speak(utterance);
   };
+
+  // When a campus emergency is injected/broadcast, Mitra verbalizes the
+  // warning immediately - this is the one voice line that isn't gated
+  // behind mitraOpen, since it's a safety announcement, not chat.
+  useEffect(() => {
+    if (broadcasts.length === 0) return;
+    const latest = broadcasts[0];
+    speakMitra(`Emergency alert. ${latest.severity} severity. ${latest.msg}`);
+    setMitraMessages((m) => [...m, { role: "mitra", text: `🚨 ${latest.msg}` }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [broadcasts.length]);
 
   const sendMitra = async (raw: string) => {
     const text = raw.trim();

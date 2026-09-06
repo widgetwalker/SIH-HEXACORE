@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { loadCadetProfile, CADET_PROFILE_EVENT, type CadetProfile } from "@/lib/cadetProfile";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
@@ -11,11 +12,19 @@ interface NavbarProps {
 export default function Navbar({ mode = "learning" }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profile, setProfile] = useState<CadetProfile | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    setProfile(loadCadetProfile());
+    const onProfileUpdate = () => setProfile(loadCadetProfile());
+    window.addEventListener(CADET_PROFILE_EVENT, onProfileUpdate);
+    return () => window.removeEventListener(CADET_PROFILE_EVENT, onProfileUpdate);
   }, []);
 
   return (
@@ -112,14 +121,14 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           </Link>
 
           <Link
-            href="/learn"
+            href="/profile"
             prefetch={true}
             className={styles.avatar}
-            aria-label="User Profile"
-            title="User Profile"
+            aria-label={profile ? `${profile.name}'s Profile` : "User Profile"}
+            title={profile ? profile.name : "User Profile"}
             style={{ textDecoration: "none" }}
           >
-            D
+            {profile ? profile.name.charAt(0).toUpperCase() : "?"}
           </Link>
 
           <button

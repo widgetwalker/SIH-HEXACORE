@@ -27,6 +27,27 @@
 .topRight { display: flex; align-items: center; gap: 16px; }
 .clock { font-size: 1.25rem; font-weight: 700; color: var(--accent-teal); letter-spacing: 0.08em; }
 
+/* Live Disaster Early Warning + Incident Injector */
+.liveWarningRow { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: stretch; min-width: 0; }
+.liveWarningPanel { border-color: var(--accent-red); box-shadow: 0 0 0 1px rgba(239,68,68,0.15); }
+.liveStatus { color: var(--text-faint); }
+.liveAlertList { padding: 8px; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.liveAlertEmpty { padding: 20px 12px; text-align: center; color: var(--text-faint); font-size: 0.8rem; }
+.liveAlertDetail { font-size: 0.6875rem; color: var(--text-faint); line-height: 1.4; }
+
+.injectorPanel { display: flex; flex-direction: column; }
+.injectorList { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.injectorBtn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-glass); border: 1px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: left; transition: border-color 0.15s; color: var(--text-primary); }
+.injectorBtn:not(:disabled):hover { border-color: var(--accent-red); }
+.injectorBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.injectorIcon { font-size: 1.1rem; flex-shrink: 0; }
+.injectorInfo { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.injectorLabel { font-size: 0.75rem; font-weight: 700; }
+.injectorLocation { font-size: 0.65rem; color: var(--text-faint); }
+.injectorSpinner { color: var(--accent-red); }
+
+@media (max-width: 900px) { .liveWarningRow { grid-template-columns: 1fr; } }
+
 /* Stat strip */
 .statStrip { display: flex; gap: 10px; }
 .statChip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 12px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); backdrop-filter: blur(12px); transition: transform 0.15s; }

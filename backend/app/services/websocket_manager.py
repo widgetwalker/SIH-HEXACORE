@@ -65,7 +65,11 @@ class WebSocketManager:
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove the socket from whatever room it was in."""
         async with self._lock:
-            for campus_id, room in self._rooms.items():
+            # Iterate a snapshot (list(...)) rather than the live dict -
+            # deleting an emptied room below would otherwise raise
+            # "dictionary changed size during iteration" on every
+            # disconnect of the last socket in a room.
+            for campus_id, room in list(self._rooms.items()):
                 # Rebuild the room without the leaving socket. We can't
                 # `set.discard()` a generator, so filter into a new set.
                 remaining = {(ws, uid, role) for ws, uid, role in room if ws is not websocket}

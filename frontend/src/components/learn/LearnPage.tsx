@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, shortId } from "./tiergame/moduleRegistry";
 import type { ModuleType } from "./tiergame/types";
+import { loadCadetProfile, type CadetProfile } from "@/lib/cadetProfile";
 import styles from "./LearnPage.module.css";
 
 const TIERS = [
@@ -92,6 +93,7 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CadetProfile | null>(null);
   // Starts empty so the server-rendered markup and the client's first paint
   // match exactly (avoids a hydration mismatch) - real scores load right
   // after mount instead of during the initial render.
@@ -100,6 +102,9 @@ export default function LearnPage() {
 
   useEffect(() => {
     setTierScores(loadTierScores());
+    const cadet = loadCadetProfile();
+    setProfile(cadet);
+    if (cadet) setActiveTier(cadet.tierId);
   }, []);
 
   useEffect(() => {
@@ -173,11 +178,17 @@ export default function LearnPage() {
       <div className={styles.layout}>
         {/* Sidebar */}
         <aside className={styles.sidebar}>
-          <div className={styles.sidebarProfile}>
-            <div className={styles.profileAvatar}>D</div>
+          <div
+            className={styles.sidebarProfile}
+            onClick={() => router.push("/profile")}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+          >
+            <div className={styles.profileAvatar}>{profile ? profile.name.charAt(0).toUpperCase() : "?"}</div>
             <div className={styles.profileInfo}>
-              <span className={styles.profileName}>Cadet</span>
-              <span className={styles.profileRole}>Student Responder</span>
+              <span className={styles.profileName}>{profile?.name ?? "Cadet"}</span>
+              <span className={styles.profileRole}>{profile?.grade ?? "Student Responder"}</span>
             </div>
           </div>
 
@@ -215,16 +226,22 @@ export default function LearnPage() {
           <div className="divider" style={{ margin: "16px 0" }} />
 
           <nav className={styles.sidebarNav}>
-            {[
-              { label: "Dashboard" },
-              { label: "My Certificates" },
-              { label: "Leaderboard" },
-              { label: "Settings" },
-            ].map((item) => (
+            {(
+              [
+                { label: "Dashboard", profileTab: undefined },
+                { label: "My Certificates", profileTab: "my-certificates" },
+                { label: "Leaderboard", profileTab: "leaderboard" },
+                { label: "Settings", profileTab: "settings" },
+              ] as { label: string; profileTab?: string }[]
+            ).map((item) => (
               <button
                 key={item.label}
                 className={`${styles.navItem} ${activeTab === item.label ? styles.navItemActive : ""}`}
                 onClick={() => {
+                  if (item.profileTab) {
+                    router.push(`/profile?tab=${item.profileTab}`);
+                    return;
+                  }
                   setActiveTab(item.label);
                   showToast(`Switched to ${item.label}`);
                 }}

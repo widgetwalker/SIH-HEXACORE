@@ -3,6 +3,7 @@ import { Viewport } from "next";
 import "@designcodeio/threeui/style.css";
 import "./globals.css";
 import CustomCursor from "@/components/fx/CustomCursor";
+import SettingsInit from "@/components/SettingsInit";
 
 export const metadata: Metadata = {
   title: "SafeZone - Gamified Disaster Preparedness | SIH 2026",
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         {children}
         <CustomCursor />
+        <SettingsInit />
       </body>
     </html>
   );

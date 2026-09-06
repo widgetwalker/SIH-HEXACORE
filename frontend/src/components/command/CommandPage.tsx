@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
+import { fetchLiveAlerts, injectIncident, INCIDENT_PRESETS, type LiveAlert, type IncidentType } from "@/lib/liveAlerts";
+import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
+import { playSirenBeep } from "@/lib/siren";
+import { loadCadetSettings } from "@/lib/cadetSettings";
 
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
@@ -32,11 +36,21 @@ const AGENCIES = [
   { name: "Ambulance EMS", status: "Standby", role: "Medical Triage", color: "violet" },
 ];
 
+const LIVE_ALERT_POLL_MS = 60_000;
+
+function liveAlertColor(severity: string): string {
+  return severity === "Extreme" ? "red" : "amber";
+}
+
 export default function CommandPage() {
   const [clock, setClock] = useState("22:42:30");
   const [toast, setToast] = useState<string | null>(null);
   const [selectedFloor, setSelectedFloor] = useState<string | null>("4F");
   const [telemetry, setTelemetry] = useState<CommandTelemetry>(getInitialCommandTelemetry);
+  const [liveAlerts, setLiveAlerts] = useState<LiveAlert[]>([]);
+  const [liveAlertsLoading, setLiveAlertsLoading] = useState(true);
+  const [injecting, setInjecting] = useState<IncidentType | null>(null);
+  const { broadcasts, connected } = useEmergencyBroadcasts();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -52,6 +66,39 @@ export default function CommandPage() {
   }, []);
 
   useEffect(() => createMockTelemetryStream(setTelemetry), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const alerts = await fetchLiveAlerts();
+      if (!cancelled) {
+        setLiveAlerts(alerts);
+        setLiveAlertsLoading(false);
+      }
+    };
+    poll();
+    const interval = setInterval(poll, LIVE_ALERT_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Siren on every newly received emergency broadcast, gated by the
+  // cadet's own Settings toggle.
+  useEffect(() => {
+    if (broadcasts.length === 0) return;
+    if (loadCadetSettings().drillSiren) playSirenBeep();
+    showToast(`🚨 ${broadcasts[0].msg}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [broadcasts.length]);
+
+  const handleInject = async (type: IncidentType) => {
+    setInjecting(type);
+    const ok = await injectIncident(type);
+    showToast(ok ? "📡 Incident injected — broadcasting to all clients" : "⚠️ Injection failed — is the backend running?");
+    setInjecting(null);
+  };
 
   const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);
@@ -82,6 +129,62 @@ export default function CommandPage() {
           </div>
           <div className={styles.topRight}>
             <span className={`mono ${styles.clock}`}>{clock}</span>
+          </div>
+        </div>
+
+        {/* Live Disaster Early Warning + Incident Injector */}
+        <div className={styles.liveWarningRow}>
+          <div className={`${styles.panel} ${styles.liveWarningPanel} crt-effect`}>
+            <div className={styles.panelHeader}>
+              <span className="hud-label">🌐 LIVE DISASTER EARLY WARNING</span>
+              <span className={`mono caption ${styles.liveStatus}`}>
+                {liveAlertsLoading ? "SCANNING…" : `${liveAlerts.length} ACTIVE`} · {connected ? "WS LINKED" : "WS OFFLINE"}
+              </span>
+            </div>
+            <div className={styles.liveAlertList}>
+              {!liveAlertsLoading && liveAlerts.length === 0 && (
+                <div className={styles.liveAlertEmpty}>No active severe-weather or regional earthquake threats.</div>
+              )}
+              {liveAlerts.map((a) => (
+                <div key={a.id} className={`${styles.alertItem} ${styles[`alert-${liveAlertColor(a.severity)}`]}`}>
+                  <span className={`badge badge-${liveAlertColor(a.severity)} ${styles.alertSev}`}>{a.severity}</span>
+                  <span className={styles.alertSrc}>{a.source}</span>
+                  <p className={styles.alertMsg}>{a.headline}</p>
+                  <p className={styles.liveAlertDetail}>{a.detail}</p>
+                </div>
+              ))}
+              {broadcasts.map((b, i) => (
+                <div key={`${b.receivedAt}-${i}`} className={`${styles.alertItem} ${styles["alert-red"]}`}>
+                  <span className={`badge badge-red ${styles.alertSev}`}>{b.severity}</span>
+                  <span className={styles.alertSrc}>Injected Drill</span>
+                  <p className={styles.alertMsg}>{b.msg}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={`${styles.panel} ${styles.injectorPanel}`}>
+            <div className={styles.panelHeader}>
+              <span className="hud-label">⚡ INCIDENT INJECTOR</span>
+              <span className="mono caption" style={{ color: "var(--text-faint)" }}>DRILL / EVAL</span>
+            </div>
+            <div className={styles.injectorList}>
+              {INCIDENT_PRESETS.map((p) => (
+                <button
+                  key={p.type}
+                  className={styles.injectorBtn}
+                  disabled={injecting !== null}
+                  onClick={() => handleInject(p.type)}
+                >
+                  <span className={styles.injectorIcon}>{p.icon}</span>
+                  <div className={styles.injectorInfo}>
+                    <span className={styles.injectorLabel}>{p.label}</span>
+                    <span className={styles.injectorLocation}>{p.location}</span>
+                  </div>
+                  {injecting === p.type && <span className={styles.injectorSpinner}>…</span>}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

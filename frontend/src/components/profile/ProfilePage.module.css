@@ -1,0 +1,306 @@
+.page {
+  background: var(--bg-void);
+  min-height: 100vh;
+}
+
+.layout {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 96px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+}
+
+.avatarLarge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #04110d;
+  flex-shrink: 0;
+}
+
+.headerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+.name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.meta {
+  color: var(--text-faint);
+  font-size: 0.9rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 10px 18px;
+  color: var(--text-faint);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tabBtnActive {
+  color: var(--accent-teal);
+  border-bottom-color: var(--accent-teal);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emptyState {
+  color: var(--text-faint);
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* Overview */
+.readinessCard {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+}
+.readinessRing {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+.ringSvg {
+  width: 100%;
+  height: 100%;
+}
+.ringCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.ringValue {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.ringLabel {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+.readinessInfo {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.readinessSub {
+  color: var(--text-faint);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+/* Certificates */
+.certGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.certCard {
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent-teal);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+.certBadge {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.certTitle {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.certName {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.certMeta {
+  font-size: 0.85rem;
+  color: var(--text-faint);
+}
+.certTier {
+  font-size: 0.8rem;
+  color: var(--accent-teal);
+  margin-top: 8px;
+}
+
+/* Leaderboard */
+.leaderboardList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.leaderRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md, 10px);
+}
+.leaderRowYou {
+  border-color: var(--accent-teal);
+  background: var(--accent-teal-dim);
+}
+.leaderRank {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  width: 32px;
+}
+.leaderName {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.leaderScore {
+  font-family: var(--font-mono);
+  color: var(--accent-teal);
+  font-weight: 700;
+}
+
+/* Settings */
+.settingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md, 10px);
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+.settingName {
+  display: block;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.settingDesc {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  max-width: 380px;
+}
+.select {
+  background: var(--bg-void);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+}
+.contactFields {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.contactFields input {
+  background: var(--bg-void);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  width: 160px;
+}
+
+/* Edit drawer */
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 998;
+  display: flex;
+  justify-content: flex-end;
+}
+.drawer {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-default);
+  padding: 32px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .layout {
+    padding: 88px 16px 64px;
+  }
+  .readinessCard {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .readinessInfo {
+    align-items: center;
+  }
+}

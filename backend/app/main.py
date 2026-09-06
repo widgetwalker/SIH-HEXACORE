@@ -18,7 +18,7 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 # side effects on the API itself.
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
-from app.api.v1 import buildings, health, scenarios
+from app.api.v1 import alerts, buildings, health, scenarios, webhooks, ws
 from app.services.websocket_manager import ws_manager
 
 app = FastAPI(
@@ -27,14 +27,15 @@ app = FastAPI(
 )
 
 # CORS — allow the Next.js dev server to reach the FastAPI backend.
-# Restrictive by default: only GET (and OPTIONS for preflight) since
-# all current endpoints are read-only.  Credentials allowed because the
-# JWT auth cookie will need to flow cross-origin.
+# POST is now needed alongside GET: the /command incident-injection
+# webhook (app/api/v1/webhooks.py) writes, everything else still reads.
+# Credentials allowed because the JWT auth cookie will need to flow
+# cross-origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
     allow_credentials=True,
-    allow_methods=["GET", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "Authorization", "Cookie"],
 )
 
@@ -44,10 +45,12 @@ async def on_startup() -> None:
     """
     App-wide startup hook.
 
-    Currently no-op for the API itself - the websocket manager and
-    CAP poller are imported as singletons but not started. They will
-    be started here in Sprint 3 when the WebSocket route and the
-    /api/v1/webhooks/sachet endpoint are added.
+    The WebSocket route (app/api/v1/ws.py) and the incident-injection
+    webhook (app/api/v1/webhooks.py) both drive the ws_manager singleton
+    directly on each request/connection - nothing needs to be started
+    eagerly here. The NDMA SACHET CAP poller (app/services/cap_ingestion.py)
+    still points at a placeholder feed URL and stays unstarted until a
+    real feed URL is configured.
     """
     # Touch the singleton so connection state is visible in logs.
     _ = ws_manager
@@ -69,3 +72,6 @@ async def on_shutdown() -> None:
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(buildings.router, prefix="/api/v1", tags=["buildings"])
 app.include_router(scenarios.router, prefix="/api/v1", tags=["scenarios"])
+app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
+app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
+app.include_router(ws.router, prefix="/api/v1", tags=["websocket"])

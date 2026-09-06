@@ -1,11 +1,11 @@
 import { Suspense } from "react";
-import LearnPage from "@/components/learn/LearnPage";
+import ProfilePage from "@/components/profile/ProfilePage";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
-export default function Learn() {
+export default function Profile() {
   return (
     <OnboardingGate>
       <Suspense fallback={null}>
-        <LearnPage />
+        <ProfilePage />
       </Suspense>
     </OnboardingGate>
   );

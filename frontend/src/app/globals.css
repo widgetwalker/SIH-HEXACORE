@@ -9,6 +9,17 @@
   padding: 0;
 }
 
+/* Reduced Motion setting (/profile → Settings) - set via
+   document.documentElement.dataset.reducedMotion by lib/cadetSettings.ts */
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* ── DESIGN TOKENS ──────────────────────────────────────────────────── */
 :root {
   /* Background scale */
