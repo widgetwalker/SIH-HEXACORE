@@ -65,7 +65,7 @@ class DrillSession(Base):
     )
     scenario_id: Mapped[str] = mapped_column(String(100), nullable=False)
     primary_hazard: Mapped[str] = mapped_column(String(100), nullable=False)
-    cascading_hazards: Mapped[list] = mapped_column(JSONB, default=list)
+    cascading_hazards: Mapped[list] = mapped_column(JSONB, default_factory=list)
     started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     total_participants: Mapped[int] = mapped_column(Integer, default=0)
@@ -77,6 +77,9 @@ class DrillSession(Base):
     institution: Mapped["Institution"] = relationship("Institution")
     telemetry: Mapped[list["StudentDrillTelemetry"]] = relationship(
         "StudentDrillTelemetry", back_populates="drill_session", cascade="all, delete-orphan"
+    )
+    runs: Mapped[list["DrillRun"]] = relationship(
+        "DrillRun", back_populates="drill_session", cascade="all, delete-orphan"
     )
 
 
@@ -104,11 +107,53 @@ class StudentDrillTelemetry(Base):
     evacuation_time_sec: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     panic_peak_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     cv_posture_compliance_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
-    prohibitions_violated: Mapped[list] = mapped_column(JSONB, default=list)
-    escape_route_taken: Mapped[list] = mapped_column(JSONB, default=list)
+    prohibitions_violated: Mapped[list] = mapped_column(JSONB, default_factory=list)
+    escape_route_taken: Mapped[list] = mapped_column(JSONB, default_factory=list)
     completed_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), default=datetime.utcnow
     )
 
     drill_session: Mapped["DrillSession"] = relationship("DrillSession", back_populates="telemetry")
     user: Mapped["User"] = relationship("User", back_populates="telemetry")
+
+
+class DrillRun(Base):
+    """
+    Persisted end-of-run telemetry from POST /api/v1/telemetry/runs.
+
+    Stores the RunTelemetryRequest payload for later analytics and
+    admin dashboard queries.  Each row is keyed by ``run_id`` and
+    linked to a ``drill_session_id`` so the admin can correlate a
+    full run with its per-student telemetry.
+    """
+
+    __tablename__ = "drill_runs"
+
+    run_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    drill_session_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("drill_sessions.id", ondelete="CASCADE"), nullable=False
+    )
+    scenario_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    scenario_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # "won" | "lost"
+    time: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)  # total drill time in seconds
+    oxygen_left: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    panic_peak: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    panic_freeze_seconds: Mapped[float] = mapped_column(Numeric(5, 2), nullable=True)
+    score: Mapped[float] = mapped_column(Numeric(8, 2), nullable=True)
+    smoke_standing_seconds: Mapped[float] = mapped_column(Numeric(5, 2), nullable=True)
+    smoke_crouch_seconds: Mapped[float] = mapped_column(Numeric(5, 2), nullable=True)
+    breath_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    distance_traveled: Mapped[float] = mapped_column(Numeric(8, 2), nullable=True)
+    fire_cell_entries: Mapped[int] = mapped_column(Integer, nullable=True)
+    exit_used: Mapped[dict | None] = mapped_column(JSONB, default_factory=dict)
+    death_cell: Mapped[dict | None] = mapped_column(JSONB, default_factory=dict)
+    violations: Mapped[list] = mapped_column(JSONB, default_factory=list)  # list of violation dicts
+    route_heat: Mapped[list[float]] = mapped_column(JSONB, default_factory=list)  # flat rows*cols visit counts
+    cols: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    rows: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[int] = mapped_column(Integer, nullable=False)  # client millisecond timestamp
+
+    drill_session: Mapped["DrillSession"] = relationship(
+        "DrillSession", back_populates="runs", cascade="all, delete-orphan"
+    )

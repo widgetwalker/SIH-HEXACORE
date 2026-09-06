@@ -12,7 +12,7 @@ Python objects.
 from app.models.base import Base
 from app.models.institution import Institution, Building, Floor
 from app.models.user import User, UserRole
-from app.models.drill import DrillSession, StudentDrillTelemetry, DrillMode, DrillStatus
+from app.models.drill import DrillSession, StudentDrillTelemetry, DrillMode, DrillStatus, DrillRun
 from app.models.alert import EmergencyAlert
 
 __all__ = [
@@ -26,5 +26,6 @@ __all__ = [
     "StudentDrillTelemetry",
     "DrillMode",
     "DrillStatus",
+    "DrillRun",
     "EmergencyAlert",
 ]
