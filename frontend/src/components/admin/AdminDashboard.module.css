@@ -18,6 +18,15 @@
 
 .header {
   display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerText {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
@@ -141,3 +150,124 @@
   .table { font-size: 0.72rem; }
   .table th, .table td { padding: 7px 6px; }
 }
+
+/* ── NDMA Official Report Modal ── */
+.reportOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(5, 8, 18, 0.88);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.reportModal {
+  background: #ffffff;
+  color: #111827;
+  max-width: 680px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.reportDocHeader {
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.reportDocTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.reportSubhead {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.reportBadge {
+  background: #065f46;
+  color: #ecfdf5;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.reportGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.reportMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reportMetricLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.reportMetricVal {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.reportFooterActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 16px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .reportModal, .reportModal * {
+    visibility: visible;
+  }
+  .reportModal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+    padding: 0;
+  }
+  .reportFooterActions {
+    display: none;
+  }
+}
+

@@ -155,6 +155,6 @@ class DrillRun(Base):
     rows: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)  # client millisecond timestamp
 
-    drill_session: Mapped["DrillSession"] = relationship(
-        "DrillSession", back_populates="runs", cascade="all, delete-orphan"
+    drill_session: Mapped["DrillSession | None"] = relationship(
+        "DrillSession", back_populates="runs"
     )
