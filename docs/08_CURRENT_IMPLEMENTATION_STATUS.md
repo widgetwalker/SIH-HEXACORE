@@ -1,11 +1,11 @@
 # 08. Current Implementation Status
 
-> **Last updated:** September 6, 2026 v7 · Branch `main` · **Frontend profile surface complete; direct TypeScript check green**
+> **Last updated:** September 8, 2026 v8 · Branch `main` · **PR #27 Merged; Full platform integrity, live backend sync, and operational tools complete**
 >
 > This document tracks what is **actually built and working** versus what remains
 > spec-only. It complements docs 01-07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
-> **Sept 6 v7 delta:** Added the dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections; Navbar profile routing; shared avatar synchronization; six vector avatar choices; and local image upload. Remaining work is route-wide onboarding interception (Issue 2.6), backend alert/profile/injection APIs (Issue 3.3), and browser/device QA.
+> **Sept 8 v8 delta:** Merged PR #27 (`platform-fixes`). Standardized Cadet IDs to RFC 4122 UUIDs with live Postgres sync (`/api/v1/users`); wired live backend leaderboard to `/learn`; operationalized Command Hub evacuation order with Mitra audio/voice alerts; added interactive QR Headcount Scanner HUD (`cmd-scan`); un-orphaned backend NDMA reports API (`/api/v1/reports/ndma`) with printable Form-IV audit generator on `/admin`; and added strict severity filtering to `/api/v1/alerts/live`.
 
 ---
 
