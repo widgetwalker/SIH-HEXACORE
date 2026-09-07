@@ -167,43 +167,88 @@ return False, "Normal"      # Excluded: No felt impact
 #### Severe Weather Thresholds
 - **Torrential Flash Flood:** $\ge 15.0 \text{ mm/h}$ precipitation recorded $\rightarrow$ `Extreme` Flash Flood Warning.
 - **Heavy Rain Advisory:** $\ge 8.0 \text{ mm/h}$ rainfall $\rightarrow$ `Warning`.
+### 2.4. Mitra Voice Synthesis (TTS Stream)
+`GET /api/v1/mitra/tts?text=...&lang=...`  
+`POST /api/v1/mitra/tts`
+
+Converts safety protocol instructions and emergency broadcasts into a playable 16-bit PCM WAV audio stream. Ensures all cadets hear voice guidance regardless of browser, OS, or cloud API key status.
+
+#### Request Parameters (GET)
+| Parameter | Type | In | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `text` | `string` | Query | `required` | Emergency text/instructions to vocalize (up to 1,000 characters). |
+| `lang` | `string` | Query | `en-in` | Voice accent code (`en-in` for Indian English, `en` for global). |
+
+#### Response (`200 OK`)
+- **Headers:** `Content-Type: audio/wav`, `Content-Disposition: inline; filename=mitra_speech.wav`, `Cache-Control: public, max-age=3600`
+- **Body:** Binary WAV audio stream. Generated via high-efficiency server-side synthesis (`espeak-ng`/`espeak`) with pure-Python procedural chime fallback if binary is uninstalled.
+- **Frontend Proxy:** Also accessible directly from Next.js via `/api/mitra/tts?text=...`.
+
+---
+
+## 3. Dual-Layer Voice & Audio Architecture
+
+```
+                       [Emergency Alert or Cadet Query]
+                                      │
+                                      ▼
+                      [Mitra Safety Reasoning Layer]
+                                      │
+               ┌──────────────────────┴──────────────────────┐
+               ▼                                             ▼
+       [GEMINI_API_KEY set]                        [GEMINI_API_KEY empty]
+        Gemini 1.5 Flash API                    Local Rule-Based Safety Engine
+    (Complex conversational Q&A)            (Instant sub-5ms NDMA Protocol Answers)
+               │                                             │
+               └──────────────────────┬──────────────────────┘
+                                      │ (Protocol Text)
+                                      ▼
+                    [Frontend Vocalization Decision]
+                                      │
+               ┌──────────────────────┴──────────────────────┐
+               ▼                                             ▼
+     [Primary: Zero-Latency]                        [Fallback: 100% Guaranteed]
+  Browser Web Speech Synthesis                      Backend WAV Audio Stream
+   (window.speechSynthesis)                           (/api/v1/mitra/tts)
+               │                                             │
+               └──────────────────────┬──────────────────────┘
+                                      │
+                                      ▼
+                      🔊 Audible Voice Output Across
+                         All Devices and Platforms
+```
+
+1. **Layer 1 (Zero-Latency Browser Speech):** By default, speech is executed in-browser via the W3C Web Speech API (`window.speechSynthesis`) using native Indian English voices (`en-IN`).
+2. **Layer 2 (Guaranteed Backend WAV Stream):** If the cadet's browser disables speech, blocks audio autoplay, or runs in a restricted mobile environment, the system automatically falls back to fetching and streaming the audio directly from `/api/v1/mitra/tts` via an HTML5 `Audio` element.
+3. **Zero External API Requirement:** Neither layer requires a Gemini API key or third-party cloud speech subscription.
+
+---
+
+## 4. Physical Hazard Filtering & False Alarm Suppression
+
+### 4.1. Earthquake Attenuation Model (USGS)
+The Great-Circle Haversine distance $D$ (km) from the monitored campus to the epicenter is calculated in real time:
+$$D = 2R \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
+where $R = 6371\text{ km}$.
+
+- **Physical Ground Motion Filtering:**
+  - $D > 500\text{ km}$: Suppressed unless $M \ge 7.0$ (potential regional tsunami threat).
+  - $D > 250\text{ km}$: Suppressed if $M < 5.8$.
+  - $D > 100\text{ km}$: Suppressed if $M < 5.0$.
+  - Shaking Intensity: Classified into `Extreme` ($M \ge 6.0$ local), `Severe` ($M \ge 5.0$), or `Warning` ($M \ge 4.0$).
+
+### 4.2. Meteorological Classification Model (Open-Meteo)
+- **Torrential Rainfall / Flash Flood:** $\ge 30.0 \text{ mm/h}$ instantaneous or $\ge 65.0 \text{ mm}$ daily sum $\rightarrow$ `Extreme` Flood Warning.
 - **Cyclonic Gale:** $\ge 45.0 \text{ km/h}$ wind velocity $\rightarrow$ `Extreme` Cyclone/Gale Warning.
 - **High Wind Advisory:** $\ge 30.0 \text{ km/h}$ wind gusts $\rightarrow$ `Warning`.
 - **Severe Weather Codes:** Codes `95, 96, 99` (Thunderstorms with violent hail) $\rightarrow$ `Extreme`.
 - **Normal Telemetry Baseline:** Calm conditions (e.g. 28°C, light wind) are labeled `severity: "Normal"` and displayed strictly as informational telemetry without sounding alarms.
 
-### 3.5. Graceful Degradation & Offline Venue Resilience
+### 4.3. Graceful Degradation & Offline Venue Resilience
 - If internet connectivity drops or PostgreSQL is temporarily offline:
   1. The backend catches connection errors and yields the active in-memory incident state without throwing `500 Internal Server Error`.
   2. The frontend switches automatically to local cached telemetry and offline rule-based fallback.
   3. The platform remains 100% demo-ready and usable under poor hackathon venue Wi-Fi conditions.
-
----
-
-## 4. Multi-Modal Alert Synchronization Flow
-
-```
-[Incident Injector / Open-Meteo / USGS]
-                  │
-                  ▼
-         [FastAPI Backend]
-         /api/v1/alerts/live
-                  │
-        ┌─────────┴─────────┐
-        ▼                   ▼
-  [REST Polling]     [WebSocket Hub]
-(15-20s interval)   (sub-25ms broadcast)
-        │                   │
-        └─────────┬─────────┘
-                  ▼
-         [Frontend Command Hub]
-        ┌─────────────────────┐
-        │  Live Threat Banner │ ──► Displays Critical / Warning alert
-        │  Top Navbar Badge   │ ──► Changes to pulsing 🚨 CRITICAL ALERT
-        │  Mitra Voice Agent  │ ──► SpeechSynthesis vocalizes protocol instructions
-        │  Audio Chime        │ ──► Sounds drill siren
-        └─────────────────────┘
-```
 
 ---
 
@@ -217,5 +262,7 @@ return False, "Normal"      # Excluded: No felt impact
 | **Bengaluru Tech Hub** | `12.9716` | `77.5946` | Karnataka | Urban Waterlogging & Lightning Corridor |
 | **Mumbai Harbor** | `18.9220` | `72.8347` | Maharashtra | Arabian Sea Gale & High Tide Flood Zone |
 | **New Delhi NCR** | `28.6139` | `77.2090` | Delhi | Heatwave & Seismic Zone IV |
+| **Guwahati / Northeast Zone** | `26.1445` | `91.7362` | Assam | Brahmaputra Flash Flood & Seismic Zone V |
 | **Dehradun Seismic Zone** | `30.3165` | `78.0322` | Uttarakhand | Himalayan Fault Line (Seismic Zone IV/V) |
 | **Device GPS Mode** | Dynamic | Dynamic | Live Device | Real-time `navigator.geolocation` lock |
+

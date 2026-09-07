@@ -9,11 +9,18 @@ key, no external API, no errors.
 
 from __future__ import annotations
 
+import asyncio
+import io
 import logging
+import math
 import re
+import shutil
+import struct
+import wave
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query, Response
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.schemas.mitra import MitraChatRequest, MitraChatResponse, MitraContext
@@ -21,6 +28,10 @@ from app.schemas.mitra import MitraChatRequest, MitraChatResponse, MitraContext
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+class MitraTTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1000, description="Text to synthesize to speech audio")
+    lang: str = Field("en-in", description="Voice language/accent code (e.g. en-in, en)")
 
 GEMINI_MODEL = "gemini-1.5-flash"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
@@ -191,3 +202,90 @@ async def mitra_chat(body: MitraChatRequest) -> MitraChatResponse:
         raise HTTPException(status_code=502, detail="Mitra couldn't form a response — try again.")
 
     return MitraChatResponse(text=text)
+
+
+def _synthesize_fallback_chime(duration_s: float = 0.5, freq: float = 660.0) -> bytes:
+    """Generate a clean 16-bit PCM WAV audio chime if OS speech synthesizer is unavailable."""
+    sample_rate = 22050
+    n_samples = int(sample_rate * duration_s)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        data = bytearray()
+        for i in range(n_samples):
+            t = i / sample_rate
+            # 2-tone melodic chime: 660Hz -> 880Hz
+            f = freq if t < 0.2 else freq * 1.333
+            val = int(18000.0 * math.sin(2.0 * math.pi * f * t) * (1.0 - i / n_samples))
+            data.extend(struct.pack("<h", max(-32767, min(32767, val))))
+        wf.writeframes(data)
+    return buf.getvalue()
+
+
+async def _generate_tts_wav(text: str, lang: str = "en-in") -> bytes:
+    """Synthesize speech audio into WAV format using espeak-ng/espeak, or fallback to chime."""
+    tts_bin = shutil.which("espeak-ng") or shutil.which("espeak")
+    safe_text = re.sub(r"[\r\n\t]+", " ", text).strip()[:500]
+    if not safe_text:
+        safe_text = "Attention cadet."
+
+    if tts_bin:
+        try:
+            voice = "en-in" if "in" in lang.lower() else "en"
+            cmd = [tts_bin, "--stdout", "-v", voice, "-s", "150", "-p", "50", safe_text]
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=6.0)
+            if proc.returncode == 0 and len(stdout) > 44:
+                return stdout
+        except Exception as exc:
+            logger.warning("espeak TTS generation error: %s; using fallback chime", exc)
+
+    return _synthesize_fallback_chime()
+
+
+@router.get(
+    "/mitra/tts",
+    summary="Mitra TTS audio synthesis (WAV stream)",
+    tags=["mitra"],
+    responses={200: {"content": {"audio/wav": {}}}},
+)
+async def get_mitra_tts(
+    text: str = Query(..., min_length=1, max_length=1000, description="Text to synthesize to speech audio"),
+    lang: str = Query("en-in", description="Voice language code (e.g. en-in, en)"),
+) -> Response:
+    """Convert text directly into a playable WAV audio stream for clients without native speech synthesis."""
+    audio_bytes = await _generate_tts_wav(text, lang)
+    return Response(
+        content=audio_bytes,
+        media_type="audio/wav",
+        headers={
+            "Content-Disposition": "inline; filename=mitra_speech.wav",
+            "Cache-Control": "public, max-age=3600",
+        },
+    )
+
+
+@router.post(
+    "/mitra/tts",
+    summary="Mitra TTS audio synthesis via POST",
+    tags=["mitra"],
+    responses={200: {"content": {"audio/wav": {}}}},
+)
+async def post_mitra_tts(body: MitraTTSRequest) -> Response:
+    """Convert text into a playable WAV audio stream via JSON body."""
+    audio_bytes = await _generate_tts_wav(body.text, body.lang)
+    return Response(
+        content=audio_bytes,
+        media_type="audio/wav",
+        headers={
+            "Content-Disposition": "inline; filename=mitra_speech.wav",
+            "Cache-Control": "public, max-age=3600",
+        },
+    )
+

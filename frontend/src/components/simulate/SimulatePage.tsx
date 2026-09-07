@@ -12,6 +12,7 @@ import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { loadCadetSettings } from "@/lib/cadetSettings";
+import { speak, playBackendAudio } from "@/components/shared/speech";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -170,18 +171,7 @@ export default function SimulatePage() {
   };
 
   const speakMitra = (text: string) => {
-    if (!window.speechSynthesis) return;
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = loadCadetSettings().mitraVoiceLang || "en-IN";
-    utterance.rate = 1.05;
-    window.speechSynthesis.speak(utterance);
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
+    speak(text);
   };
 
   // When a campus emergency is injected/broadcast, Mitra verbalizes the
