@@ -16,6 +16,9 @@ const FloorStack3D = dynamic(
 
 import styles from "./CommandPage.module.css";
 
+/* Backend API URL — mirrors SimulatePage.tsx convention */
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
 const ALERTS: CommandAlert[] = [
   { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", message: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
   { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", message: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
@@ -134,14 +137,9 @@ export default function CommandPage() {
     setSpeechSupported(isSpeechSupported());
   }, []);
 
-  // Live threat alert state (mock for now - would be populated by WebSocket in production)
-  const [liveAlert, setLiveAlert] = useState<LiveThreatAlert | null>({
-    source: "NDMA-CAP",
-    severity: "CRITICAL",
-    title: "Earthquake M5.2 - Campus Impact Zone",
-    detail: "Epicenter 12km NW of campus. Aftershocks expected. Immediate evacuation protocol activated.",
-    timestamp: new Date().toLocaleTimeString(),
-  });
+  // Live threat alert state — populated from backend / live alerts API
+  const [liveAlert, setLiveAlert] = useState<LiveThreatAlert | null>(null);
+  const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
 
   // Incident injection state
   const [isInjecting, setIsInjecting] = useState(false);
@@ -151,39 +149,107 @@ export default function CommandPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleAcknowledgeAlert = () => {
-    showToast("✓ Alert acknowledged - Logged to NDMA incident report");
-    // In production: send acknowledgement to backend
+  // Poll live alerts from the backend every 30 s as fallback when WS is disconnected
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/alerts/live?limit=1`);
+        if (!res.ok) return;
+        const data = (await res.json()) as Array<{
+          id: string;
+          sender: string;
+          severity: string;
+          headline: string;
+          description?: string;
+          sent_at: string;
+        }>;
+        if (data.length > 0) {
+          const a = data[0];
+          setLiveAlert({
+            source: a.sender as LiveThreatAlert["source"],
+            severity: a.severity as LiveThreatAlert["severity"],
+            title: a.headline,
+            detail: a.description ?? "",
+            timestamp: new Date(a.sent_at).toLocaleTimeString(),
+          });
+          setActiveAlertId(a.id);
+        }
+      } catch {
+        /* alerts API unavailable */
+      }
+    };
+    fetchAlerts();
+    const id = setInterval(fetchAlerts, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Apply EMERGENCY_BROADCAST from WebSocket to the live alert banner
+  useEffect(() => {
+    // Inline handler that forwards the EmergencyBroadcast to the alert
+    // banner.  Lives in the same WS useEffect below — kept here for
+    // readability.
+    return () => {};
+  }, []);
+
+  const handleAcknowledgeAlert = async () => {
+    showToast("✓ Alert acknowledged — logged to NDMA incident report");
+    if (activeAlertId) {
+      try {
+        await fetch(`${BACKEND_URL}/api/v1/alerts/${activeAlertId}/acknowledge`, { method: "PATCH" });
+      } catch {
+        /* best-effort acknowledgement */
+      }
+    }
+    setLiveAlert(null);
+    setActiveAlertId(null);
   };
 
   const handleTriggerProtocol = () => {
-    showToast("⚡ Campus Emergency Protocol Activated - All buildings notified");
-    // In production: trigger emergency broadcast
+    showToast("⚡ Campus Emergency Protocol Activated — All buildings notified");
+    // In production: POST /api/v1/reports/ndma with current session data
   };
 
-  const handleInjectIncident = (incidentType: IncidentType, floor: string) => {
+  const handleInjectIncident = async (incidentType: IncidentType, floor: string) => {
     setIsInjecting(true);
-    showToast(`⚡ Injecting ${incidentType.replace("_", " ")} incident on ${floor}...`);
+    showToast(`⚡ Injecting ${incidentType.replace("_", " ")} incident on ${floor}…`);
 
-    // Simulate incident injection (in production: send to backend WebSocket)
-    setTimeout(() => {
-      const incidentTitles = {
-        transformer_fire: "Transformer Fire - Power Failure",
-        chemical_spill: "Chemical Spill - Lab Containment Required",
-        gas_leak: "Gas Leak - Immediate Evacuation",
-      };
+    const incidentTitles: Record<IncidentType, string> = {
+      transformer_fire: "Transformer Fire — Power Failure",
+      chemical_spill: "Chemical Spill — Lab Containment Required",
+      gas_leak: "Gas Leak — Immediate Evacuation",
+    };
 
-      setLiveAlert({
-        source: "Campus-IoT",
-        severity: "CRITICAL",
-        title: incidentTitles[incidentType],
-        detail: `Simulated incident on ${floor}. Emergency response teams notified.`,
-        timestamp: new Date().toLocaleTimeString(),
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/incidents/inject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          incident_type: incidentType,
+          title: incidentTitles[incidentType],
+          detail: `Simulated incident on ${floor}. Emergency response teams notified.`,
+          severity: "CRITICAL",
+          floor,
+          persist: true,
+        }),
       });
-
+      if (res.ok) {
+        const data = (await res.json()) as { title: string; detail: string };
+        setLiveAlert({
+          source: "Campus-IoT",
+          severity: "CRITICAL",
+          title: data.title,
+          detail: data.detail,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+        showToast(`✓ Incident injected on ${floor}`);
+      } else {
+        showToast("⚠ Incident injection failed — check backend logs");
+      }
+    } catch {
+      showToast("⚠ Incident injection failed — backend unreachable");
+    } finally {
       setIsInjecting(false);
-      showToast(`✓ Incident injected successfully on ${floor}`);
-    }, 2000);
+    }
   };
 
   useEffect(() => {
@@ -212,7 +278,18 @@ export default function CommandPage() {
     const liveStream = createWebSocketTelemetryStream((raw) => {
       const message = raw as WebSocketTelemetryMessage;
       if (message.type === "EMERGENCY_BROADCAST") {
-        setTelemetry((previous) => applyEmergencyBroadcast(previous, message as EmergencyBroadcastMessage));
+        const broadcast = message as EmergencyBroadcastMessage;
+        setTelemetry((previous) => applyEmergencyBroadcast(previous, broadcast));
+        // Also update the LiveThreatBanner with the latest broadcast
+        setLiveAlert({
+          source: "NDMA-CAP",
+          severity: broadcast.severity === "Extreme" ? "CRITICAL"
+            : broadcast.severity === "Severe" ? "WARNING" : "ADVISORY",
+          title: broadcast.msg,
+          detail: "",
+          timestamp: new Date().toLocaleTimeString(),
+        });
+        setActiveAlertId(null);
       } else if (message.type === "DRILL_TELEMETRY") {
         setTelemetry((previous) => applyWebSocketTelemetry(previous, message as DrillTelemetryMessage));
       }

@@ -7,19 +7,60 @@ import { loadRuns, fmtTime, topViolation, VIOLATION_LABELS, type RunTelemetry } 
 import { parseFloorplan, SCENARIOS } from "@/components/simulate/game/floorplan";
 import styles from "./AdminDashboard.module.css";
 
+/* Backend API URL */
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
 /*
  * Command Analytics dashboard (Pillar 2 → Pillar 3 telemetry flow):
  * aggregates every persisted drill run from localStorage into
  * compliance stats, violation breakdowns and a route/death heatmap.
  */
 
+interface BackendKPIData {
+  total_drills: number;
+  success_rate: number;
+  safe_headcount_pct: number;
+  avg_escape_time_sec: number;
+  avg_peak_panic: number;
+  top_failure_mode: string;
+  top_failure_count: number;
+}
+
+interface BackendHeatmapData {
+  cols: number;
+  rows: number;
+  heat: number[];
+  casualty_cells: number[][];
+  exit_cells: number[][];
+}
+
+interface BackendAnalyticsResponse {
+  kpis: BackendKPIData;
+  heatmap: BackendHeatmapData;
+  per_scenario: Record<string, BackendKPIData>;
+}
+
 export default function AdminDashboard() {
   const [runs, setRuns] = useState<RunTelemetry[] | null>(null);
   const [heatScenarioId, setHeatScenarioId] = useState<string>(SCENARIOS[0].id);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [backendKpis, setBackendKpis] = useState<BackendKPIData | null>(null);
 
   useEffect(() => {
     setRuns(loadRuns());
+
+    // Fetch aggregated analytics from the backend
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/analytics`);
+        if (!res.ok) return;
+        const data = (await res.json()) as BackendAnalyticsResponse;
+        setBackendKpis(data.kpis);
+      } catch {
+        /* backend unavailable - fall back to localStorage only */
+      }
+    };
+    fetchAnalytics();
   }, []);
 
   const scenarioRuns = useMemo(
@@ -28,7 +69,8 @@ export default function AdminDashboard() {
   );
 
   /* ── aggregate KPIs ── */
-  const kpis = useMemo(() => {
+// Use backend KPIs when available, fallback to frontend-calculated
+const frontendKpis = useMemo(() => {
     if (!runs || runs.length === 0) return null;
     const won = runs.filter((r) => r.status === "won");
     const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -41,7 +83,30 @@ export default function AdminDashboard() {
     };
   }, [runs]);
 
+  const kpis = useMemo(() => {
+    if (backendKpis) {
+      return {
+        total: backendKpis.total_drills,
+        successRate: Math.round(backendKpis.success_rate * 100),
+        avgEscape: backendKpis.avg_escape_time_sec,
+        avgPeakPanic: backendKpis.avg_peak_panic,
+        worstViolation: {
+          type: backendKpis.top_failure_mode,
+          count: backendKpis.top_failure_count
+        }
+      };
+    }
+    return frontendKpis;
+  }, [backendKpis, frontendKpis]);
+
   const recent = useMemo(() => [...(runs ?? [])].slice(-12).reverse(), [runs]);
+
+  /* ── smooth analytics metadata ── */
+  const analyticsMeta = useMemo(() => {
+    const ts = Date.now();
+    const backendAvailable = !!backendKpis;
+    return { ts, backendAvailable };
+  }, [backendKpis]);
 
   /* ── heatmap render ── */
   useEffect(() => {

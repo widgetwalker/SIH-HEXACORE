@@ -14,6 +14,8 @@ from app.models.institution import Institution, Building, Floor
 from app.models.user import User, UserRole
 from app.models.drill import DrillSession, StudentDrillTelemetry, DrillMode, DrillStatus, DrillRun
 from app.models.alert import EmergencyAlert
+from app.models.user_profile import UserProfile
+from app.models.report import NDMAReport
 
 __all__ = [
     "Base",
@@ -28,4 +30,6 @@ __all__ = [
     "DrillStatus",
     "DrillRun",
     "EmergencyAlert",
+    "UserProfile",
+    "NDMAReport",
 ]

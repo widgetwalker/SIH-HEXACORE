@@ -19,7 +19,20 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 # side effects on the API itself.
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
-from app.api.v1 import buildings, health, mitra, pathfinder, scenarios, telemetry, webhooks, websockets
+from app.api.v1 import (
+    alerts,
+    buildings,
+    health,
+    incidents,
+    mitra,
+    pathfinder,
+    reports,
+    scenarios,
+    telemetry,
+    users,
+    webhooks,
+    websockets,
+)
 from app.services.pathfinder_bridge import pathfinder_bridge
 from app.services.websocket_manager import ws_manager
 
@@ -114,5 +127,9 @@ app.include_router(pathfinder.router, prefix="/api/v1", tags=["pathfinder"])
 app.include_router(scenarios.router, prefix="/api/v1", tags=["scenarios"])
 app.include_router(mitra.router, prefix="/api/v1", tags=["mitra"])
 app.include_router(telemetry.router, prefix="/api/v1", tags=["telemetry"])
+app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
+app.include_router(incidents.router, prefix="/api/v1", tags=["incidents"])
+app.include_router(users.router, prefix="/api/v1", tags=["users"])
+app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(websockets.router, prefix="/api/v1", tags=["websockets"])
