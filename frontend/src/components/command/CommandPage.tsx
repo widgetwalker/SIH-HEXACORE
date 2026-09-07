@@ -4,10 +4,19 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
-import { fetchLiveAlerts, injectIncident, INCIDENT_PRESETS, type LiveAlert, type IncidentType } from "@/lib/liveAlerts";
+import {
+  fetchLiveAlerts,
+  injectIncident,
+  INCIDENT_PRESETS,
+  PRESET_LOCATIONS,
+  DEFAULT_COORDS,
+  type LiveAlert,
+  type IncidentType,
+} from "@/lib/liveAlerts";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { playSirenBeep } from "@/lib/siren";
 import { loadCadetSettings } from "@/lib/cadetSettings";
+import LiveThreatBanner, { type LiveThreatAlert } from "./LiveThreatBanner";
 
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
@@ -39,10 +48,13 @@ const AGENCIES = [
   { name: "Ambulance EMS", status: "Standby", role: "Medical Triage", color: "violet" },
 ];
 
-const LIVE_ALERT_POLL_MS = 60_000;
+const LIVE_ALERT_POLL_MS = 30_000;
 
 function liveAlertColor(severity: string): string {
-  return severity === "Extreme" ? "red" : "amber";
+  const s = severity.toLowerCase();
+  if (s.includes("extreme") || s.includes("critical")) return "red";
+  if (s.includes("warn") || s.includes("severe")) return "amber";
+  return "blue";
 }
 
 export default function CommandPage() {
@@ -55,17 +67,134 @@ export default function CommandPage() {
   const [injecting, setInjecting] = useState<IncidentType | null>(null);
   const { broadcasts, connected } = useEmergencyBroadcasts();
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
+
+  // Geolocation & Sector coordinates (Defaults to Puducherry / Pondicherry)
+  const [selectedPreset, setSelectedPreset] = useState<string>("puducherry");
+  const [coords, setCoords] = useState<{ lat: number; lon: number; name: string }>({
+    lat: DEFAULT_COORDS.lat,
+    lon: DEFAULT_COORDS.lon,
+    name: DEFAULT_COORDS.name,
+  });
+  const [customLat, setCustomLat] = useState<string>(String(DEFAULT_COORDS.lat));
+  const [customLon, setCustomLon] = useState<string>(String(DEFAULT_COORDS.lon));
+  const [isLocating, setIsLocating] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleSelectPreset = (presetId: string) => {
+    setSelectedPreset(presetId);
+    if (presetId === "custom") return;
+    const preset = PRESET_LOCATIONS.find((p) => p.id === presetId);
+    if (preset) {
+      setCoords({ lat: preset.lat, lon: preset.lon, name: preset.name });
+      setCustomLat(String(preset.lat));
+      setCustomLon(String(preset.lon));
+      showToast(`📍 Sector coordinates set to: ${preset.name}`);
+    }
+  };
+
+  const handleApplyCustomCoords = () => {
+    const lat = parseFloat(customLat);
+    const lon = parseFloat(customLon);
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      showToast("⚠️ Invalid coordinates (Lat: -90..90, Lon: -180..180)");
+      return;
+    }
+    setSelectedPreset("custom");
+    setCoords({ lat, lon, name: `Sector (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E)` });
+    showToast(`📍 Sector calibrated to (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+  };
+
+  const handleDetectGPS = () => {
+    if (!navigator.geolocation) {
+      showToast("⚠️ Geolocation API not supported by browser");
+      return;
+    }
+    setIsLocating(true);
+    showToast("🛰️ Acquiring GPS telemetry from device sensors...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(4));
+        const lon = Number(pos.coords.longitude.toFixed(4));
+        setIsLocating(false);
+        setSelectedPreset("custom");
+        setCustomLat(String(lat));
+        setCustomLon(String(lon));
+        setCoords({ lat, lon, name: `Live GPS (${lat}°N, ${lon}°E)` });
+        showToast(`📍 Live GPS Locked: ${lat}°N, ${lon}°E`);
+      },
+      (err) => {
+        setIsLocating(false);
+        showToast(`⚠️ GPS locked failed (${err.message}). Sector remains Puducherry.`);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  // Compute highest-priority active threat for LiveThreatBanner
+  const activeBannerThreat: LiveThreatAlert | null = (() => {
+    if (broadcasts.length > 0) {
+      const b = broadcasts[0];
+      const timeStr = new Date(b.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      return {
+        id: `drill-${b.receivedAt}`,
+        source: "Campus-IoT",
+        severity: "CRITICAL",
+        title: "Campus Emergency Drill: " + b.msg,
+        detail: `Dispatched across campus network at ${timeStr}. Drill protocol active.`,
+        timestamp: timeStr,
+      };
+    }
+
+    const available = liveAlerts.filter((a) => !dismissedAlertIds.has(a.id));
+    if (available.length === 0) return null;
+
+    if (activeAlertId && !dismissedAlertIds.has(activeAlertId)) {
+      const found = available.find((a) => a.id === activeAlertId);
+      if (found) {
+        const isCrit = found.severity.toLowerCase().includes("extreme") || found.severity.toLowerCase().includes("critical");
+        const isWarn = found.severity.toLowerCase().includes("warn") || found.severity.toLowerCase().includes("severe");
+        return {
+          id: found.id,
+          source: found.source,
+          severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
+          title: found.headline,
+          detail: found.detail,
+          timestamp: new Date(found.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        };
+      }
+    }
+
+    // Default to highest severity or first available threat
+    const critical = available.find((a) => a.severity.toLowerCase().includes("extreme") || a.severity.toLowerCase().includes("critical"));
+    const warning = available.find((a) => a.severity.toLowerCase().includes("warn") || a.severity.toLowerCase().includes("severe"));
+    const target = critical || warning || available[0];
+
+    const isCrit = target.severity.toLowerCase().includes("extreme") || target.severity.toLowerCase().includes("critical");
+    const isWarn = target.severity.toLowerCase().includes("warn") || target.severity.toLowerCase().includes("severe");
+
+    return {
+      id: target.id,
+      source: target.source,
+      severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
+      title: target.headline,
+      detail: target.detail,
+      timestamp: new Date(target.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    };
+  })();
+
   const handleAcknowledgeAlert = async () => {
-    showToast("✓ Alert acknowledged — logged to NDMA incident report");
-    if (activeAlertId) {
+    if (!activeBannerThreat) return;
+    const targetId = activeBannerThreat.id ?? activeAlertId;
+    if (targetId) {
+      setDismissedAlertIds((prev) => new Set(prev).add(targetId));
+      showToast("✓ Alert acknowledged — logged to NDMA incident report");
       try {
-        await fetch(`${BACKEND_URL}/api/v1/alerts/${activeAlertId}/acknowledge`, { method: "PATCH" });
+        await fetch(`${BACKEND_URL}/api/v1/alerts/${targetId}/acknowledge`, { method: "PATCH" });
       } catch {
         /* best-effort acknowledgement */
       }
@@ -74,7 +203,8 @@ export default function CommandPage() {
   };
 
   const handleTriggerProtocol = () => {
-    showToast("⚡ Campus Emergency Protocol Activated — All buildings notified");
+    const title = activeBannerThreat?.title ?? "Campus Emergency";
+    showToast(`⚡ Emergency Protocol Activated: [${title}] — All buildings notified`);
   };
 
   const handleInject = async (type: IncidentType) => {
@@ -96,12 +226,13 @@ export default function CommandPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setLiveAlertsLoading(true);
     const poll = async () => {
-      const alerts = await fetchLiveAlerts();
+      const alerts = await fetchLiveAlerts(coords.lat, coords.lon);
       if (!cancelled) {
         setLiveAlerts(alerts);
         setLiveAlertsLoading(false);
-        if (alerts.length > 0) {
+        if (alerts.length > 0 && !activeAlertId) {
           setActiveAlertId(alerts[0].id);
         }
       }
@@ -112,7 +243,7 @@ export default function CommandPage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [coords.lat, coords.lon]);
 
   // Siren on every newly received emergency broadcast, gated by the
   // cadet's own Settings toggle.
@@ -155,6 +286,86 @@ export default function CommandPage() {
           </div>
         </div>
 
+        {/* Live Threat Banner */}
+        <LiveThreatBanner
+          alert={activeBannerThreat}
+          onAcknowledge={handleAcknowledgeAlert}
+          onTriggerProtocol={handleTriggerProtocol}
+        />
+
+        {/* Sector Geolocation & Telemetry Control */}
+        <div className={styles.locationToolbar}>
+          <div className={styles.locationInfo}>
+            <span className={styles.locationPulse} />
+            <div className={styles.locationTextGroup}>
+              <div className={styles.locationTitleRow}>
+                <span className="hud-label">📍 MONITORED SECTOR:</span>
+                <span className={styles.locationName}>{coords.name}</span>
+              </div>
+              <span className={`mono caption ${styles.locationCoords}`}>
+                LAT: {coords.lat.toFixed(4)}°N · LON: {coords.lon.toFixed(4)}°E · REGIONAL EOC RADAR
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.locationControls}>
+            <div className={styles.presetSelectWrapper}>
+              <label htmlFor="sector-preset" className="sr-only">Sector Preset</label>
+              <select
+                id="sector-preset"
+                className={styles.presetSelect}
+                value={selectedPreset}
+                onChange={(e) => handleSelectPreset(e.target.value)}
+              >
+                {PRESET_LOCATIONS.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.state})
+                  </option>
+                ))}
+                <option value="custom">⚙️ Custom Coordinates…</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className={styles.gpsBtn}
+              onClick={handleDetectGPS}
+              disabled={isLocating}
+              title="Acquire device coordinates via GPS"
+            >
+              {isLocating ? "🛰️ SCANNING…" : "🛰️ DETECT GPS"}
+            </button>
+
+            {selectedPreset === "custom" && (
+              <div className={styles.customCoordsBar}>
+                <input
+                  type="text"
+                  className={styles.coordInput}
+                  placeholder="Lat (11.9416)"
+                  value={customLat}
+                  onChange={(e) => setCustomLat(e.target.value)}
+                  aria-label="Latitude"
+                />
+                <input
+                  type="text"
+                  className={styles.coordInput}
+                  placeholder="Lon (79.8083)"
+                  value={customLon}
+                  onChange={(e) => setCustomLon(e.target.value)}
+                  aria-label="Longitude"
+                />
+                <button
+                  type="button"
+                  className={styles.applyCoordsBtn}
+                  onClick={handleApplyCustomCoords}
+                >
+                  CALIBRATE
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Live Disaster Early Warning + Incident Injector */}
         <div className={styles.liveWarningRow}>
           <div className={`${styles.panel} ${styles.liveWarningPanel} crt-effect`}>
@@ -166,12 +377,27 @@ export default function CommandPage() {
             </div>
             <div className={styles.liveAlertList}>
               {!liveAlertsLoading && liveAlerts.length === 0 && (
-                <div className={styles.liveAlertEmpty}>No active severe-weather or regional earthquake threats.</div>
+                <div className={styles.liveAlertEmpty}>No active severe-weather or regional earthquake threats in sector.</div>
               )}
               {liveAlerts.map((a) => (
-                <div key={a.id} className={`${styles.alertItem} ${styles[`alert-${liveAlertColor(a.severity)}`]}`}>
-                  <span className={`badge badge-${liveAlertColor(a.severity)} ${styles.alertSev}`}>{a.severity}</span>
-                  <span className={styles.alertSrc}>{a.source}</span>
+                <div
+                  key={a.id}
+                  className={`${styles.alertItem} ${styles[`alert-${liveAlertColor(a.severity)}`]} ${activeAlertId === a.id ? styles.alertItemActive : ""}`}
+                  onClick={() => {
+                    setActiveAlertId(a.id);
+                    showToast(`Active hazard focus: [${a.source}] ${a.headline}`);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className={styles.alertItemHeader}>
+                    <span className={`badge badge-${liveAlertColor(a.severity)} ${styles.alertSev}`}>{a.severity}</span>
+                    <span className={styles.alertSrc}>{a.source}</span>
+                    <span className={`mono caption ${styles.alertTimeTag}`}>
+                      {new Date(a.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
                   <p className={styles.alertMsg}>{a.headline}</p>
                   <p className={styles.liveAlertDetail}>{a.detail}</p>
                 </div>

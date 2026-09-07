@@ -38,6 +38,191 @@
 .voiceToggle:hover { background: rgba(0, 212, 170, 0.1); border-color: var(--accent-teal); }
 .voiceToggleOn { background: rgba(0, 212, 170, 0.15); border-color: var(--accent-teal); color: var(--accent-teal); box-shadow: 0 0 10px rgba(0, 212, 170, 0.2); }
 
+/* Sector Geolocation Toolbar */
+.locationToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px 18px;
+  background: rgba(8, 14, 26, 0.85);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 0 15px rgba(0, 212, 170, 0.04);
+}
+
+.locationInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.locationPulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  box-shadow: 0 0 12px var(--accent-teal);
+  animation: radar-pulse 2s infinite ease-out;
+  flex-shrink: 0;
+}
+
+@keyframes radar-pulse {
+  0% { transform: scale(0.9); box-shadow: 0 0 4px var(--accent-teal); }
+  50% { transform: scale(1.3); box-shadow: 0 0 14px var(--accent-teal); }
+  100% { transform: scale(0.9); box-shadow: 0 0 4px var(--accent-teal); }
+}
+
+.locationTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.locationTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.locationName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.locationCoords {
+  color: var(--accent-teal);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.locationControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.presetSelectWrapper {
+  position: relative;
+}
+
+.presetSelect {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.presetSelect:hover,
+.presetSelect:focus {
+  border-color: var(--accent-teal);
+  box-shadow: 0 0 8px rgba(0, 212, 170, 0.2);
+}
+
+.presetSelect option {
+  background: #0b1329;
+  color: #fff;
+}
+
+.gpsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid rgba(0, 212, 170, 0.4);
+  color: var(--accent-teal);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gpsBtn:hover:not(:disabled) {
+  background: rgba(0, 212, 170, 0.22);
+  box-shadow: 0 0 12px rgba(0, 212, 170, 0.35);
+  transform: translateY(-1px);
+}
+
+.gpsBtn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.customCoordsBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coordInput {
+  width: 100px;
+  padding: 6px 10px;
+  background: rgba(10, 15, 30, 0.85);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.coordInput:focus {
+  border-color: var(--accent-teal);
+  box-shadow: 0 0 6px rgba(0, 212, 170, 0.25);
+}
+
+.applyCoordsBtn {
+  padding: 6px 12px;
+  background: var(--accent-teal);
+  color: #030712;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.applyCoordsBtn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 10px rgba(0, 212, 170, 0.4);
+}
+
+.alertItemActive {
+  outline: 1px solid var(--accent-teal) !important;
+  box-shadow: 0 0 12px rgba(0, 212, 170, 0.25);
+}
+
+.alertItemHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alertTimeTag {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 0.625rem;
+}
+
 /* Live Disaster Early Warning + Incident Injector */
 .liveWarningRow { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: stretch; min-width: 0; }
 .liveWarningPanel { border-color: var(--accent-red); box-shadow: 0 0 0 1px rgba(239,68,68,0.15); }

@@ -1,4 +1,4 @@
-export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+export const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 export interface LiveAlert {
   id: string;
@@ -10,12 +10,58 @@ export interface LiveAlert {
   occurred_at: string;
 }
 
-export async function fetchLiveAlerts(): Promise<LiveAlert[]> {
+export interface LocationPreset {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  state: string;
+}
+
+export const DEFAULT_COORDS: LocationPreset = {
+  id: "puducherry",
+  name: "Puducherry Campus (Default)",
+  lat: 11.9416,
+  lon: 79.8083,
+  state: "Puducherry",
+};
+
+export const PRESET_LOCATIONS: LocationPreset[] = [
+  DEFAULT_COORDS,
+  { id: "karaikal", name: "Karaikal Campus", lat: 10.9254, lon: 79.8380, state: "Puducherry" },
+  { id: "chennai", name: "Chennai Coastal", lat: 13.0827, lon: 80.2707, state: "Tamil Nadu" },
+  { id: "bengaluru", name: "Bengaluru Tech Hub", lat: 12.9716, lon: 77.5946, state: "Karnataka" },
+  { id: "mumbai", name: "Mumbai Harbor", lat: 18.9220, lon: 72.8347, state: "Maharashtra" },
+  { id: "delhi", name: "New Delhi NCR", lat: 28.6139, lon: 77.2090, state: "Delhi" },
+  { id: "dehradun", name: "Dehradun (Seismic Zone IV)", lat: 30.3165, lon: 78.0322, state: "Uttarakhand" },
+];
+
+export async function fetchLiveAlerts(lat: number = DEFAULT_COORDS.lat, lon: number = DEFAULT_COORDS.lon): Promise<LiveAlert[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/alerts/live`);
+    const res = await fetch(`${BACKEND_URL}/api/v1/alerts/live?lat=${lat}&lon=${lon}`);
     if (!res.ok) return [];
     const data: unknown = await res.json();
-    return Array.isArray(data) ? (data as LiveAlert[]) : [];
+    if (!Array.isArray(data)) return [];
+
+    return data.map((item: Record<string, unknown>, idx: number) => {
+      const id = String(item.id ?? item.cap_identifier ?? `live-alert-${idx}-${Date.now()}`);
+      const source = String(item.sender ?? item.source ?? "NDMA-CAP");
+      const category = String(item.event_category ?? item.category ?? "hazard");
+      const severity = String(item.severity ?? "Advisory");
+      const headline = String(item.headline ?? "Active Incident Notice");
+      const detail = String(item.description ?? item.detail ?? "");
+      const occurred_at = String(item.sent_at ?? item.occurred_at ?? new Date().toISOString());
+
+      return {
+        id,
+        source,
+        category,
+        severity,
+        headline,
+        detail,
+        occurred_at,
+      };
+    });
   } catch {
     return [];
   }
@@ -41,3 +87,4 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
     return false;
   }
 }
+

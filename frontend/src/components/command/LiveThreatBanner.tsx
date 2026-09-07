@@ -4,7 +4,8 @@ import React from "react";
 import styles from "./LiveThreatBanner.module.css";
 
 export interface LiveThreatAlert {
-  source: "Open-Meteo" | "USGS" | "NDMA-CAP" | "Campus-IoT";
+  id?: string;
+  source: "Open-Meteo" | "USGS" | "NDMA-CAP" | "Campus-IoT" | string;
   severity: "CRITICAL" | "WARNING" | "ADVISORY";
   title: string;
   detail: string;
@@ -20,21 +21,21 @@ export interface LiveThreatBannerProps {
 const SEVERITY_CONFIG = {
   CRITICAL: {
     color: "#EF4444",
-    bgColor: "rgba(239, 68, 68, 0.1)",
+    bgColor: "rgba(239, 68, 68, 0.12)",
     icon: "🚨",
-    label: "EXTREME",
+    label: "EXTREME THREAT",
   },
   WARNING: {
     color: "#F59E0B",
-    bgColor: "rgba(245, 158, 11, 0.1)",
+    bgColor: "rgba(245, 158, 11, 0.12)",
     icon: "⚠️",
     label: "WARNING",
   },
   ADVISORY: {
-    color: "#3B82F6",
-    bgColor: "rgba(59, 130, 246, 0.1)",
-    icon: "ℹ️",
-    label: "ADVISORY",
+    color: "#00D4AA",
+    bgColor: "rgba(0, 212, 170, 0.10)",
+    icon: "📡",
+    label: "LIVE TELEMETRY",
   },
 } as const;
 
@@ -45,7 +46,10 @@ export default function LiveThreatBanner({
 }: LiveThreatBannerProps) {
   if (!alert) return null;
 
-  const config = SEVERITY_CONFIG[alert.severity];
+  const sevKey = (alert.severity.toUpperCase() in SEVERITY_CONFIG)
+    ? (alert.severity.toUpperCase() as keyof typeof SEVERITY_CONFIG)
+    : "ADVISORY";
+  const config = SEVERITY_CONFIG[sevKey];
 
   return (
     <div
