@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { loadCadetProfile, CADET_PROFILE_EVENT, type CadetProfile } from "@/lib/cadetProfile";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
@@ -113,9 +114,9 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
             className={`${styles.alertIndicator} ${mode === "emergency" ? styles.alertActive : ""}`}
             style={{ textDecoration: "none" }}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" suppressHydrationWarning>
+              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" suppressHydrationWarning />
+              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" suppressHydrationWarning />
             </svg>
             <span>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
           </Link>
@@ -126,9 +127,12 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
             className={styles.avatar}
             aria-label={profile ? `${profile.name}'s Profile` : "User Profile"}
             title={profile ? profile.name : "User Profile"}
-            style={{ textDecoration: "none" }}
           >
-            {profile ? profile.name.charAt(0).toUpperCase() : "?"}
+            {profile ? (
+              <ProfileAvatar profile={profile} size="small" className={styles.navAvatar} />
+            ) : (
+              "?"
+            )}
           </Link>
 
           <button

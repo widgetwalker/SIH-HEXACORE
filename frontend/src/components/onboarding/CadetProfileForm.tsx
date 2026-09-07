@@ -15,27 +15,35 @@ export default function CadetProfileForm({ initial, submitLabel, onSaved }: Prop
   const [age, setAge] = useState(initial ? String(initial.age) : "");
   const [grade, setGrade] = useState(initial?.grade ?? "");
   const [school, setSchool] = useState(initial?.school ?? "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const ageNum = Number(age);
   const preview = age && Number.isFinite(ageNum) ? mapAgeToTier(ageNum) : null;
 
-  const submit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !grade.trim() || !school.trim()) {
-      setError("All fields are required.");
+    const newErrors: Record<string, string> = {};
+
+    if (!name.trim()) newErrors.name = "Name is required";
+    const ageNum = parseInt(age, 10);
+    if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 99) {
+      newErrors.age = "Valid age is required (5-99)";
+    }
+    if (!grade) newErrors.grade = "Grade is required";
+    if (!school.trim()) newErrors.school = "School is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
-    if (!Number.isFinite(ageNum) || ageNum < 5 || ageNum > 99) {
-      setError("Age must be between 5 and 99.");
-      return;
-    }
-    const saved = saveCadetProfile({ name, age: ageNum, grade, school });
+
+    const saved = await saveCadetProfile({ name, age: ageNum, grade, school });
     onSaved(saved);
   };
 
   return (
-    <form className={styles.form} onSubmit={submit}>
+    <form className={styles.form} onSubmit={handleSubmit}>
       <label className={styles.field}>
         <span>Full Name</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ananya Sharma" required />

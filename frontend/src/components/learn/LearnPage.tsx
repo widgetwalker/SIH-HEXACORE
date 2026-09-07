@@ -6,7 +6,8 @@ import Navbar from "@/components/Navbar";
 import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, shortId } from "./tiergame/moduleRegistry";
 import { QUIZ_MODULES_BY_TIER, loadQuizScores, isLevelUnlocked, QUIZ_PASS_PCT } from "./tiergame/quizRegistry";
 import type { ModuleType } from "./tiergame/types";
-import { loadCadetProfile, type CadetProfile } from "@/lib/cadetProfile";
+import { loadCadetProfile, loadActiveTierScores, saveActiveTierScores, type CadetProfile } from "@/lib/cadetProfile";
+import CertificateModal from "./CertificateModal";
 import styles from "./LearnPage.module.css";
 
 const TIERS = [
@@ -19,36 +20,16 @@ const TIERS = [
 
 const TYPE_LABEL: Record<ModuleType, string> = { interactive: "Interactive", simulation: "Simulation", "video-quiz": "Video + Quiz" };
 
-/* tierScores used to be in-memory only, which was fine while every module
-   played out in a modal on this same page. Now "simulation"-type modules
-   navigate away to /simulate and back, which unmounts LearnPage entirely -
-   without persistence that round trip would wipe every other module's
-   progress from the same session, not just reset the one being played. */
-const TIER_SCORES_KEY = "safezone_tier_scores_v1";
-
-function loadTierScores(): Record<number, Record<string, number>> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(TIER_SCORES_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    // Corrupted/foreign data (null, an array, a primitive) would otherwise
-    // turn a "just reset progress" fallback into a hard crash the first
-    // time something does tierScores[tierId] on it.
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
-    return parsed as Record<number, Record<string, number>>;
-  } catch {
-    return {};
-  }
-}
-
-const BADGES = [
-  { name: "First Responder", earned: true, icon: "🏅" },
-  { name: "Fire Marshal", earned: true, icon: "🔥" },
-  { name: "Quake Survivor", earned: false, icon: "🌍" },
-  { name: "Floor Warden", earned: false, icon: "🛡️" },
-  { name: "Crisis Commander", earned: false, icon: "⭐" },
-  { name: "NDMA Certified", earned: false, icon: "🎖️" },
+/* Badge definitions — earned state is computed dynamically from actual
+   tier scores and quiz scores. Each badge specifies a
+   condition based on module completions or quiz completions. */
+const BADGE_DEFS = [
+  { name: "First Responder", icon: "🏅", check: (s: Record<number, Record<string, number>>, q: Record<string, Record<number, number>>) => Object.values(s).some((t) => Object.keys(t).length > 0) || Object.values(q).some((t) => Object.keys(t).length > 0) },
+  { name: "Fire Marshal", icon: "🔥", check: (s: Record<number, Record<string, number>>, q: Record<string, Record<number, number>>) => (Object.values(s).some((t) => Object.keys(t).some((k) => k.includes("m1"))) || Object.keys(q).some((k) => k.includes("m1"))) && (Object.values(s).reduce((n, t) => n + Object.keys(t).length, 0) + Object.values(q).reduce((n, t) => n + Object.keys(t).length, 0) >= 2) },
+  { name: "Quake Survivor", icon: "🌍", check: (s: Record<number, Record<string, number>>, q: Record<string, Record<number, number>>) => Object.values(s).reduce((n, t) => n + Object.keys(t).length, 0) + Object.values(q).reduce((n, t) => n + Object.keys(t).length, 0) >= 3 },
+  { name: "Floor Warden", icon: "🛡️", check: (s: Record<number, Record<string, number>>, q: Record<string, Record<number, number>>) => Object.values(s).reduce((n, t) => n + Object.keys(t).length, 0) + Object.values(q).reduce((n, t) => n + Object.keys(t).length, 0) >= 5 },
+  { name: "Crisis Commander", icon: "⭐", check: (s: Record<number, Record<string, number>>, q: Record<string, Record<number, number>>) => ALL_TIER_IDS.some((tid) => { const cfg = TIER_GAME_CONFIG[tid]; if (!cfg) return false; const ts = s[tid] ?? {}; return cfg.modules.every((m) => ts[m.id.replace(`${cfg.prefix}-`, "")] !== undefined || q[m.id] !== undefined); }) },
+  { name: "NDMA Certified", icon: "🎖️", check: (s: Record<number, Record<string, number>>, q: Record<string, Record<number, number>>) => ALL_TIER_IDS.every((tid) => { const cfg = TIER_GAME_CONFIG[tid]; if (!cfg || cfg.modules.length === 0) return false; const ts = s[tid] ?? {}; return cfg.modules.every((m) => ts[m.id.replace(`${cfg.prefix}-`, "")] !== undefined || q[m.id] !== undefined); }) },
 ];
 
 function tierCompletion(tierId: number, scores: Record<number, Record<string, number>>): { completed: number; total: number } {
@@ -100,10 +81,11 @@ export default function LearnPage() {
   // after mount instead of during the initial render.
   const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
   const [quizScores, setQuizScores] = useState<Record<string, Record<number, number>>>({});
+  const [showCertForModule, setShowCertForModule] = useState<{ id: string; name: string; type: string } | null>(null);
   const skipNextSave = useRef(true);
 
   useEffect(() => {
-    setTierScores(loadTierScores());
+    setTierScores(loadActiveTierScores());
     setQuizScores(loadQuizScores());
     const cadet = loadCadetProfile();
     setProfile(cadet);
@@ -115,11 +97,7 @@ export default function LearnPage() {
       skipNextSave.current = false;
       return;
     }
-    try {
-      window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(tierScores));
-    } catch {
-      /* storage full or unavailable - non-fatal, progress just won't survive a reload */
-    }
+    saveActiveTierScores(tierScores);
   }, [tierScores]);
 
   /* first module in a tier's list is always unlocked; each next one unlocks
@@ -166,7 +144,45 @@ export default function LearnPage() {
     }
     router.replace("/learn");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
+
+  useEffect(() => {
+    // Check for newly completed modules
+    if (!profile) return;
+    const key = `safezone_acknowledged_certs_modules_${profile.id}`;
+    let ackCerts: string[] = [];
+    try {
+      ackCerts = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch {}
+
+    let newlyCompletedModule = null;
+
+    for (const tierId of ALL_TIER_IDS) {
+      const cfg = TIER_GAME_CONFIG[tierId];
+      if (!cfg) continue;
+      const tScores = tierScores[tierId] ?? {};
+      for (const m of cfg.modules) {
+        const sid = m.id.replace(`${cfg.prefix}-`, "");
+        if (tScores[sid] !== undefined && !ackCerts.includes(m.id)) {
+          newlyCompletedModule = m;
+          break;
+        }
+      }
+      if (newlyCompletedModule) break;
+    }
+
+    if (newlyCompletedModule) {
+      setShowCertForModule({
+        id: newlyCompletedModule.id,
+        name: newlyCompletedModule.name,
+        type: TYPE_LABEL[newlyCompletedModule.type]
+      });
+      ackCerts.push(newlyCompletedModule.id);
+      try {
+        localStorage.setItem(key, JSON.stringify(ackCerts));
+      } catch {}
+    }
+  }, [tierScores, profile]);
 
   return (
     <div className={styles.page}>
@@ -392,23 +408,34 @@ export default function LearnPage() {
           <section className={styles.badgesSection}>
             <h2 className="heading-lg">Achievement Badges</h2>
             <div className={styles.badgesGrid}>
-              {BADGES.map((b) => (
+              {BADGE_DEFS.map((b) => {
+                const earned = b.check(tierScores, quizScores);
+                return (
                 <div
                   key={b.name}
-                  className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}
-                  onClick={() => showToast(b.earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
+                  className={`${styles.badgeCard} ${!earned ? styles.badgeLocked : ""}`}
+                  onClick={() => showToast(earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
                   role="button"
                   tabIndex={0}
                 >
                   <span className={styles.badgeEmoji}>{b.icon}</span>
                   <span className={styles.badgeName}>{b.name}</span>
-                  {b.earned && <span className={styles.badgeCheck}>✓</span>}
+                  {earned && <span className={styles.badgeCheck}>✓</span>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </main>
       </div>
+      {showCertForModule !== null && profile && (
+        <CertificateModal
+          profile={profile}
+          moduleName={showCertForModule.name}
+          moduleType={showCertForModule.type}
+          onClose={() => setShowCertForModule(null)}
+        />
+      )}
     </div>
   );
 }

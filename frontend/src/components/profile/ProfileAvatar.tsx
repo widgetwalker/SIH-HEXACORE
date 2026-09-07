@@ -2,7 +2,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { CSSProperties } from "react";
-import { DEFAULT_AVATAR_ID, PROFILE_AVATARS, type CadetProfile } from "@/types/profile";
+import { DEFAULT_AVATAR_ID, PROFILE_AVATARS } from "@/types/profile";
+import type { CadetProfile } from "@/lib/cadetProfile";
 import styles from "./ProfileAvatar.module.css";
 
 interface ProfileAvatarProps {

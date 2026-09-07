@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import String, Integer, Boolean, ForeignKey, TIMESTAMP
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,13 +49,19 @@ class User(Base):
         UUID(as_uuid=True), ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, name="user_role_enum", create_type=False),
         default=UserRole.STUDENT,
         nullable=False,
     )
+    grade: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    school: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    avatar_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    avatar_image: Mapped[str | None] = mapped_column(String, nullable=True)
+    tier_scores: Mapped[dict | None] = mapped_column(type_=JSONB, server_default='{}', nullable=True)
+    quiz_scores: Mapped[dict | None] = mapped_column(type_=JSONB, server_default='{}', nullable=True)
     age: Mapped[int | None] = mapped_column(Integer, nullable=True)
     age_cohort: Mapped[str | None] = mapped_column(String(30), nullable=True)
     assigned_building_id: Mapped[uuid.UUID | None] = mapped_column(

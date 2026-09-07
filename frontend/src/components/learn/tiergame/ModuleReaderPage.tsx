@@ -7,10 +7,10 @@ import RouteMapChoice from "./RouteMapChoice";
 import { CheckpointCard, SimCheckpointPrompt } from "./CheckpointComponents";
 import { LEARN_SCENARIOS } from "./content/simScenarios";
 import { TIER_NAMES } from "./moduleRegistry";
+import { loadActiveTierScores, saveActiveTierScores } from "@/lib/cadetProfile";
 import type { TierModuleContent } from "./types";
 import styles from "./ModuleReaderPage.module.css";
 
-const TIER_SCORES_KEY = "safezone_tier_scores_v1";
 const PROGRESS_KEY_PREFIX = "safezone_progress_";
 
 function loadReadingProgress(moduleId: string): { progress: number; scrollY: number } | null {
@@ -37,18 +37,6 @@ function saveReadingProgress(moduleId: string, progress: number, scrollY: number
   }
 }
 
-function saveScore(tierId: number, moduleShortId: string, scorePct: number) {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = window.localStorage.getItem(TIER_SCORES_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : {};
-    const base = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<number, Record<string, number>>) : {};
-    const next = { ...base, [tierId]: { ...(base[tierId] ?? {}), [moduleShortId]: scorePct } };
-    window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(next));
-  } catch {
-    /* storage full or unavailable - non-fatal, progress just won't persist */
-  }
-}
 
 const TYPE_LABEL: Record<TierModuleContent["type"], string> = {
   interactive: "Interactive",
@@ -131,8 +119,15 @@ export default function ModuleReaderPage({ module, tierId, moduleShortId }: Prop
     };
   }, [module.id]);
 
-  const finish = () => {
-    saveScore(tierId, moduleShortId, choice === "correct" ? 100 : 60);
+const saveScore = async (tierId: number, moduleShortId: string, scorePct: number) => {
+  const scores = loadActiveTierScores();
+  const next = { ...scores, [tierId]: { ...(scores[tierId] ?? {}), [moduleShortId]: scorePct } };
+  await saveActiveTierScores(next);
+};
+
+// ... inside ModuleReaderPage
+  const finish = async () => {
+    await saveScore(tierId, moduleShortId, choice === "correct" ? 100 : 60);
     router.push("/learn");
   };
 

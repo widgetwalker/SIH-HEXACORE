@@ -3,37 +3,44 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import CadetProfileForm from "@/components/onboarding/CadetProfileForm";
-import { loadCadetProfile, type CadetProfile } from "@/lib/cadetProfile";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import AvatarPicker from "@/components/profile/AvatarPicker";
+import EditProfileDrawer from "@/components/profile/EditProfileDrawer";
+import {
+  loadCadetProfile,
+  loadAllUsers,
+  loadUserTierScores,
+  loadActiveTierScores,
+  logoutUser,
+  saveCadetProfile,
+  updateAvatar,
+  type CadetProfile,
+} from "@/lib/cadetProfile";
 import { ALL_TIER_IDS, TIER_GAME_CONFIG, TIER_NAMES } from "@/components/learn/tiergame/moduleRegistry";
 import { DEFAULT_SETTINGS, MITRA_VOICE_LANGUAGES, loadCadetSettings, saveCadetSettings, type CadetSettings } from "@/lib/cadetSettings";
+import CertificateModal from "@/components/learn/CertificateModal";
 import styles from "./ProfilePage.module.css";
 
-const TIER_SCORES_KEY = "safezone_tier_scores_v1";
 const TABS = ["Overview", "My Certificates", "Leaderboard", "Settings"] as const;
 type Tab = (typeof TABS)[number];
 
-function loadTierScores(): Record<number, Record<string, number>> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(TIER_SCORES_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
-    return parsed as Record<number, Record<string, number>>;
-  } catch {
-    return {};
+/** Compute readiness % for a given user's tier scores */
+function computeReadiness(tierScores: Record<number, Record<string, number>>): { pct: number; completed: number; total: number } {
+  let completed = 0;
+  let total = 0;
+  for (const tierId of ALL_TIER_IDS) {
+    const cfg = TIER_GAME_CONFIG[tierId];
+    if (!cfg) continue;
+    total += cfg.modules.length;
+    const scores = tierScores[tierId] ?? {};
+    completed += cfg.modules.filter((m) => scores[m.id.replace(`${cfg.prefix}-`, "")] !== undefined).length;
   }
+  return {
+    pct: total > 0 ? Math.round((completed / total) * 100) : 0,
+    completed,
+    total,
+  };
 }
-
-const MOCK_LEADERBOARD = [
-  { name: "Aarav Mehta", score: 96 },
-  { name: "Diya Kapoor", score: 91 },
-  { name: "Kabir Singh", score: 87 },
-  { name: "Ishita Rao", score: 82 },
-  { name: "Rohan Iyer", score: 74 },
-  { name: "Sneha Nair", score: 68 },
-];
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -43,10 +50,11 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [editing, setEditing] = useState(false);
   const [settings, setSettings] = useState<CadetSettings>(DEFAULT_SETTINGS);
+  const [selectedCert, setSelectedCert] = useState<{ id: string; name: string; type: string } | null>(null);
 
   useEffect(() => {
     setProfile(loadCadetProfile());
-    setTierScores(loadTierScores());
+    setTierScores(loadActiveTierScores());
     setSettings(loadCadetSettings());
     const tabParam = searchParams.get("tab");
     const match = TABS.find((t) => t.toLowerCase().replace(/\s+/g, "-") === tabParam);
@@ -54,42 +62,89 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { readinessPct, completedCount, totalCount } = useMemo(() => {
-    let completed = 0;
-    let total = 0;
+  const { pct: readinessPct, completed: completedCount, total: totalCount } = useMemo(() => {
+    return computeReadiness(tierScores);
+  }, [tierScores]);
+
+  const certifiedModules = useMemo(() => {
+    const modules: { id: string; name: string; type: string }[] = [];
     for (const tierId of ALL_TIER_IDS) {
       const cfg = TIER_GAME_CONFIG[tierId];
       if (!cfg) continue;
-      total += cfg.modules.length;
       const scores = tierScores[tierId] ?? {};
-      completed += cfg.modules.filter((m) => scores[m.id.replace(`${cfg.prefix}-`, "")] !== undefined).length;
+      for (const m of cfg.modules) {
+        if (scores[m.id.replace(`${cfg.prefix}-`, "")] !== undefined) {
+          modules.push({ id: m.id, name: m.name, type: m.type === "simulation" ? "Simulation" : m.type === "interactive" ? "Interactive" : "Video + Quiz" });
+        }
+      }
     }
-    return {
-      readinessPct: total > 0 ? Math.round((completed / total) * 100) : 0,
-      completedCount: completed,
-      totalCount: total,
-    };
+    return modules;
   }, [tierScores]);
 
-  const certifiedTiers = useMemo(() => {
-    return ALL_TIER_IDS.filter((tierId) => {
-      const cfg = TIER_GAME_CONFIG[tierId];
-      if (!cfg || cfg.modules.length === 0) return false;
-      const scores = tierScores[tierId] ?? {};
-      return cfg.modules.every((m) => scores[m.id.replace(`${cfg.prefix}-`, "")] !== undefined);
-    }).map((tierId) => ({ tierId, name: TIER_NAMES[tierId] ?? "" }));
-  }, [tierScores]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
-  const leaderboard = useMemo(() => {
-    const rows = MOCK_LEADERBOARD.map((r) => ({ ...r, isYou: false }));
-    if (profile) rows.push({ name: profile.name, score: readinessPct, isYou: true });
-    return rows.sort((a, b) => b.score - a.score);
-  }, [profile, readinessPct]);
+  useEffect(() => {
+    // Fallback: build from local storage until backend answers
+    const localUsers = loadAllUsers();
+    const localRows = localUsers.map((user) => {
+      const userScores = loadUserTierScores(user.id);
+      const { pct } = computeReadiness(userScores);
+      return {
+        id: user.id,
+        name: user.name,
+        avatarId: user.avatarId,
+        avatarImage: user.avatarImage,
+        score: pct,
+        isYou: profile ? user.id === profile.id : false,
+      };
+    });
+    setLeaderboard(localRows.sort((a, b) => b.score - a.score));
+
+    // Fetch from backend
+    import("@/lib/cadetProfile").then(({ fetchLeaderboard }) => {
+      fetchLeaderboard().then((dbLeaderboard) => {
+        if (dbLeaderboard && dbLeaderboard.length > 0) {
+          const remoteRows = dbLeaderboard.map((u) => ({
+            id: u.id,
+            name: u.full_name,
+            avatarId: u.avatar_id,
+            avatarImage: u.avatar_image,
+            score: Math.round(u.score_percentage),
+            isYou: profile ? u.id === profile.id : false,
+          }));
+          setLeaderboard(remoteRows.sort((a, b) => b.score - a.score));
+        }
+      });
+    });
+  }, [profile]);
 
   const updateSetting = <K extends keyof CadetSettings>(key: K, value: CadetSettings[K]) => {
     const next = { ...settings, [key]: value };
     setSettings(next);
     saveCadetSettings(next);
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    router.push("/");
+  };
+
+  const handleEditSave = async (data: { name: string; age: number; grade: string; school: string; tierId: number; tierName: string }) => {
+    const saved = await saveCadetProfile({
+      name: data.name,
+      age: data.age,
+      grade: data.grade,
+      school: data.school,
+      avatarId: profile?.avatarId,
+      avatarImage: profile?.avatarImage,
+    });
+    setProfile(saved);
+    setEditing(false);
+  };
+
+  const handleAvatarChange = async (next: { avatarId: string; avatarImage?: string }) => {
+    const updated = await updateAvatar(next.avatarId, next.avatarImage);
+    if (updated) setProfile(updated);
   };
 
   if (!profile) return null;
@@ -99,7 +154,7 @@ export default function ProfilePage() {
       <Navbar mode="learning" />
       <div className={styles.layout}>
         <header className={styles.header}>
-          <div className={styles.avatarLarge}>{profile.name.charAt(0).toUpperCase()}</div>
+          <ProfileAvatar profile={profile} size="large" />
           <div className={styles.headerInfo}>
             <h1 className={styles.name}>{profile.name}</h1>
             <p className={styles.meta}>
@@ -107,9 +162,14 @@ export default function ProfilePage() {
             </p>
             <span className="badge badge-teal">Tier {profile.tierId} · {profile.tierName}</span>
           </div>
-          <button className="btn btn-ghost" onClick={() => setEditing(true)}>
-            Edit Details
-          </button>
+          <div className={styles.headerActions}>
+            <button className="btn btn-ghost" onClick={() => setEditing(true)}>
+              Edit Details
+            </button>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              Switch User
+            </button>
+          </div>
         </header>
 
         <nav className={styles.tabs}>
@@ -163,17 +223,49 @@ export default function ProfilePage() {
 
         {activeTab === "My Certificates" && (
           <section className={styles.section}>
-            {certifiedTiers.length === 0 ? (
-              <p className={styles.emptyState}>Complete every module in a tier to earn your first certificate.</p>
+            {certifiedModules.length === 0 ? (
+              <p className={styles.emptyState}>Complete a module to earn your first certificate.</p>
             ) : (
               <div className={styles.certGrid}>
-                {certifiedTiers.map((t) => (
-                  <div key={t.tierId} className={styles.certCard}>
+                {certifiedModules.map((m) => (
+                  <div key={m.id} className={styles.certCard} style={{ cursor: "pointer" }} onClick={() => setSelectedCert(m)}>
                     <span className={styles.certBadge}>🎖️</span>
                     <h3 className={styles.certTitle}>Certificate of Completion</h3>
                     <p className={styles.certName}>{profile.name}</p>
                     <p className={styles.certMeta}>{profile.school}</p>
-                    <p className={styles.certTier}>{t.name} Tier — All Modules Verified</p>
+                    <p className={styles.certTier}>{m.name} ({m.type})</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {selectedCert && profile && (
+              <CertificateModal
+                profile={profile}
+                moduleName={selectedCert.name}
+                moduleType={selectedCert.type}
+                onClose={() => setSelectedCert(null)}
+              />
+            )}
+          </section>
+        )}
+
+        {activeTab === "Leaderboard" && (
+          <section className={styles.section}>
+            {leaderboard.length === 0 ? (
+              <p className={styles.leaderEmpty}>No users registered yet. Be the first!</p>
+            ) : (
+              <div className={styles.leaderboardList}>
+                {leaderboard.map((row, i) => (
+                  <div key={row.id} className={`${styles.leaderRow} ${row.isYou ? styles.leaderRowYou : ""}`}>
+                    <span className={styles.leaderRank}>#{i + 1}</span>
+                    <ProfileAvatar
+                      profile={{ avatarId: row.avatarId, avatarImage: row.avatarImage }}
+                      size="small"
+                      className={styles.leaderAvatar}
+                    />
+                    <span className={styles.leaderName}>{row.isYou ? `${row.name} (You)` : row.name}</span>
+                    <span className={styles.leaderScore}>{row.score}%</span>
                   </div>
                 ))}
               </div>
@@ -181,23 +273,14 @@ export default function ProfilePage() {
           </section>
         )}
 
-        {activeTab === "Leaderboard" && (
-          <section className={styles.section}>
-            <div className={styles.leaderboardList}>
-              {leaderboard.map((row, i) => (
-                <div key={row.name} className={`${styles.leaderRow} ${row.isYou ? styles.leaderRowYou : ""}`}>
-                  <span className={styles.leaderRank}>#{i + 1}</span>
-                  <span className={styles.leaderName}>{row.isYou ? `${row.name} (You)` : row.name}</span>
-                  <span className={styles.leaderScore}>{row.score}%</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {activeTab === "Settings" && (
           <section className={styles.section}>
             <div className={styles.settingsList}>
+              <AvatarPicker
+                profile={{ avatarId: profile.avatarId, avatarImage: profile.avatarImage }}
+                onChange={handleAvatarChange}
+              />
+              <hr style={{ margin: "2rem 0", border: "none", borderTop: "1px solid var(--border-subtle)" }} />
               <label className={styles.settingRow}>
                 <div>
                   <span className={styles.settingName}>Drill Sirens</span>
@@ -243,7 +326,7 @@ export default function ProfilePage() {
               <div className={styles.settingRow}>
                 <div>
                   <span className={styles.settingName}>Emergency Contact</span>
-                  <span className={styles.settingDesc}>Who to notify if you're marked unaccounted for during a drill.</span>
+                  <span className={styles.settingDesc}>Who to notify if you&#39;re marked unaccounted for during a drill.</span>
                 </div>
                 <div className={styles.contactFields}>
                   <input
@@ -263,17 +346,21 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {editing && (
-        <div className={styles.drawerOverlay} onClick={() => setEditing(false)}>
-          <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
-            <h2 className="heading-lg">Edit Details</h2>
-            <CadetProfileForm
-              initial={profile}
-              submitLabel="Save Changes"
-              onSaved={(p) => {
-                setProfile(p);
-                setEditing(false);
-              }}
+      {/* Edit Drawer */}
+      <EditProfileDrawer
+        isOpen={editing}
+        initialData={profile ? { name: profile.name, age: profile.age, grade: profile.grade, school: profile.school } : undefined}
+        onSave={handleEditSave}
+        onClose={() => setEditing(false)}
+      />
+
+      {/* Avatar Picker — shows inside drawer */}
+      {editing && profile && (
+        <div className={styles.drawerOverlay} onClick={() => setEditing(false)} style={{ zIndex: 997 }}>
+          <div className={styles.drawer} onClick={(e) => e.stopPropagation()} style={{ zIndex: 999 }}>
+            <AvatarPicker
+              profile={{ avatarId: profile.avatarId, avatarImage: profile.avatarImage }}
+              onChange={handleAvatarChange}
             />
           </div>
         </div>

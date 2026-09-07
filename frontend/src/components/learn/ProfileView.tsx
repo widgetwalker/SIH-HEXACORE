@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { CadetProfile } from "@/types/profile";
+import type { CadetProfile } from "@/lib/cadetProfile";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import styles from "./LearnPage.module.css";
 
