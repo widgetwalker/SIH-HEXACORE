@@ -20,6 +20,8 @@ const ScenarioEffects = dynamic(
 
 import styles from "./SimulatePage.module.css";
 
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
 const BUBBLE_TONE_CLASS = {
   warn: "mitraBubbleWarn",
   good: "mitraBubbleGood",
@@ -274,10 +276,49 @@ export default function SimulatePage() {
     else updateBubble(s);
   };
 
-  const onEnd = (run: RunTelemetry) => {
+  const onEnd = async (run: RunTelemetry) => {
     saveRun(run);
     setLastRun(run);
     setDebrief(generateDebrief(run));
+
+    // Persist to backend telemetry API
+    try {
+      await fetch(`${BACKEND_URL}/api/v1/telemetry/runs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: run.runId,  // use runId as userId proxy since we don't have auth
+          runId: run.runId,
+          scenarioId: run.scenarioId,
+          scenarioName: run.scenarioName,
+          status: run.status,
+          time: run.time,
+          oxygenLeft: run.oxygenLeft,
+          panicPeak: run.panicPeak,
+          panicFreezeSeconds: run.panicFreezeSeconds,
+          score: run.score,
+          smokeStandingSeconds: run.smokeStandingSeconds,
+          smokeCrouchSeconds: run.smokeCrouchSeconds,
+          breathCount: run.breathCount,
+          distanceTraveled: run.distanceTraveled,
+          fireCellEntries: run.fireCellEntries,
+          exitUsed: run.exitUsed ? { c: run.exitUsed.c, r: run.exitUsed.r } : null,
+          deathCell: run.deathCell ? { c: run.deathCell.c, r: run.deathCell.r } : null,
+          violations: run.violations.map((v) => ({
+            type: v.type,
+            detail: v.detail,
+          })),
+          routeHeat: run.routeHeat,
+          cols: run.cols,
+          rows: run.rows,
+          createdAt: run.createdAt,
+        }),
+      });
+    } catch {
+      /* telemetry loss is non-fatal */
+    }
   };
 
   const start = () => {

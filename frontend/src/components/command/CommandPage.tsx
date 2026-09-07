@@ -22,6 +22,9 @@ const ConstellationField = dynamic(
 
 import styles from "./CommandPage.module.css";
 
+/* Backend API URL */
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
 const ALERTS = [
   { id: 1, time: "22:41:03", severity: "Extreme", source: "SACHET", msg: "Earthquake M5.2 - Epicenter 12km NW of campus. Aftershocks expected.", color: "red" },
   { id: 2, time: "22:41:18", severity: "Warning", source: "IMD", msg: "Flash flood warning - Heavy rainfall 80mm/hr forecast next 2 hours.", color: "amber" },
@@ -51,10 +54,34 @@ export default function CommandPage() {
   const [liveAlertsLoading, setLiveAlertsLoading] = useState(true);
   const [injecting, setInjecting] = useState<IncidentType | null>(null);
   const { broadcasts, connected } = useEmergencyBroadcasts();
+  const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleAcknowledgeAlert = async () => {
+    showToast("✓ Alert acknowledged — logged to NDMA incident report");
+    if (activeAlertId) {
+      try {
+        await fetch(`${BACKEND_URL}/api/v1/alerts/${activeAlertId}/acknowledge`, { method: "PATCH" });
+      } catch {
+        /* best-effort acknowledgement */
+      }
+    }
+    setActiveAlertId(null);
+  };
+
+  const handleTriggerProtocol = () => {
+    showToast("⚡ Campus Emergency Protocol Activated — All buildings notified");
+  };
+
+  const handleInject = async (type: IncidentType) => {
+    setInjecting(type);
+    const ok = await injectIncident(type);
+    showToast(ok ? "📡 Incident injected — broadcasting to all clients" : "⚠️ Injection failed — is the backend running?");
+    setInjecting(null);
   };
 
   useEffect(() => {
@@ -74,6 +101,9 @@ export default function CommandPage() {
       if (!cancelled) {
         setLiveAlerts(alerts);
         setLiveAlertsLoading(false);
+        if (alerts.length > 0) {
+          setActiveAlertId(alerts[0].id);
+        }
       }
     };
     poll();
@@ -92,13 +122,6 @@ export default function CommandPage() {
     showToast(`🚨 ${broadcasts[0].msg}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcasts.length]);
-
-  const handleInject = async (type: IncidentType) => {
-    setInjecting(type);
-    const ok = await injectIncident(type);
-    showToast(ok ? "📡 Incident injected — broadcasting to all clients" : "⚠️ Injection failed — is the backend running?");
-    setInjecting(null);
-  };
 
   const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);

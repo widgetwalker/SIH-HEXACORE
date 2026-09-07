@@ -18,7 +18,22 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 # side effects on the API itself.
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
-from app.api.v1 import alerts, buildings, health, mitra, scenarios, webhooks, ws, users
+from app.api.v1 import (
+    alerts,
+    buildings,
+    health,
+    incidents,
+    mitra,
+    pathfinder,
+    reports,
+    scenarios,
+    telemetry,
+    users,
+    webhooks,
+    websockets,
+    ws,
+)
+from app.services.pathfinder_bridge import pathfinder_bridge  # noqa: F401
 from app.services.websocket_manager import ws_manager
 
 app = FastAPI(
@@ -27,15 +42,11 @@ app = FastAPI(
 )
 
 # CORS — allow the Next.js dev server to reach the FastAPI backend.
-# POST is now needed alongside GET: the /command incident-injection
-# webhook (app/api/v1/webhooks.py) writes, everything else still reads.
-# Credentials allowed because the JWT auth cookie will need to flow
-# cross-origin.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "Authorization", "Cookie"],
 )
 
@@ -44,15 +55,8 @@ app.add_middleware(
 async def on_startup() -> None:
     """
     App-wide startup hook.
-
-    The WebSocket route (app/api/v1/ws.py) and the incident-injection
-    webhook (app/api/v1/webhooks.py) both drive the ws_manager singleton
-    directly on each request/connection - nothing needs to be started
-    eagerly here. The NDMA SACHET CAP poller (app/services/cap_ingestion.py)
-    still points at a placeholder feed URL and stays unstarted until a
-    real feed URL is configured.
     """
-    # Touch the singleton so connection state is visible in logs.
+    # Touch the singletons so connection state is visible in logs.
     _ = ws_manager
     _ = redis_client
 
@@ -67,13 +71,16 @@ async def on_shutdown() -> None:
 
 
 # Every new group of endpoints gets registered here as a router.
-# Keeping this list in one place makes it obvious what the API exposes,
-# instead of having to search through the codebase for route definitions.
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(buildings.router, prefix="/api/v1", tags=["buildings"])
 app.include_router(scenarios.router, prefix="/api/v1", tags=["scenarios"])
-app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
-app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
-app.include_router(ws.router, prefix="/api/v1", tags=["websocket"])
 app.include_router(mitra.router, prefix="/api/v1", tags=["mitra"])
-app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(telemetry.router, prefix="/api/v1", tags=["telemetry"])
+app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
+app.include_router(incidents.router, prefix="/api/v1", tags=["incidents"])
+app.include_router(users.router, prefix="/api/v1", tags=["users"])
+app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
+app.include_router(pathfinder.router, prefix="/api/v1", tags=["pathfinder"])
+app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
+app.include_router(websockets.router, prefix="/api/v1", tags=["websockets"])
+app.include_router(ws.router, prefix="/api/v1", tags=["websocket"])
