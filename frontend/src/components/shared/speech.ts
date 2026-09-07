@@ -2,11 +2,20 @@ import { playSirenBeep } from "@/lib/siren";
 
 let latestAlertId: string | number | null = null;
 const recentlyAnnounced = new Map<string, number>();
+let activeUtterance: SpeechSynthesisUtterance | null = null;
 
 export function speak(text: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) return;
+
+  // Un-pause speech synthesis if suspended by Chromium browser policy
+  if (window.speechSynthesis.paused) {
+    window.speechSynthesis.resume();
+  }
   window.speechSynthesis.cancel();
+
   const utter = new SpeechSynthesisUtterance(text);
+  activeUtterance = utter;
+  utter.lang = "en-IN";
   utter.rate = 1.02;
   utter.pitch = 1.05;
   utter.volume = 1.0;
@@ -19,7 +28,18 @@ export function speak(text: string) {
     voices.find((v) => v.lang.startsWith("en"));
   if (preferred) utter.voice = preferred;
 
+  utter.onend = () => {
+    activeUtterance = null;
+  };
+  utter.onerror = () => {
+    activeUtterance = null;
+  };
+
   window.speechSynthesis.speak(utter);
+
+  if (window.speechSynthesis.paused) {
+    window.speechSynthesis.resume();
+  }
 }
 
 export function announceMitraEmergency(headline: string, detail?: string, alertKey?: string) {
