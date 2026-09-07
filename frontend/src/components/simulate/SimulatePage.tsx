@@ -171,11 +171,17 @@ export default function SimulatePage() {
 
   const speakMitra = (text: string) => {
     if (!window.speechSynthesis) return;
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = loadCadetSettings().mitraVoiceLang;
+    utterance.lang = loadCadetSettings().mitraVoiceLang || "en-IN";
     utterance.rate = 1.05;
     window.speechSynthesis.speak(utterance);
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
   };
 
   // When a campus emergency is injected/broadcast, Mitra verbalizes the
