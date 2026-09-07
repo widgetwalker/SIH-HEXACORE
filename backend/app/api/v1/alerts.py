@@ -49,34 +49,41 @@ async def get_live_alerts(
     """
     Return active alerts from the database and external real-time feeds.
     """
-    q = (
-        select(EmergencyAlert)
-        .where(EmergencyAlert.is_active == True)  # noqa: E712
-        .order_by(EmergencyAlert.sent_at.desc())
-        .limit(limit)
-    )
-    if severity:
-        q = q.where(EmergencyAlert.severity.ilike(f"%{severity}%"))
+    responses: list[EmergencyAlertResponse] = []
 
-    result = await db.execute(q)
-    alerts = result.scalars().all()
-
-    responses: list[EmergencyAlertResponse] = [
-        EmergencyAlertResponse(
-            id=str(alert.id),
-            cap_identifier=alert.cap_identifier,
-            sender=alert.sender,
-            sent_at=alert.sent_at,
-            severity=alert.severity,
-            urgency=alert.urgency,
-            event_category=alert.event_category,
-            headline=alert.headline,
-            description=alert.description,
-            instruction=alert.instruction,
-            is_active=alert.is_active,
+    # 1. Query database for active emergency alerts if available
+    try:
+        q = (
+            select(EmergencyAlert)
+            .where(EmergencyAlert.is_active == True)  # noqa: E712
+            .order_by(EmergencyAlert.sent_at.desc())
+            .limit(limit)
         )
-        for alert in alerts
-    ]
+        if severity:
+            q = q.where(EmergencyAlert.severity.ilike(f"%{severity}%"))
+
+        result = await db.execute(q)
+        alerts = result.scalars().all()
+
+        for alert in alerts:
+            responses.append(
+                EmergencyAlertResponse(
+                    id=str(alert.id),
+                    cap_identifier=alert.cap_identifier,
+                    sender=alert.sender,
+                    sent_at=alert.sent_at,
+                    severity=alert.severity,
+                    urgency=alert.urgency,
+                    event_category=alert.event_category,
+                    headline=alert.headline,
+                    description=alert.description,
+                    instruction=alert.instruction,
+                    is_active=alert.is_active,
+                )
+            )
+    except Exception:
+        # Graceful degradation: If database is unreachable, proceed with external live feeds
+        pass
 
     # Also augment with live USGS / Open-Meteo feeds if under limit
     try:
