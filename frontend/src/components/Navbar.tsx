@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CADET_PROFILE_UPDATED_EVENT, loadCadetProfile, type CadetProfile } from "@/types/profile";
-import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { loadCadetProfile, CADET_PROFILE_EVENT, type CadetProfile } from "@/lib/cadetProfile";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
-  mode?: "learning" | "simulation" | "emergency" | "command" | "none";
+  mode?: "learning" | "simulation" | "emergency" | "command";
 }
 
-export default function Navbar({ mode = "none" }: NavbarProps) {
+export default function Navbar({ mode = "learning" }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<CadetProfile | null>(null);
@@ -22,38 +21,11 @@ export default function Navbar({ mode = "none" }: NavbarProps) {
   }, []);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     setProfile(loadCadetProfile());
-    /* eslint-enable react-hooks/set-state-in-effect */
-    const onProfileUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<CadetProfile>).detail;
-      setProfile(detail || loadCadetProfile());
-    };
-    const onStorage = () => setProfile(loadCadetProfile());
-    window.addEventListener(CADET_PROFILE_UPDATED_EVENT, onProfileUpdated);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener(CADET_PROFILE_UPDATED_EVENT, onProfileUpdated);
-      window.removeEventListener("storage", onStorage);
-    };
+    const onProfileUpdate = () => setProfile(loadCadetProfile());
+    window.addEventListener(CADET_PROFILE_EVENT, onProfileUpdate);
+    return () => window.removeEventListener(CADET_PROFILE_EVENT, onProfileUpdate);
   }, []);
-
-  // Lock body scroll and handle Escape key when mobile menu is open
-  useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-      const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") setMobileOpen(false);
-      };
-      window.addEventListener("keydown", onKeyDown);
-      return () => {
-        document.body.style.overflow = "";
-        window.removeEventListener("keydown", onKeyDown);
-      };
-    } else {
-      document.body.style.overflow = "";
-    }
-  }, [mobileOpen]);
 
   return (
     <nav
@@ -61,7 +33,6 @@ export default function Navbar({ mode = "none" }: NavbarProps) {
         mode === "emergency" ? styles.emergency : ""
       }`}
       aria-label="Main navigation"
-      suppressHydrationWarning
     >
       <div className={styles.inner}>
         {/* Logo */}
@@ -132,15 +103,6 @@ export default function Navbar({ mode = "none" }: NavbarProps) {
             <span className={styles.modeTabDot} />
             Command
           </Link>
-          <Link
-            href="/profile?tab=settings"
-            prefetch={true}
-            className={styles.modeTab}
-            id="nav-settings"
-          >
-            <span className={styles.modeTabDot} />
-            Settings
-          </Link>
         </div>
 
         {/* Right actions */}
@@ -150,24 +112,23 @@ export default function Navbar({ mode = "none" }: NavbarProps) {
             prefetch={true}
             className={`${styles.alertIndicator} ${mode === "emergency" ? styles.alertActive : ""}`}
             style={{ textDecoration: "none" }}
-            suppressHydrationWarning
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" suppressHydrationWarning>
-              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" suppressHydrationWarning />
-              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" suppressHydrationWarning />
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            <span suppressHydrationWarning>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
+            <span>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
           </Link>
 
           <Link
             href="/profile"
             prefetch={true}
             className={styles.avatar}
-            aria-label="User Profile"
-            title="User Profile"
+            aria-label={profile ? `${profile.name}'s Profile` : "User Profile"}
+            title={profile ? profile.name : "User Profile"}
             style={{ textDecoration: "none" }}
           >
-            <ProfileAvatar profile={profile} size="small" className={styles.navAvatar} />
+            {profile ? profile.name.charAt(0).toUpperCase() : "?"}
           </Link>
 
           <button
@@ -181,93 +142,12 @@ export default function Navbar({ mode = "none" }: NavbarProps) {
         </div>
       </div>
 
-      {/* Full-screen Mobile Menu Overlay */}
+      {/* Mobile menu */}
       {mobileOpen && (
-        <div className={styles.mobileMenu} role="dialog" aria-modal="true" aria-label="Mobile Navigation">
-          <div className={styles.mobileMenuHeader}>
-            <div className={styles.logo}>
-              <span className={styles.logoText}>
-                Safe<span className={styles.logoAccent}>Zone</span>
-              </span>
-              {mode === "emergency" && (
-                <span className={`badge badge-red badge-pulse ${styles.emergencyBadge}`}>
-                  LIVE
-                </span>
-              )}
-            </div>
-            <button
-              className={styles.mobileCloseBtn}
-              onClick={() => setMobileOpen(false)}
-              aria-label="Close menu"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-
-          <div className={styles.mobileNavLinks}>
-            <Link
-              href="/learn"
-              prefetch={true}
-              className={`${styles.mobileLink} ${mode === "learning" ? styles.mobileLinkActive : ""}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>🎓 Learn & Modules</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Link>
-            <Link
-              href="/simulate"
-              prefetch={true}
-              className={`${styles.mobileLink} ${mode === "simulation" ? styles.mobileLinkActive : ""}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>🎮 3D Simulation</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Link>
-            <Link
-              href="/command"
-              prefetch={true}
-              className={`${styles.mobileLink} ${mode === "command" ? styles.mobileLinkActive : ""}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>📡 Command Hub</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Link>
-            <Link
-              href="/profile"
-              prefetch={true}
-              className={`${styles.mobileLink} ${mode === "learning" ? "" : ""}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>Profile & settings</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Link>
-          </div>
-
-          <div className={styles.mobileMenuFooter}>
-            <Link
-              href="/command"
-              prefetch={true}
-              className={styles.mobileAlertBanner}
-              onClick={() => setMobileOpen(false)}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              <span>{mode === "emergency" ? "SACHET EMERGENCY ALERT ACTIVE" : "NDMA System Normal — No Active Alerts"}</span>
-            </Link>
-          </div>
+        <div className={styles.mobileMenu}>
+          <Link href="/learn" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Learn</Link>
+          <Link href="/simulate" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Simulate</Link>
+          <Link href="/command" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Command Hub</Link>
         </div>
       )}
     </nav>

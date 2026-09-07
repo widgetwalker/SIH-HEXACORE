@@ -33,7 +33,8 @@ export interface Scenario {
   spreadChance: number;
   fogDensity: number;
   colors: ScenarioColors;
-  map: string[];
+  map?: string[];
+  floors?: string[][];
   blockages?: BlockageEvent[];
 }
 
@@ -67,8 +68,9 @@ export interface ParsedFloorplan {
 
 export function parseFloorplan(scenario: Scenario): ParsedFloorplan {
   /* pad ragged rows with walls so a typo in JSON can never crash the sim */
-  const rows = scenario.map.length;
-  const cols = Math.max(...scenario.map.map((row) => row.length));
+  const mapData = scenario.map ?? scenario.floors?.[0] ?? [];
+  const rows = mapData.length;
+  const cols = Math.max(...mapData.map((row) => row.length));
 
   const grid: string[][] = [];
   const walls = new Set<number>();
@@ -82,7 +84,7 @@ export function parseFloorplan(scenario: Scenario): ParsedFloorplan {
   const emptyCells: { c: number; r: number }[] = [];
 
   for (let r = 0; r < rows; r++) {
-    const padded = scenario.map[r].padEnd(cols, "#");
+    const padded = (mapData[r] ?? "").padEnd(cols, "#");
     grid.push(padded.split(""));
     for (let c = 0; c < cols; c++) {
       switch (padded[c]) {

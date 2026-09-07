@@ -1,12 +1,9 @@
 import type { TierModuleContent } from "../types";
 
 /* SafeZone — Rangers Tier (Ages 8–10).
-   Content transcribed from safezone-rangers-age-8-10.pdf. Per that PDF's own
-   format note, decision checkpoints here stay simple two-option choices —
-   multi-floor branching logic (and the real /simulate 3D drill wired up for
-   "simulation"-type modules in the 11+ tiers) is explicitly saved for the
-   Guardians 11–13 tier, so rangers-m2/m6 render through the plain
-   CheckpointCard rather than a LEARN_SCENARIOS entry. */
+   Content transcribed verbatim from safezone-rangers-age-8-10.pdf
+   (identical to the Rangers section of safezone-explorers-rangers-modules.pdf). */
+
 export const RANGERS_MODULE_1: TierModuleContent = {
   id: "rangers-m1",
   number: 1,
@@ -51,11 +48,11 @@ export const RANGERS_MODULE_1: TierModuleContent = {
         scenario: "The shaking has stopped. Your classroom door won't open easily.",
         correct: {
           label: "Stay calm, try the door gently once more, and if it's stuck, tell your teacher and wait for help — don't force it or panic.",
-          explanation: "Forcing a stuck door or panicking wastes energy and time your teacher can use to find you another way out.",
+          explanation: "Staying calm and getting a teacher involved keeps a stuck door from turning into a bigger problem.",
         },
         wrong: {
           label: "Climb out a window to get outside faster.",
-          explanation: "Climbing out a window risks a fall for a shortcut you don't need — waiting calmly for help is the safer path.",
+          explanation: "Climbing out a window is far more dangerous than a stuck door — wait for help instead.",
           hazardIcon: "🪟",
         },
       },
@@ -98,8 +95,7 @@ export const RANGERS_MODULE_2: TierModuleContent = {
       title: "What Grown-Ups Do",
       estMinutes: 2,
       body: [
-        "You may have seen a fire extinguisher with the letters P-A-S-S on it. That stands for Pull, Aim, Squeeze, Sweep — but that's a tool for trained adults on small, contained fires.",
-        "Your job is always the same: evacuate and let responders handle the fire.",
+        "You may have seen a fire extinguisher with the letters P-A-S-S on it. That stands for Pull, Aim, Squeeze, Sweep — but that's a tool for trained adults on small, contained fires. Your job is always the same: evacuate and let responders handle the fire.",
       ],
     },
     {
@@ -112,11 +108,12 @@ export const RANGERS_MODULE_2: TierModuleContent = {
         scenario: "The alarm sounds. Your classroom door is warm to the touch.",
         correct: {
           label: "Don't open it — use the alternate exit your teacher points you to.",
-          explanation: "A warm door usually means heat or fire is right on the other side — opening it can let flames or smoke straight in.",
+          explanation: "A warm door means the fire could be right behind it — take the alternate exit instead.",
         },
         wrong: {
           label: "Open it quickly to see how bad it is.",
-          explanation: "Opening a warm door can let a burst of heat and smoke through fast, with no way to undo it once it's open.",
+          explanation: "Opening a warm door can let fire and smoke rush in fast.",
+          hazardIcon: "🚪",
         },
       },
     },
@@ -148,8 +145,7 @@ export const RANGERS_MODULE_3: TierModuleContent = {
       title: "Spotting a Blocked Route",
       estMinutes: 2,
       body: [
-        "A route is blocked if you see: fire, smoke, water on the floor, or a crowd that has completely stopped moving.",
-        "If you see any of these, that way is closed — use the other exit.",
+        "A route is blocked if you see: fire, smoke, water on the floor, or a crowd that has completely stopped moving. If you see any of these, that way is closed — use the other exit.",
       ],
     },
     {
@@ -162,11 +158,11 @@ export const RANGERS_MODULE_3: TierModuleContent = {
         scenario: "Your class's usual exit hallway has smoke coming from under a door.",
         correct: {
           label: "Use your backup exit and tell your teacher what you saw.",
-          explanation: "Smoke under a door already means that route is blocked — your backup exit exists exactly for this moment.",
+          explanation: "Smoke under a door means that way is closed — take the backup exit and report it.",
         },
         wrong: {
           label: "Open the door to check how much smoke there is.",
-          explanation: "Opening the door lets smoke into your path and costs time you could spend using the exit you already know is clear.",
+          explanation: "Any smoke already tells you the route is blocked — no need to open the door and check.",
           hazardIcon: "💨",
         },
       },
@@ -188,8 +184,7 @@ export const RANGERS_MODULE_4: TierModuleContent = {
       title: "Something Smells or Looks Wrong",
       estMinutes: 3,
       body: [
-        "A strange smell, fumes, or a spilled liquid you don't recognize — in a science room or anywhere else — means one thing: tell an adult right away and step back.",
-        "Never lean in to sniff or touch it to figure out what it is.",
+        "A strange smell, fumes, or a spilled liquid you don't recognize — in a science room or anywhere else — means one thing: tell an adult right away and step back. Never lean in to sniff or touch it to figure out what it is.",
       ],
     },
     {
@@ -202,11 +197,12 @@ export const RANGERS_MODULE_4: TierModuleContent = {
         scenario: "You notice a strange smell and a puddle near the sink in the science room.",
         correct: {
           label: "Step away and tell your teacher immediately.",
-          explanation: "You don't need to know what the substance is to know the safe response: distance first, adult second.",
+          explanation: "Stepping away and telling a teacher keeps you safe from something you can't identify.",
         },
         wrong: {
           label: "Get closer to see what spilled.",
-          explanation: "Getting closer to an unknown liquid risks breathing in fumes or touching something harmful before anyone even knows it's there.",
+          explanation: "Getting closer to an unknown spill risks exposing you to something harmful.",
+          hazardIcon: "🧪",
         },
       },
     },
@@ -236,8 +232,7 @@ export const RANGERS_MODULE_5: TierModuleContent = {
       title: "Flood: Never Walk Through Water",
       estMinutes: 3,
       body: [
-        "Never walk or wade through moving water, even if it looks shallow — it can hide strong currents or electrical hazards.",
-        "If water is coming into the ground floor, move up to a higher floor rather than trying to walk out through it.",
+        "Never walk or wade through moving water, even if it looks shallow — it can hide strong currents or electrical hazards. If water is coming into the ground floor, move up to a higher floor rather than trying to walk out through it.",
       ],
     },
     {
@@ -250,11 +245,11 @@ export const RANGERS_MODULE_5: TierModuleContent = {
         scenario: "A cyclone warning is active, and water has started coming in under the door.",
         correct: {
           label: "Move to a higher floor, away from windows, and tell an adult.",
-          explanation: "Rising water and an active cyclone both point the same way: get higher and stay clear of windows and the water itself.",
+          explanation: "Higher ground away from windows keeps you clear of both the water and flying debris.",
         },
         wrong: {
           label: "Step outside to check how deep the water is.",
-          explanation: "Stepping outside during a cyclone risks flying debris, and moving water can hide currents or drop-offs you can't see.",
+          explanation: "Stepping outside during an active cyclone warning exposes you to flying debris.",
           hazardIcon: "🌪️",
         },
         mapOrientation: "vertical",
@@ -277,8 +272,7 @@ export const RANGERS_MODULE_6: TierModuleContent = {
       title: "Why This Matters",
       estMinutes: 2,
       body: [
-        "Sometimes one emergency leads to another — an earthquake might be followed by a gas smell, or a fire drill might overlap with a storm.",
-        "This module trains you to stay alert even after the \"first\" danger seems over.",
+        "Sometimes one emergency leads to another — an earthquake might be followed by a gas smell, or a fire drill might overlap with a storm. This module trains you to stay alert even after the \"first\" danger seems over.",
       ],
     },
     {
@@ -287,8 +281,7 @@ export const RANGERS_MODULE_6: TierModuleContent = {
       title: "Earthquake + Strange Smell",
       estMinutes: 3,
       body: [
-        "If you smell gas after shaking stops: don't touch any light switches, don't use anything with a flame, and move away from the smell using a different route.",
-        "Tell an adult right away.",
+        "If you smell gas after shaking stops: don't touch any light switches, don't use anything with a flame, and move away from the smell using a different route. Tell an adult right away.",
       ],
     },
     {
@@ -301,11 +294,12 @@ export const RANGERS_MODULE_6: TierModuleContent = {
         scenario: "Shaking just stopped. You smell something like gas near the exit. The alarm hasn't sounded yet.",
         correct: {
           label: "Avoid light switches, move away from the smell a different way, and alert a teacher immediately — don't wait for the alarm.",
-          explanation: "A gas smell is itself enough reason to act — waiting for the alarm or flipping a switch both add risk instead of reducing it.",
+          explanation: "A gas smell is reason enough to act right away, alarm or not — and switches can spark it.",
         },
         wrong: {
           label: "Flip the hallway light on to see better.",
-          explanation: "A light switch can spark right next to a gas leak, turning a smell into a much bigger problem.",
+          explanation: "A light switch can spark right next to a gas leak.",
+          hazardIcon: "💡",
         },
       },
     },

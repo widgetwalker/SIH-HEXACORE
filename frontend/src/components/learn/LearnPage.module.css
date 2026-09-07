@@ -85,6 +85,23 @@
 .scoreVal { font-weight: 700; color: var(--accent-teal); font-family: var(--font-mono); }
 .lockIcon { opacity: 0.5; }
 
+/* Quiz Arena */
+.quizArenaSection { display: flex; flex-direction: column; gap: 16px; }
+.quizArenaCard { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 28px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); }
+.quizArenaInfo { display: flex; flex-direction: column; gap: 8px; }
+.quizArenaSubtitle { color: var(--text-faint); font-size: 0.9rem; }
+.quizModuleGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.quizModuleCard { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); font-family: var(--font-sans); text-align: left; user-select: none; touch-action: manipulation; }
+.quizModuleCard:hover { border-color: var(--accent-teal); background: var(--bg-card-hover); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,212,170,0.15); }
+.quizModuleCard:active { transform: scale(0.98); }
+.quizModuleIcon { font-size: 1.75rem; flex-shrink: 0; }
+.quizModuleInfo { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.quizModuleName { font-size: 0.875rem; font-weight: 600; line-height: 1.3; }
+.quizModuleMeta { font-size: 0.75rem; color: var(--text-faint); }
+.quizModuleAge { font-size: 0.6875rem; color: var(--accent-teal); font-weight: 600; }
+.quizModuleProgress { position: relative; flex-shrink: 0; width: 36px; height: 36px; }
+.quizModulePct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.5625rem; font-weight: 700; color: var(--accent-teal); font-family: var(--font-mono); }
+
 /* Badges */
 .badgesSection { display: flex; flex-direction: column; gap: 16px; }
 .badgesGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }

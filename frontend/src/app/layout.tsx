@@ -3,7 +3,7 @@ import { Viewport } from "next";
 import "@designcodeio/threeui/style.css";
 import "./globals.css";
 import CustomCursor from "@/components/fx/CustomCursor";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import SettingsInit from "@/components/SettingsInit";
 
 export const metadata: Metadata = {
   title: "SafeZone - Gamified Disaster Preparedness | SIH 2026",
@@ -23,22 +23,12 @@ export const metadata: Metadata = {
       "AI-powered gamified disaster training for schools. Real simulations. Real safety.",
     type: "website",
   },
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
-  other: {
-    "darkreader-lock": "",
-    "color-scheme": "dark",
-  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#0A0F1E",
-  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -49,8 +39,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="darkreader-lock" content="" />
-        <meta name="color-scheme" content="dark" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -58,14 +46,14 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body suppressHydrationWarning>
         {children}
         <CustomCursor />
-        <ServiceWorkerRegister />
+        <SettingsInit />
       </body>
     </html>
   );

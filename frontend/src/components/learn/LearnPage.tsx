@@ -1,115 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import ModuleViewer from "./tiergame/ModuleViewer";
-import { EXPLORERS_MODULE_1, EXPLORERS_MODULE_2, EXPLORERS_MODULE_3, EXPLORERS_MODULE_4 } from "./tiergame/content/explorers";
-import { RANGERS_MODULE_1, RANGERS_MODULE_2, RANGERS_MODULE_3, RANGERS_MODULE_4, RANGERS_MODULE_5, RANGERS_MODULE_6 } from "./tiergame/content/rangers";
-import { GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6 } from "./tiergame/content/guardians";
-import { SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6 } from "./tiergame/content/sentinels";
-import { WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6 } from "./tiergame/content/wardens";
-import type { TierModuleContent } from "./tiergame/types";
-import GameModal from "./games/GameModal";
-import DropCoverHoldGame from "./games/DropCoverHoldGame";
-import GoBagBuilder from "./games/GoBagBuilder";
-import PassExtinguisherGame from "./games/PassExtinguisherGame";
-import LeaderboardView from "./LeaderboardView";
-import SettingsView from "./SettingsView";
-import ProfileView from "./ProfileView";
-import CadetOnboardingModal from "@/components/onboarding/CadetOnboardingModal";
-import EditProfileDrawer from "@/components/profile/EditProfileDrawer";
-import ProfileAvatar from "@/components/profile/ProfileAvatar";
-import type { CadetFormData } from "@/components/onboarding/CadetOnboardingModal";
-import type { CadetProfile } from "@/types/profile";
-import { DEFAULT_AVATAR_ID, loadCadetProfile, saveCadetProfile } from "@/types/profile";
+import { ALL_TIER_IDS, TIER_GAME_CONFIG, findModuleTier, shortId } from "./tiergame/moduleRegistry";
+import { QUIZ_MODULES_BY_TIER, loadQuizScores, isLevelUnlocked, QUIZ_PASS_PCT } from "./tiergame/quizRegistry";
+import type { ModuleType } from "./tiergame/types";
+import { loadCadetProfile, type CadetProfile } from "@/lib/cadetProfile";
 import styles from "./LearnPage.module.css";
 
-const EXPLORERS_TIER_ID = 1;
-const RANGERS_TIER_ID = 2;
-const GUARDIANS_TIER_ID = 3;
-const SENTINELS_TIER_ID = 4;
-const WARDENS_TIER_ID = 5;
-
-/* Real content per tier, in unlock order, keyed by tier id. `prefix` matches
-   each module's own id prefix (e.g. "guardians-m1") so it can be matched
-   against the mock MODULES list's plain ids ("m1"). All 5 tiers from
-   docs/10_TIER_GAMES_SPECIFICATION.md are now wired up. */
-const TIER_GAME_CONFIG: Record<number, { prefix: string; modules: TierModuleContent[] }> = {
-  [EXPLORERS_TIER_ID]: {
-    prefix: "explorers",
-    modules: [EXPLORERS_MODULE_1, EXPLORERS_MODULE_2, EXPLORERS_MODULE_3, EXPLORERS_MODULE_4],
-  },
-  [RANGERS_TIER_ID]: {
-    prefix: "rangers",
-    modules: [RANGERS_MODULE_1, RANGERS_MODULE_2, RANGERS_MODULE_3, RANGERS_MODULE_4, RANGERS_MODULE_5, RANGERS_MODULE_6],
-  },
-  [GUARDIANS_TIER_ID]: {
-    prefix: "guardians",
-    modules: [GUARDIANS_MODULE_1, GUARDIANS_MODULE_2, GUARDIANS_MODULE_3, GUARDIANS_MODULE_4, GUARDIANS_MODULE_5, GUARDIANS_MODULE_6],
-  },
-  [SENTINELS_TIER_ID]: {
-    prefix: "sentinels",
-    modules: [SENTINELS_MODULE_1, SENTINELS_MODULE_2, SENTINELS_MODULE_3, SENTINELS_MODULE_4, SENTINELS_MODULE_5, SENTINELS_MODULE_6],
-  },
-  [WARDENS_TIER_ID]: {
-    prefix: "wardens",
-    modules: [WARDENS_MODULE_1, WARDENS_MODULE_2, WARDENS_MODULE_3, WARDENS_MODULE_4, WARDENS_MODULE_5, WARDENS_MODULE_6],
-  },
-};
-
-function getRealModule(tierId: number, moduleId: string): TierModuleContent | undefined {
-  const cfg = TIER_GAME_CONFIG[tierId];
-  if (!cfg) return undefined;
-  return cfg.modules.find((m) => m.id === `${cfg.prefix}-${moduleId}`);
-}
-
-/* Reverse-lookup for the /simulate round trip: given a full module id
-   (e.g. "guardians-m2"), find which tier owns it and its short id ("m2"). */
-function findModuleTier(fullModuleId: string): { tierId: number; shortId: string; module: TierModuleContent } | undefined {
-  for (const [tierIdStr, cfg] of Object.entries(TIER_GAME_CONFIG)) {
-    const mod = cfg.modules.find((m) => m.id === fullModuleId);
-    if (mod) return { tierId: Number(tierIdStr), shortId: mod.id.replace(`${cfg.prefix}-`, ""), module: mod };
-  }
-  return undefined;
-}
-
 const TIERS = [
-  { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱", modules: 4, completed: 2 },
-  { id: 2, age: "8–10", label: "Rangers", color: "blue", icon: "🛡️", modules: 6, completed: 3 },
-  { id: 3, age: "11–13", label: "Guardians", color: "violet", icon: "⚡", modules: 8, completed: 1 },
-  { id: 4, age: "14–17", label: "Sentinels", color: "amber", icon: "🔥", modules: 10, completed: 0 },
-  { id: 5, age: "18+", label: "Wardens", color: "red", icon: "🎖️", modules: 12, completed: 0 },
+  { id: 1, age: "5–7", label: "Explorers", color: "teal", icon: "🌱" },
+  { id: 2, age: "8–10", label: "Rangers", color: "blue", icon: "🛡️" },
+  { id: 3, age: "11–13", label: "Guardians", color: "violet", icon: "⚡" },
+  { id: 4, age: "14–17", label: "Sentinels", color: "amber", icon: "🔥" },
+  { id: 5, age: "18+", label: "Wardens", color: "red", icon: "🎖️" },
 ];
 
-type GameKey = "dch" | "pass" | "gobag";
-
-interface Module {
-  id: string;
-  title: string;
-  type: string;
-  duration: string;
-  status: "completed" | "in-progress" | "locked";
-  score: number | null;
-  icon: string;
-  game?: GameKey;
-}
-
-const MODULES: Module[] = [
-  { id: "m1", title: "Earthquake: Drop, Cover, Hold On", type: "Interactive", duration: "12 min", status: "completed", score: 94, icon: "🌍", game: "dch" },
-  { id: "m2", title: "Fire Evacuation: PASS Method", type: "Simulation", duration: "18 min", status: "completed", score: 88, icon: "🔥", game: "pass" },
-  { id: "m3", title: "Floor-by-Floor Hazard Mapping", type: "Interactive", duration: "15 min", status: "in-progress", score: null, icon: "🗺️" },
-  { id: "m4", title: "Chemical Spill: Lab Safety Protocol", type: "Video + Quiz", duration: "10 min", status: "locked", score: null, icon: "🧪" },
-  { id: "m5", title: "Cyclone & Flood Shelter Procedures", type: "Interactive", duration: "14 min", status: "locked", score: null, icon: "🌊" },
-  { id: "m6", title: "Multi-Hazard Compound Drill", type: "Simulation", duration: "25 min", status: "locked", score: null, icon: "⚠️" },
-  { id: "m7", title: "Emergency Go-Bag Builder", type: "Interactive", duration: "8 min", status: "in-progress", score: null, icon: "🎒", game: "gobag" },
-];
-
-const GAME_META: Record<GameKey, { title: string; icon: string }> = {
-  dch: { title: "Drop, Cover, Hold On — Reflex Drill", icon: "🌍" },
-  pass: { title: "Fire Extinguisher — PASS Method", icon: "🔥" },
-  gobag: { title: "Emergency Go-Bag Builder", icon: "🎒" },
-};
+const TYPE_LABEL: Record<ModuleType, string> = { interactive: "Interactive", simulation: "Simulation", "video-quiz": "Video + Quiz" };
 
 /* tierScores used to be in-memory only, which was fine while every module
    played out in a modal on this same page. Now "simulation"-type modules
@@ -143,6 +51,42 @@ const BADGES = [
   { name: "NDMA Certified", earned: false, icon: "🎖️" },
 ];
 
+function tierCompletion(tierId: number, scores: Record<number, Record<string, number>>): { completed: number; total: number } {
+  const cfg = TIER_GAME_CONFIG[tierId];
+  if (!cfg) return { completed: 0, total: 0 };
+  const tierScoreMap = scores[tierId] ?? {};
+  const completed = cfg.modules.filter((m) => tierScoreMap[m.id.replace(`${cfg.prefix}-`, "")] !== undefined).length;
+  return { completed, total: cfg.modules.length };
+}
+
+/* Sidebar-wide stats, computed live from real tierScores instead of the
+   hardcoded 35% / "5 Lessons Done" / "91% Avg Score" placeholders that used
+   to sit here regardless of actual progress. */
+function overallStats(scores: Record<number, Record<string, number>>) {
+  const totalModules = ALL_TIER_IDS.reduce((sum, tid) => sum + (TIER_GAME_CONFIG[tid]?.modules.length ?? 0), 0);
+  const allScores = ALL_TIER_IDS.flatMap((tid) => Object.values(scores[tid] ?? {}));
+  const completedCount = allScores.length;
+  const overallPct = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
+  const avgScore = completedCount > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / completedCount) : 0;
+
+  let studyMinutes = 0;
+  let drillsRun = 0;
+  for (const tid of ALL_TIER_IDS) {
+    const cfg = TIER_GAME_CONFIG[tid];
+    if (!cfg) continue;
+    const tierScoreMap = scores[tid] ?? {};
+    for (const m of cfg.modules) {
+      const id = m.id.replace(`${cfg.prefix}-`, "");
+      if (tierScoreMap[id] === undefined) continue;
+      studyMinutes += m.estMinutes;
+      if (m.type === "simulation") drillsRun += 1;
+    }
+  }
+  const studyTimeLabel = studyMinutes >= 60 ? `${(studyMinutes / 60).toFixed(1)}h` : `${studyMinutes}m`;
+
+  return { overallPct, completedCount, avgScore, studyTimeLabel, drillsRun };
+}
+
 export default function LearnPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -150,65 +94,33 @@ export default function LearnPage() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedModule, setSelectedModule] = useState<string | null>("m1");
   const [toast, setToast] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<{ tierId: number; moduleId: string } | null>(null);
+  const [profile, setProfile] = useState<CadetProfile | null>(null);
+  // Starts empty so the server-rendered markup and the client's first paint
+  // match exactly (avoids a hydration mismatch) - real scores load right
+  // after mount instead of during the initial render.
   const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
-  const [tierScoresHydrated, setTierScoresHydrated] = useState(false);
-  const [activeGameModule, setActiveGameModule] = useState<string | null>(null);
-  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
-
-  // Cadet profile state - load from localStorage on mount
-  const [cadetProfile, setCadetProfile] = useState<CadetProfile | null>(null);
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  const [showEditDrawer, setShowEditDrawer] = useState(false);
-
-  // Lock body scroll and close on Escape when mobile drawer is open
-  useEffect(() => {
-    if (showMobileDrawer) {
-      document.body.style.overflow = "hidden";
-      const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") setShowMobileDrawer(false);
-      };
-      window.addEventListener("keydown", onKeyDown);
-      return () => {
-        document.body.style.overflow = "";
-        window.removeEventListener("keydown", onKeyDown);
-      };
-    } else {
-      document.body.style.overflow = "";
-    }
-  }, [showMobileDrawer]);
+  const [quizScores, setQuizScores] = useState<Record<string, Record<number, number>>>({});
+  const skipNextSave = useRef(true);
 
   useEffect(() => {
-    /* localStorage is loaded after the shared server/client first render. */
-    /* eslint-disable react-hooks/set-state-in-effect */
     setTierScores(loadTierScores());
-    setTierScoresHydrated(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    setQuizScores(loadQuizScores());
+    const cadet = loadCadetProfile();
+    setProfile(cadet);
+    if (cadet) setActiveTier(cadet.tierId);
   }, []);
 
   useEffect(() => {
-    if (!tierScoresHydrated) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
     try {
       window.localStorage.setItem(TIER_SCORES_KEY, JSON.stringify(tierScores));
     } catch {
       /* storage full or unavailable - non-fatal, progress just won't survive a reload */
     }
-  }, [tierScores, tierScoresHydrated]);
-
-  // Sync cadet profile to localStorage whenever it changes
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const savedProfile = loadCadetProfile();
-    setCadetProfile(savedProfile);
-    setShowOnboardingModal(!savedProfile);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
-
-  useEffect(() => {
-    if (cadetProfile) {
-      saveCadetProfile(cadetProfile);
-    }
-  }, [cadetProfile]);
+  }, [tierScores]);
 
   /* first module in a tier's list is always unlocked; each next one unlocks
      once the previous is completed - real sequential progression, not mock data */
@@ -223,37 +135,17 @@ export default function LearnPage() {
     return scores[prevId] !== undefined ? "in-progress" : "locked";
   };
 
+  const stats = overallStats(tierScores);
+
   const showToast = (msg: string, duration = 2500) => {
     setToast(msg);
     setTimeout(() => setToast(null), duration);
-  };
-
-  // Handle onboarding submission
-  const handleOnboardingSubmit = (profile: CadetFormData) => {
-    const nextProfile: CadetProfile = { ...profile, avatarId: DEFAULT_AVATAR_ID };
-    setCadetProfile(nextProfile);
-    setShowOnboardingModal(false);
-    showToast(`✅ Welcome, Cadet ${profile.name}! Profile saved.`, 3000);
-  };
-
-  // Handle profile edit
-  const handleProfileEdit = (profile: Omit<CadetProfile, "avatarId" | "avatarImage">) => {
-    setCadetProfile((current) => ({
-      ...profile,
-      avatarId: current?.avatarId || DEFAULT_AVATAR_ID,
-      avatarImage: current?.avatarImage,
-    }));
-    setShowEditDrawer(false);
-    showToast(`✅ Profile updated successfully!`, 2500);
   };
 
   /* Round trip from a "simulation"-type checkpoint's real /simulate drill:
      applies the score, jumps to the right tier, and surfaces the module's
      own PDF checkpoint explanation as a toast — since the drill happened on
      a different page, this is the only place that content can be shown. */
-  // This effect intentionally projects a one-time URL result into local page state
-  // before removing the query string from the address bar.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const result = searchParams.get("moduleResult");
     if (!result) return;
@@ -275,7 +167,6 @@ export default function LearnPage() {
     router.replace("/learn");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className={styles.page}>
@@ -290,11 +181,17 @@ export default function LearnPage() {
       <div className={styles.layout}>
         {/* Sidebar */}
         <aside className={styles.sidebar}>
-          <div className={styles.sidebarProfile}>
-            <ProfileAvatar profile={cadetProfile} size="small" />
+          <div
+            className={styles.sidebarProfile}
+            onClick={() => router.push("/profile")}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+          >
+            <div className={styles.profileAvatar}>{profile ? profile.name.charAt(0).toUpperCase() : "?"}</div>
             <div className={styles.profileInfo}>
-              <span className={styles.profileName}>{cadetProfile?.name || "Cadet"}</span>
-              <span className={styles.profileRole}>{cadetProfile?.tierName || "Student Responder"}</span>
+              <span className={styles.profileName}>{profile?.name ?? "Cadet"}</span>
+              <span className={styles.profileRole}>{profile?.grade ?? "Student Responder"}</span>
             </div>
           </div>
 
@@ -307,11 +204,11 @@ export default function LearnPage() {
                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--accent-teal)" strokeWidth="6"
                   strokeDasharray={`${2 * Math.PI * 42}`}
-                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - 0.35)}`}
+                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - stats.overallPct / 100)}`}
                   strokeLinecap="round" transform="rotate(-90 50 50)" style={{ filter: "drop-shadow(0 0 6px rgba(0,212,170,0.5))" }} />
               </svg>
               <div className={styles.ringCenter}>
-                <span className={styles.ringValue}>35%</span>
+                <span className={styles.ringValue}>{stats.overallPct}%</span>
                 <span className={styles.ringLabel}>Overall</span>
               </div>
             </div>
@@ -322,26 +219,32 @@ export default function LearnPage() {
           <div className={styles.sidebarSection}>
             <span className="label" style={{ color: "var(--text-faint)", padding: "0 12px" }}>Quick Stats</span>
             <div className={styles.quickStats}>
-              <div className={styles.quickStat}><span className={styles.qsVal}>5</span><span className={styles.qsLbl}>Lessons Done</span></div>
-              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-amber)" }}>91%</span><span className={styles.qsLbl}>Avg Score</span></div>
-              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-blue)" }}>2h</span><span className={styles.qsLbl}>Study Time</span></div>
-              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-violet)" }}>3</span><span className={styles.qsLbl}>Drills Run</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal}>{stats.completedCount}</span><span className={styles.qsLbl}>Lessons Done</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-amber)" }}>{stats.avgScore}%</span><span className={styles.qsLbl}>Avg Score</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-blue)" }}>{stats.studyTimeLabel}</span><span className={styles.qsLbl}>Study Time</span></div>
+              <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-violet)" }}>{stats.drillsRun}</span><span className={styles.qsLbl}>Drills Run</span></div>
             </div>
           </div>
 
           <div className="divider" style={{ margin: "16px 0" }} />
 
           <nav className={styles.sidebarNav}>
-            {[
-              { label: "Dashboard" },
-              { label: "My Certificates" },
-              { label: "Leaderboard" },
-              { label: "Settings" },
-            ].map((item) => (
+            {(
+              [
+                { label: "Dashboard", profileTab: undefined },
+                { label: "My Certificates", profileTab: "my-certificates" },
+                { label: "Leaderboard", profileTab: "leaderboard" },
+                { label: "Settings", profileTab: "settings" },
+              ] as { label: string; profileTab?: string }[]
+            ).map((item) => (
               <button
                 key={item.label}
                 className={`${styles.navItem} ${activeTab === item.label ? styles.navItemActive : ""}`}
                 onClick={() => {
+                  if (item.profileTab) {
+                    router.push(`/profile?tab=${item.profileTab}`);
+                    return;
+                  }
                   setActiveTab(item.label);
                   showToast(`Switched to ${item.label}`);
                 }}
@@ -354,283 +257,158 @@ export default function LearnPage() {
 
         {/* Main content */}
         <main className={styles.main}>
-          {/* Mobile Quick Bar (visible only on mobile < 768px) */}
-          <div className={styles.mobileTopBar}>
-            <div className={styles.mobileTopBarLeft}>
-              <ProfileAvatar profile={cadetProfile} size="small" />
-              <div>
-                <div className={styles.mobileTopName}>Cadet {cadetProfile?.name || ""}</div>
-                <div className={styles.mobileTopProgress}>
-                  Readiness: <strong style={{ color: "var(--accent-teal)" }}>35%</strong> • {activeTab}
-                </div>
-              </div>
+          {/* Tier selector */}
+          <section className={styles.tierSection}>
+            <h2 className="heading-lg">Select Your Tier</h2>
+            <div className={styles.tierGrid}>
+              {TIERS.map((t) => {
+                const { completed, total } = tierCompletion(t.id, tierScores);
+                return (
+                <button
+                  key={t.id}
+                  className={`${styles.tierCard} ${activeTier === t.id ? styles.tierActive : ""}`}
+                  onClick={() => setActiveTier(t.id)}
+                  style={{ "--tier-color": `var(--accent-${t.color})` } as React.CSSProperties}
+                >
+                  <span className={styles.tierIcon}>{t.icon}</span>
+                  <span className={styles.tierAge}>Ages {t.age}</span>
+                  <span className={styles.tierName}>{t.label}</span>
+                  <div className={styles.tierProgress}>
+                    <div className="progress-track">
+                      <div className="progress-bar" style={{ width: `${total > 0 ? (completed / total) * 100 : 0}%`, background: `var(--accent-${t.color})` }} />
+                    </div>
+                    <span className={styles.tierCount}>{completed}/{total}</span>
+                  </div>
+                </button>
+                );
+              })}
             </div>
-            <button
-              className={styles.mobileStatsBtn}
-              onClick={() => setShowMobileDrawer(true)}
-              aria-label="Open Stats and Menu"
-            >
-              📊 Stats & Menu
-            </button>
-          </div>
+          </section>
 
-          {activeTab === "Dashboard" && (
-            <>
-              {/* Tier selector */}
-              <section className={styles.tierSection}>
-                <h2 className="heading-lg">Select Your Tier</h2>
-                <div className={styles.tierGrid}>
-                  {TIERS.map((t) => (
-                    <button
-                      key={t.id}
-                      className={`${styles.tierCard} ${activeTier === t.id ? styles.tierActive : ""}`}
-                      onClick={() => setActiveTier(t.id)}
-                      style={{ "--tier-color": `var(--accent-${t.color})` } as React.CSSProperties}
-                    >
-                      <span className={styles.tierIcon}>{t.icon}</span>
-                      <span className={styles.tierAge}>Ages {t.age}</span>
-                      <span className={styles.tierName}>{t.label}</span>
-                      <div className={styles.tierProgress}>
-                        <div className="progress-track">
-                          <div className="progress-bar" style={{ width: `${(t.completed / t.modules) * 100}%`, background: `var(--accent-${t.color})` }} />
-                        </div>
-                        <span className={styles.tierCount}>{t.completed}/{t.modules}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              {/* Modules list */}
-              <section className={styles.modulesSection}>
-                <div className={styles.modulesHeader}>
-                  <h2 className="heading-lg">Learning Modules</h2>
-                  <span className="badge badge-teal">Tier {activeTier}</span>
-                </div>
-                <div className={styles.modulesList}>
-                  {MODULES.map((base) => {
-                    const real = getRealModule(activeTier, base.id);
-                    const isRealTierModule = !!real;
-                    const m = real
-                      ? {
-                          ...base,
-                          title: real.name,
-                          icon: real.icon,
-                          duration: `${real.estMinutes} min`,
-                          status: tierModuleStatus(activeTier, base.id),
-                          score: tierScores[activeTier]?.[base.id] ?? null,
-                        }
-                      : base;
-                    return (
-                    <div
-                      key={m.id}
-                      className={`${styles.moduleCard} ${selectedModule === m.id ? styles.moduleSelected : ""} ${m.status === "locked" ? styles.moduleLocked : ""}`}
-                      onClick={() => {
-                        if (m.status === "locked") {
-                          showToast("🔒 Complete previous modules to unlock this drill");
-                          return;
-                        }
-                        setSelectedModule(m.id);
-                        if (isRealTierModule) {
-                          setViewer({ tierId: activeTier, moduleId: m.id });
-                        } else if (m.game) {
-                          setActiveGameModule(m.id);
-                        } else {
-                          showToast(`Loaded "${m.title}"`);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={m.status !== "locked" ? 0 : -1}
-                    >
-                      <span className={styles.moduleIcon}>{m.icon}</span>
-                      <div className={styles.moduleInfo}>
-                        <h3 className={styles.moduleTitle}>{m.title}</h3>
-                        <div className={styles.moduleMeta}>
-                          <span className={`badge ${m.type === "Simulation" ? "badge-blue" : m.type === "Interactive" ? "badge-teal" : "badge-violet"}`}>{m.type}</span>
-                          <span className={styles.moduleDuration}>{m.duration}</span>
-                        </div>
-                      </div>
-                      <div className={styles.moduleRight}>
-                        {m.status === "completed" && (
-                          <div className={styles.moduleScore}>
-                            <span className={styles.scoreVal}>{m.score}%</span>
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="var(--accent-teal)" strokeWidth="1.5"/><path d="M6 9l2 2 4-4" stroke="var(--accent-teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          </div>
-                        )}
-                        {m.status === "in-progress" && <span className="badge badge-amber">In Progress</span>}
-                        {m.status === "locked" && (
-                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={styles.lockIcon}>
-                            <rect x="4" y="8" width="10" height="8" rx="2" stroke="var(--text-faint)" strokeWidth="1.5"/>
-                            <path d="M6 8V6a3 3 0 016 0v2" stroke="var(--text-faint)" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
-                        )}
-                      </div>
+          {/* Modules list */}
+          <section className={styles.modulesSection}>
+            <div className={styles.modulesHeader}>
+              <h2 className="heading-lg">Learning Modules</h2>
+              <span className="badge badge-teal">Tier {activeTier}</span>
+            </div>
+            <div className={styles.modulesList}>
+              {(TIER_GAME_CONFIG[activeTier]?.modules ?? []).map((real) => {
+                const id = shortId(activeTier, real.id);
+                const status = tierModuleStatus(activeTier, id);
+                const score = tierScores[activeTier]?.[id] ?? null;
+                const typeLabel = TYPE_LABEL[real.type];
+                return (
+                <div
+                  key={real.id}
+                  className={`${styles.moduleCard} ${selectedModule === id ? styles.moduleSelected : ""} ${status === "locked" ? styles.moduleLocked : ""}`}
+                  onClick={() => {
+                    if (status === "locked") {
+                      showToast("🔒 Complete previous modules to unlock this drill");
+                      return;
+                    }
+                    setSelectedModule(id);
+                    router.push(`/learn/${real.id}`);
+                  }}
+                  role="button"
+                  tabIndex={status !== "locked" ? 0 : -1}
+                >
+                  <span className={styles.moduleIcon}>{real.icon}</span>
+                  <div className={styles.moduleInfo}>
+                    <h3 className={styles.moduleTitle}>{real.name}</h3>
+                    <div className={styles.moduleMeta}>
+                      <span className={`badge ${typeLabel === "Simulation" ? "badge-blue" : typeLabel === "Interactive" ? "badge-teal" : "badge-violet"}`}>{typeLabel}</span>
+                      <span className={styles.moduleDuration}>{real.estMinutes} min</span>
                     </div>
-                    );
-                  })}
+                  </div>
+                  <div className={styles.moduleRight}>
+                    {status === "completed" && (
+                      <div className={styles.moduleScore}>
+                        <span className={styles.scoreVal}>{score}%</span>
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="var(--accent-teal)" strokeWidth="1.5"/><path d="M6 9l2 2 4-4" stroke="var(--accent-teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                    {status === "in-progress" && <span className="badge badge-amber badge-pulse">In Progress</span>}
+                    {status === "locked" && (
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className={styles.lockIcon}>
+                        <rect x="4" y="8" width="10" height="8" rx="2" stroke="var(--text-faint)" strokeWidth="1.5"/>
+                        <path d="M6 8V6a3 3 0 016 0v2" stroke="var(--text-faint)" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    )}
+                  </div>
                 </div>
-              </section>
+                );
+              })}
+            </div>
+          </section>
 
-              {/* Badges */}
-              <section className={styles.badgesSection}>
-                <h2 className="heading-lg">Achievement Badges</h2>
-                <div className={styles.badgesGrid}>
-                  {BADGES.map((b) => (
-                    <div
-                      key={b.name}
-                      className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}
-                      onClick={() => showToast(b.earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <span className={styles.badgeEmoji}>{b.icon}</span>
-                      <span className={styles.badgeName}>{b.name}</span>
-                      {b.earned && <span className={styles.badgeCheck}>✓</span>}
+          {/* Quiz Arena — per-module cards */}
+          <section className={styles.quizArenaSection}>
+            <h2 className="heading-lg">🎯 Quiz Arena</h2>
+            <p style={{ color: "var(--text-faint)", fontSize: "0.9rem", marginTop: "-8px" }}>
+              Test what you've learned — {TIERS.find((t) => t.id === activeTier)?.label ?? "this tier"} · Ages {TIERS.find((t) => t.id === activeTier)?.age ?? ""}
+            </p>
+            <div className={styles.quizModuleGrid}>
+              {(QUIZ_MODULES_BY_TIER[activeTier] ?? []).map((qm) => {
+                const bestLevel = qm.levels.reduce((max, l) => {
+                  const s = quizScores[qm.moduleId]?.[l.level] ?? 0;
+                  return s >= QUIZ_PASS_PCT ? l.level : max;
+                }, 0);
+                const totalLevels = qm.levels.length;
+                const progressPct = Math.round((bestLevel / totalLevels) * 100);
+                return (
+                  <button
+                    key={qm.moduleId}
+                    className={styles.quizModuleCard}
+                    onClick={() => router.push(`/learn/quiz/${activeTier}/${qm.moduleId}`)}
+                  >
+                    <span className={styles.quizModuleIcon}>{qm.icon}</span>
+                    <div className={styles.quizModuleInfo}>
+                      <span className={styles.quizModuleName}>{qm.name}</span>
+                      <span className={styles.quizModuleMeta}>
+                        {totalLevels} levels · {bestLevel > 0 ? `${bestLevel}/${totalLevels} passed` : "Not started"}
+                      </span>
+                      <span className={styles.quizModuleAge}>Ages {TIERS.find((t) => t.id === activeTier)?.age ?? ""}</span>
                     </div>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
+                    <div className={styles.quizModuleProgress}>
+                      <svg width="36" height="36" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="var(--border-subtle)" strokeWidth="3" />
+                        <circle
+                          cx="18" cy="18" r="15" fill="none"
+                          stroke="var(--accent-teal)" strokeWidth="3"
+                          strokeDasharray={`${progressPct * 0.942} 100`}
+                          strokeLinecap="round"
+                          transform="rotate(-90 18 18)"
+                        />
+                      </svg>
+                      <span className={styles.quizModulePct}>{progressPct}%</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-          {activeTab === "Leaderboard" && <LeaderboardView />}
-          {activeTab === "Settings" && <SettingsView />}
-          {activeTab === "My Certificates" && <ProfileView profile={cadetProfile} onOpenEdit={() => setShowEditDrawer(true)} />}
+          {/* Badges */}
+          <section className={styles.badgesSection}>
+            <h2 className="heading-lg">Achievement Badges</h2>
+            <div className={styles.badgesGrid}>
+              {BADGES.map((b) => (
+                <div
+                  key={b.name}
+                  className={`${styles.badgeCard} ${!b.earned ? styles.badgeLocked : ""}`}
+                  onClick={() => showToast(b.earned ? `🏅 Earned: ${b.name}` : `🔒 ${b.name} (Incomplete)`)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span className={styles.badgeEmoji}>{b.icon}</span>
+                  <span className={styles.badgeName}>{b.name}</span>
+                  {b.earned && <span className={styles.badgeCheck}>✓</span>}
+                </div>
+              ))}
+            </div>
+          </section>
         </main>
       </div>
-
-      {/* Mobile Off-Canvas Drawer (Screens < 768px) */}
-      {showMobileDrawer && (
-        <div className={styles.mobileDrawerOverlay} onClick={() => setShowMobileDrawer(false)}>
-          <div className={styles.mobileDrawerContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.mobileDrawerHeader}>
-              <span className={styles.mobileDrawerTitle}>Cadet Profile & Stats</span>
-              <button
-                className={styles.mobileDrawerClose}
-                onClick={() => setShowMobileDrawer(false)}
-                aria-label="Close drawer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className={styles.sidebarProfile}>
-              <ProfileAvatar profile={cadetProfile} size="small" />
-              <div className={styles.profileInfo}>
-                <span className={styles.profileName}>{cadetProfile?.name || "Cadet"}</span>
-                <span className={styles.profileRole}>{cadetProfile?.tierName || "Student Responder"} • {cadetProfile?.grade || "N/A"}</span>
-              </div>
-            </div>
-
-            <div className="divider" style={{ margin: "12px 0" }} />
-
-            <div className={styles.sidebarSection}>
-              <span className="label" style={{ color: "var(--text-faint)", padding: "0 12px" }}>Progress</span>
-              <div className={styles.progressRing}>
-                <svg viewBox="0 0 100 100" className={styles.ringsSvg}>
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--accent-teal)" strokeWidth="6"
-                    strokeDasharray={`${2 * Math.PI * 42}`}
-                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - 0.35)}`}
-                    strokeLinecap="round" transform="rotate(-90 50 50)" style={{ filter: "drop-shadow(0 0 6px rgba(0,212,170,0.5))" }} />
-                </svg>
-                <div className={styles.ringCenter}>
-                  <span className={styles.ringValue}>35%</span>
-                  <span className={styles.ringLabel}>Overall</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="divider" style={{ margin: "12px 0" }} />
-
-            <div className={styles.sidebarSection}>
-              <span className="label" style={{ color: "var(--text-faint)", padding: "0 12px" }}>Quick Stats</span>
-              <div className={styles.quickStats}>
-                <div className={styles.quickStat}><span className={styles.qsVal}>5</span><span className={styles.qsLbl}>Lessons Done</span></div>
-                <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-amber)" }}>91%</span><span className={styles.qsLbl}>Avg Score</span></div>
-                <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-blue)" }}>2h</span><span className={styles.qsLbl}>Study Time</span></div>
-                <div className={styles.quickStat}><span className={styles.qsVal} style={{ color: "var(--accent-violet)" }}>3</span><span className={styles.qsLbl}>Drills Run</span></div>
-              </div>
-            </div>
-
-            <div className="divider" style={{ margin: "12px 0" }} />
-
-            <nav className={styles.sidebarNav}>
-              {[
-                { label: "Dashboard" },
-                { label: "My Certificates" },
-                { label: "Leaderboard" },
-                { label: "Settings" },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  className={`${styles.navItem} ${activeTab === item.label ? styles.navItemActive : ""}`}
-                  onClick={() => {
-                    setActiveTab(item.label);
-                    setShowMobileDrawer(false);
-                    showToast(`Switched to ${item.label}`);
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
-
-      {viewer && getRealModule(viewer.tierId, viewer.moduleId) && (
-        <ModuleViewer
-          key={`${viewer.tierId}-${viewer.moduleId}`}
-          module={getRealModule(viewer.tierId, viewer.moduleId)!}
-          onClose={() => setViewer(null)}
-          onComplete={(scorePct) => {
-            const { tierId, moduleId } = viewer;
-            setTierScores((prev) => ({
-              ...prev,
-              [tierId]: { ...(prev[tierId] ?? {}), [moduleId]: scorePct },
-            }));
-            setViewer(null);
-            showToast(scorePct === 100 ? "✅ Module complete — nice work!" : "Module complete — review the checkpoint next time.");
-          }}
-        />
-      )}
-
-      {activeGameModule && (() => {
-        const mod = MODULES.find((m) => m.id === activeGameModule);
-        if (!mod || !mod.game) return null;
-        const meta = GAME_META[mod.game];
-        const finishGame = (score: number) => {
-          setTierScores((prev) => ({
-            ...prev,
-            [activeTier]: { ...(prev[activeTier] ?? {}), [mod.id]: score },
-          }));
-          setActiveGameModule(null);
-          showToast(`✓ "${mod.title}" complete — scored ${score}%`);
-        };
-        return (
-          <GameModal title={meta.title} icon={meta.icon} onClose={() => setActiveGameModule(null)}>
-            {mod.game === "dch" && <DropCoverHoldGame onComplete={finishGame} />}
-            {mod.game === "pass" && <PassExtinguisherGame onComplete={finishGame} />}
-            {mod.game === "gobag" && <GoBagBuilder onComplete={finishGame} />}
-          </GameModal>
-        );
-      })()}
-
-      {/* Cadet Onboarding Modal - shown on first visit */}
-      <CadetOnboardingModal
-        isOpen={showOnboardingModal}
-        onSubmit={handleOnboardingSubmit}
-        onClose={() => setShowOnboardingModal(false)}
-      />
-
-      {/* Edit Profile Drawer */}
-      <EditProfileDrawer
-        isOpen={showEditDrawer}
-        initialData={cadetProfile || undefined}
-        onSave={handleProfileEdit}
-        onClose={() => setShowEditDrawer(false)}
-      />
     </div>
   );
 }

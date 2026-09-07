@@ -10,6 +10,8 @@ import { SCENARIOS } from "./game/floorplan";
 import { generateDebrief, saveRun, fmtTime, type DebriefLine, type RunTelemetry } from "./game/telemetry";
 import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
+import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
+import { loadCadetSettings } from "@/lib/cadetSettings";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -24,12 +26,6 @@ const BUBBLE_TONE_CLASS = {
   info: "mitraBubbleInfo",
 } as const;
 
-/* Mitra now lives on the FastAPI backend (POST /api/v1/mitra/chat) so the
-   Gemini key only has to exist on whoever runs that server, not in every
-   developer's own frontend/.env.local. Override via NEXT_PUBLIC_BACKEND_URL
-   if the backend isn't on the default local port. */
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
-
 const EvacuationGame = dynamic(() => import("./game/EvacuationGame"), { ssr: false });
 
 type Phase = "briefing" | "running" | "ended";
@@ -37,30 +33,14 @@ type Phase = "briefing" | "running" | "ended";
 /* Mitra: deterministic opening line, seeded from real game state before the AI takes over */
 function getMitraTip(gs: GameState | null): string {
   if (!gs) return "I'm tracking your route. Amber doorways block fire & smoke until you push through them.";
-  if (gs.status === "won") return "Clean evacuation logged. Your run is on the command analytics dashboard.";
-  if (gs.status === "lost") return "Run logged. Check your debrief. Smoke exposure and panic are the usual killers.";
-  if (gs.message.startsWith("YOU ARE IN")) return gs.message;
-  if (gs.panic > 70) return "Panic spiking! Stop and hold B. Box breathe: 4 seconds in, 4 seconds hold, 4 seconds out.";
+  if (gs.status === "won") return "Clean evacuation logged ✓ Your run is on the command analytics dashboard.";
+  if (gs.status === "lost") return "Run logged. Check your debrief - smoke exposure and panic are the usual killers.";
+  if (gs.panic > 70) return "Panic spiking! Stop and hold B - box-breathe: 4s in, 4s hold, 4s out.";
   if (gs.breathing) return "Good. Move again once panic drops below 40.";
-  if (gs.oxygen < 25 && !gs.crouching) return "Oxygen critical! Crawl now. Press SHIFT to crawl straight to the nearest beacon.";
-  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen dropping. Crawl with SHIFT to slow smoke intake.";
-  if (gs.crouching) return "Smart crawling. Doorways slow the spread. Use them as firebreaks.";
-  if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go now.";
-  return "Stay low, keep moving. I am tracking your route and logging every decision. Ask me anything.";
-}
-
-function isInHazard(gs: GameState | null): boolean {
-  if (!gs || gs.status !== "running") return false;
-  return gs.message.startsWith("YOU ARE IN") || gs.panic > 65 || (gs.oxygen < 30 && !gs.crouching);
-}
-
-function getHazardAlert(gs: GameState | null): string {
-  if (!gs) return "";
-  if (gs.message.startsWith("YOU ARE IN")) return gs.message;
-  if (gs.panic > 70) return "Danger! Panic critical. Stop and box breathe now. Hold B.";
-  if (gs.oxygen < 25 && !gs.crouching) return "Danger! Oxygen critical. Crawl with SHIFT to the nearest exit.";
-  if (gs.oxygen < 30 && !gs.crouching) return "Warning. Oxygen low. Crawl with SHIFT to reduce smoke intake.";
-  return "";
+  if (gs.oxygen < 35 && !gs.crouching) return "Oxygen critical. Crawl (SHIFT) straight to the nearest beacon - no detours.";
+  if (gs.crouching) return "Smart crawling. Doorways slow the spread - use them as firebreaks.";
+  if (gs.time > 60) return "Fire doubles roughly every minute. Commit to an exit and go.";
+  return "Stay low, keep moving. I'm tracking your route and logging every decision. Ask me anything.";
 }
 
 interface MitraTurn {
@@ -106,12 +86,15 @@ export default function SimulatePage() {
   const [mitraInput, setMitraInput] = useState("");
   const [mitraLoading, setMitraLoading] = useState(false);
   const [mitraBubble, setMitraBubble] = useState<MitraBubble | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
   const mitraLogRef = useRef<HTMLDivElement>(null);
   const lastDistRef = useRef<number | null>(null);
   const nextBubbleAtRef = useRef(0);
   const lastUrgentAtRef = useRef(0);
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { broadcasts } = useEmergencyBroadcasts();
   const goodLineIdxRef = useRef(0);
   const scenario = learnScenario ?? SCENARIOS[selIdx];
 
@@ -121,134 +104,31 @@ export default function SimulatePage() {
     };
   }, []);
 
-  /* ── Mitra voice — Web Speech API (doc 08 §7, Frontend Dev 2 task 3) ── */
-  const [voiceOn, setVoiceOn] = useState(false);
-  const [listening, setListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [speechSupported, setSpeechSupported] = useState({ tts: false, stt: false });
-  const recognitionRef = useRef<InstanceType<NonNullable<typeof window.SpeechRecognition>> | null>(null);
-  const lastSpokenRef = useRef("");
-  // SpeechRecognition's onresult closure is set once per toggleListening()
-  // call and can fire well after gs has moved on - a ref kept in sync with
-  // the latest gs lets that handler read the current value instead of the
-  // one captured when listening started.
-  const gsRef = useRef<GameState | null>(null);
   useEffect(() => {
-    gsRef.current = gs;
-  }, [gs]);
-
-  useEffect(() => {
-    setSpeechSupported({
-      tts: typeof window !== "undefined" && "speechSynthesis" in window,
-      stt: typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition),
-    });
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition && !recognitionRef.current) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-IN";
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
   }, []);
 
-  // Recognition keeps running (and its onend/onerror keep firing setState)
-  // after navigating away unless explicitly stopped; detach the handlers
-  // first so a stop-triggered onend can't touch state post-unmount.
   useEffect(() => {
-    return () => {
-      const rec = recognitionRef.current;
-      if (rec) {
-        rec.onresult = null;
-        rec.onerror = null;
-        rec.onend = null;
-        rec.stop();
-      }
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
-  const speak = (text: string) => {
-    if (!("speechSynthesis" in window) || !text) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1.02;
-    utter.pitch = 1.0;
-    window.speechSynthesis.speak(utter);
-  };
-
-  const sendMitra = async (raw: string) => {
-    const text = raw.trim();
-    if (!text || mitraLoading) return;
-    const history = [...mitraMessages, { role: "user" as const, text }];
-    setMitraMessages(history);
-    setMitraInput("");
-    setMitraLoading(true);
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/mitra/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          history: history.slice(0, -1),
-          context: {
-            phase,
-            scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
-            gameState: gs
-              ? {
-                  status: gs.status,
-                  time: Math.round(gs.time),
-                  oxygen: Math.round(gs.oxygen),
-                  panic: Math.round(gs.panic),
-                  crouching: gs.crouching,
-                  breathing: gs.breathing,
-                  score: gs.score,
-                }
-              : null,
-          },
-        }),
-      });
-      const data = await res.json();
-      const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
-      if (voiceOn) speak(replyText);
-    } catch {
-      const failText = "Connection lost — try again once you're back online.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: failText }]);
-      if (voiceOn) speak(failText);
-    } finally {
-      setMitraLoading(false);
-    }
-  };
-
-  const toggleListening = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const rec = new SR();
-    rec.continuous = false;
-    rec.interimResults = true;
-    rec.lang = "en-IN";
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      const text = Array.from(e.results)
-        .map((r) => r[0].transcript)
-        .join(" ");
-      setTranscript(text);
-      const last = e.results[e.results.length - 1];
-      if (last.isFinal) {
-        const lower = text.toLowerCase();
-        if (/help|status|repeat|mitra/.test(lower)) {
-          speak(getMitraTip(gsRef.current));
-        } else {
-          setMitraInput(text);
-          sendMitra(text);
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = (e: any) => {
+        const transcript = e.results[0][0].transcript;
+        if (transcript) {
+          setMitraInput(transcript);
+          sendMitra(transcript);
         }
-      }
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    recognitionRef.current = rec;
-    rec.start();
-    setListening(true);
-    setTranscript("");
-  };
+      };
+    }
+  }, [mitraMessages, gs, phase, scenario, mitraLoading]);
 
   useEffect(() => {
     if (!mitraPanelRef.current) return;
@@ -277,6 +157,79 @@ export default function SimulatePage() {
       }
       return next;
     });
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      recognitionRef.current?.start();
+    }
+  };
+
+  const speakMitra = (text: string) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = loadCadetSettings().mitraVoiceLang;
+    utterance.rate = 1.05;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // When a campus emergency is injected/broadcast, Mitra verbalizes the
+  // warning immediately - this is the one voice line that isn't gated
+  // behind mitraOpen, since it's a safety announcement, not chat.
+  useEffect(() => {
+    if (broadcasts.length === 0) return;
+    const latest = broadcasts[0];
+    speakMitra(`Emergency alert. ${latest.severity} severity. ${latest.msg}`);
+    setMitraMessages((m) => [...m, { role: "mitra", text: `🚨 ${latest.msg}` }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [broadcasts.length]);
+
+  const sendMitra = async (raw: string) => {
+    const text = raw.trim();
+    if (!text || mitraLoading) return;
+    const history = [...mitraMessages, { role: "user" as const, text }];
+    setMitraMessages(history);
+    setMitraInput("");
+    setMitraLoading(true);
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const res = await fetch(`${backendUrl}/api/v1/mitra/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history: history.slice(0, -1),
+          context: {
+            phase,
+            scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
+            gameState: gs
+              ? {
+                  status: gs.status,
+                  time: Math.round(gs.time),
+                  oxygen: Math.round(gs.oxygen),
+                  panic: Math.round(gs.panic),
+                  crouching: gs.crouching,
+                  breathing: gs.breathing,
+                  score: gs.score,
+                }
+              : null,
+          },
+        }),
+      });
+      const data = await res.json();
+      const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
+      setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
+      speakMitra(replyText);
+    } catch {
+      const errText = "Connection lost — try again once you're back online.";
+      setMitraMessages((m) => [...m, { role: "mitra", text: errText }]);
+      speakMitra(errText);
+    } finally {
+      setMitraLoading(false);
+    }
   };
 
   const showBubble = (text: string, tone: MitraBubble["tone"]) => {
@@ -315,34 +268,6 @@ export default function SimulatePage() {
     }
   };
 
-  /* hands-free coaching: speak Mitra's tip whenever it changes, while voice is on */
-  useEffect(() => {
-    if (!voiceOn || phase === "briefing") return;
-    if (isInHazard(gs)) return;
-    const tip = getMitraTip(gs);
-    if (tip === lastSpokenRef.current) return;
-    lastSpokenRef.current = tip;
-    speak(tip);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn, phase, gs?.message, gs?.panic, gs?.oxygen, gs?.crouching, gs?.breathing, gs?.time]);
-
-  /* danger voice alerts: speak immediately on entering hazard, repeat every 6s */
-  const lastHazardRef = useRef("");
-  useEffect(() => {
-    if (!voiceOn || phase === "briefing") return;
-    const msg = getHazardAlert(gs);
-    if (!msg) { lastHazardRef.current = ""; return; }
-    if (msg === lastHazardRef.current) return;
-    lastHazardRef.current = msg;
-    speak(msg);
-    const interval = setInterval(() => {
-      const current = getHazardAlert(gs);
-      if (current && current === lastHazardRef.current) speak(current);
-    }, 6000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn, phase, gs?.message, gs?.panic, gs?.oxygen, gs?.crouching]);
-
   const onState = (s: GameState) => {
     setGs(s);
     if (s.status !== "running") setPhase("ended");
@@ -366,9 +291,6 @@ export default function SimulatePage() {
     lastDistRef.current = null;
     nextBubbleAtRef.current = 0;
     lastUrgentAtRef.current = 0;
-    lastSpokenRef.current = "";
-    lastHazardRef.current = "";
-    if (speechSupported.tts && !voiceOn) setVoiceOn(true);
   };
 
   const fmt = fmtTime;
@@ -543,40 +465,7 @@ export default function SimulatePage() {
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
-            <div className={styles.mitraHeader}>
-              <span className="hud-label">Mitra · Crisis Companion</span>
-              <div className={styles.mitraVoiceControls}>
-                {speechSupported.tts && (
-                  <button
-                    type="button"
-                    className={`${styles.mitraIconBtn} ${voiceOn ? styles.mitraIconBtnActive : ""}`}
-                    onClick={() => {
-                      const next = !voiceOn;
-                      setVoiceOn(next);
-                      if (!next) window.speechSynthesis.cancel();
-                      else speak(mitraMessages[mitraMessages.length - 1]?.text ?? getMitraTip(gs));
-                    }}
-                    title={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
-                    aria-label={voiceOn ? "Mute Mitra" : "Speak Mitra's coaching aloud"}
-                    aria-pressed={voiceOn}
-                  >
-                    {voiceOn ? "🔊" : "🔈"}
-                  </button>
-                )}
-                {speechSupported.stt && (
-                  <button
-                    type="button"
-                    className={`${styles.mitraIconBtn} ${listening ? styles.mitraIconBtnActive : ""}`}
-                    onClick={toggleListening}
-                    title={listening ? "Stop listening" : "Say \"help\" or \"status\" for hands-free coaching"}
-                    aria-label={listening ? "Stop listening" : "Say help or status for hands-free coaching"}
-                    aria-pressed={listening}
-                  >
-                    {listening ? "🎙️" : "🎤"}
-                  </button>
-                )}
-              </div>
-            </div>
+            <span className="hud-label">Mitra · Crisis Companion</span>
             <div ref={mitraLogRef} className={styles.mitraLog}>
               {mitraMessages.map((m, i) => (
                 <p key={i} className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
@@ -587,9 +476,6 @@ export default function SimulatePage() {
                 <div className={styles.typing}><span /><span /><span /></div>
               )}
             </div>
-            {listening && (
-              <p className={styles.mitraTranscript}>{transcript || "Listening… try “help” or “status”"}</p>
-            )}
             <form
               className={styles.mitraInputRow}
               onSubmit={(e) => {
@@ -599,10 +485,9 @@ export default function SimulatePage() {
             >
               <button
                 type="button"
-                className={`${styles.mitraMic} ${listening ? styles.listeningPulse : ""}`}
+                className={`${styles.mitraMic} ${isListening ? styles.listeningPulse : ""}`}
                 onClick={toggleListening}
-                title={listening ? "Stop listening" : "Use voice"}
-                aria-label={listening ? "Stop listening" : "Use voice"}
+                title="Use voice"
               >
                 🎤
               </button>

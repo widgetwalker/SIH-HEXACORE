@@ -41,7 +41,11 @@ class Settings(BaseSettings):
     # Leave empty in dev to allow loopback-only calls without a signature.
     SACHET_WEBHOOK_SECRET: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # extra="ignore": a local .env may carry keys other branches/features
+    # use (e.g. GEMINI_API_KEY for the Mitra backend) that this branch's
+    # Settings doesn't declare yet - ignoring them here means switching
+    # branches doesn't crash the app on an unrelated env var.
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 # Import this single instance everywhere else instead of creating new

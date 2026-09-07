@@ -1,193 +1,283 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import CadetOnboardingModal, { type CadetFormData } from "@/components/onboarding/CadetOnboardingModal";
-import EditProfileDrawer from "./EditProfileDrawer";
-import AvatarPicker from "./AvatarPicker";
-import ProfileAvatar from "./ProfileAvatar";
-import ProfileView from "@/components/learn/ProfileView";
-import SettingsView from "@/components/learn/SettingsView";
-import LeaderboardView from "@/components/learn/LeaderboardView";
-import {
-  CADET_PROFILE_UPDATED_EVENT,
-  DEFAULT_AVATAR_ID,
-  loadCadetProfile,
-  saveCadetProfile,
-  type CadetProfile,
-} from "@/types/profile";
+import CadetProfileForm from "@/components/onboarding/CadetProfileForm";
+import { loadCadetProfile, type CadetProfile } from "@/lib/cadetProfile";
+import { ALL_TIER_IDS, TIER_GAME_CONFIG, TIER_NAMES } from "@/components/learn/tiergame/moduleRegistry";
+import { DEFAULT_SETTINGS, MITRA_VOICE_LANGUAGES, loadCadetSettings, saveCadetSettings, type CadetSettings } from "@/lib/cadetSettings";
 import styles from "./ProfilePage.module.css";
 
-type ProfileTab = "Dashboard" | "Certificates" | "Settings" | "Leaderboard";
+const TIER_SCORES_KEY = "safezone_tier_scores_v1";
+const TABS = ["Overview", "My Certificates", "Leaderboard", "Settings"] as const;
+type Tab = (typeof TABS)[number];
 
-const TABS: Array<{ id: ProfileTab; label: string; description: string }> = [
-  { id: "Dashboard", label: "Dashboard", description: "Identity and readiness" },
-  { id: "Certificates", label: "Certificates", description: "Credentials earned" },
-  { id: "Settings", label: "Settings", description: "Preferences and contacts" },
-  { id: "Leaderboard", label: "Leaderboard", description: "Campus rankings" },
-];
-
-function getTab(value: string | null): ProfileTab {
-  const match = TABS.find((tab) => tab.id.toLowerCase() === value?.toLowerCase());
-  return match?.id || "Dashboard";
+function loadTierScores(): Record<number, Record<string, number>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(TIER_SCORES_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    return parsed as Record<number, Record<string, number>>;
+  } catch {
+    return {};
+  }
 }
 
+const MOCK_LEADERBOARD = [
+  { name: "Aarav Mehta", score: 96 },
+  { name: "Diya Kapoor", score: 91 },
+  { name: "Kabir Singh", score: 87 },
+  { name: "Ishita Rao", score: 82 },
+  { name: "Rohan Iyer", score: 74 },
+  { name: "Sneha Nair", score: 68 },
+];
+
 export default function ProfilePage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<CadetProfile | null>(null);
-  const [selectedTab, setSelectedTab] = useState<ProfileTab | null>(null);
-  const [showEditDrawer, setShowEditDrawer] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const [tierScores, setTierScores] = useState<Record<number, Record<string, number>>>({});
+  const [activeTab, setActiveTab] = useState<Tab>("Overview");
+  const [editing, setEditing] = useState(false);
+  const [settings, setSettings] = useState<CadetSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const savedProfile = loadCadetProfile();
-    setProfile(savedProfile);
-    setShowOnboarding(!savedProfile);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    setProfile(loadCadetProfile());
+    setTierScores(loadTierScores());
+    setSettings(loadCadetSettings());
+    const tabParam = searchParams.get("tab");
+    const match = TABS.find((t) => t.toLowerCase().replace(/\s+/g, "-") === tabParam);
+    if (match) setActiveTab(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const onProfileUpdated = (event: Event) => {
-      const nextProfile = (event as CustomEvent<CadetProfile>).detail || loadCadetProfile();
-      setProfile(nextProfile);
-      setShowOnboarding(!nextProfile);
+  const { readinessPct, completedCount, totalCount } = useMemo(() => {
+    let completed = 0;
+    let total = 0;
+    for (const tierId of ALL_TIER_IDS) {
+      const cfg = TIER_GAME_CONFIG[tierId];
+      if (!cfg) continue;
+      total += cfg.modules.length;
+      const scores = tierScores[tierId] ?? {};
+      completed += cfg.modules.filter((m) => scores[m.id.replace(`${cfg.prefix}-`, "")] !== undefined).length;
+    }
+    return {
+      readinessPct: total > 0 ? Math.round((completed / total) * 100) : 0,
+      completedCount: completed,
+      totalCount: total,
     };
-    window.addEventListener(CADET_PROFILE_UPDATED_EVENT, onProfileUpdated);
-    return () => window.removeEventListener(CADET_PROFILE_UPDATED_EVENT, onProfileUpdated);
-  }, []);
+  }, [tierScores]);
 
-  useEffect(() => {
-    /* Query links in the global Navbar should reset any in-page tab selection. */
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setSelectedTab(null);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [searchParams]);
+  const certifiedTiers = useMemo(() => {
+    return ALL_TIER_IDS.filter((tierId) => {
+      const cfg = TIER_GAME_CONFIG[tierId];
+      if (!cfg || cfg.modules.length === 0) return false;
+      const scores = tierScores[tierId] ?? {};
+      return cfg.modules.every((m) => scores[m.id.replace(`${cfg.prefix}-`, "")] !== undefined);
+    }).map((tierId) => ({ tierId, name: TIER_NAMES[tierId] ?? "" }));
+  }, [tierScores]);
 
-  const readinessScore = useMemo(() => (profile ? Math.min(50 + profile.tierId * 8, 95) : 0), [profile]);
-  const activeTab = selectedTab || getTab(searchParams.get("tab"));
+  const leaderboard = useMemo(() => {
+    const rows = MOCK_LEADERBOARD.map((r) => ({ ...r, isYou: false }));
+    if (profile) rows.push({ name: profile.name, score: readinessPct, isYou: true });
+    return rows.sort((a, b) => b.score - a.score);
+  }, [profile, readinessPct]);
 
-  const commitProfile = (nextProfile: CadetProfile, notice: string) => {
-    setProfile(nextProfile);
-    saveCadetProfile(nextProfile);
-    setSavedNotice(notice);
-    window.setTimeout(() => setSavedNotice(null), 2200);
+  const updateSetting = <K extends keyof CadetSettings>(key: K, value: CadetSettings[K]) => {
+    const next = { ...settings, [key]: value };
+    setSettings(next);
+    saveCadetSettings(next);
   };
 
-  const handleOnboarding = (data: CadetFormData) => {
-    commitProfile({ ...data, avatarId: DEFAULT_AVATAR_ID }, "Cadet identity created");
-    setShowOnboarding(false);
-  };
-
-  const handleProfileEdit = (data: Omit<CadetProfile, "avatarId" | "avatarImage">) => {
-    if (!profile) return;
-    commitProfile({ ...data, avatarId: profile.avatarId || DEFAULT_AVATAR_ID, avatarImage: profile.avatarImage }, "Profile details saved");
-    setShowEditDrawer(false);
-  };
-
-  const handleAvatarChange = (avatar: Pick<CadetProfile, "avatarId" | "avatarImage">) => {
-    if (!profile) return;
-    commitProfile({ ...profile, ...avatar }, "Profile mark updated");
-  };
+  if (!profile) return null;
 
   return (
     <div className={styles.page}>
       <Navbar mode="learning" />
-      <main className={styles.shell}>
+      <div className={styles.layout}>
         <header className={styles.header}>
-          <div>
-            <p className={styles.kicker}>SafeZone identity console</p>
-            <h1>Cadet profile</h1>
-            <p className={styles.lede}>Your progress, emergency preferences, credentials, and campus standing in one place.</p>
+          <div className={styles.avatarLarge}>{profile.name.charAt(0).toUpperCase()}</div>
+          <div className={styles.headerInfo}>
+            <h1 className={styles.name}>{profile.name}</h1>
+            <p className={styles.meta}>
+              {profile.grade} · {profile.school}
+            </p>
+            <span className="badge badge-teal">Tier {profile.tierId} · {profile.tierName}</span>
           </div>
-          {savedNotice && <span className={styles.notice}>{savedNotice}</span>}
+          <button className="btn btn-ghost" onClick={() => setEditing(true)}>
+            Edit Details
+          </button>
         </header>
 
-        <section className={styles.profileStrip}>
-          <div className={styles.identity}>
-            <ProfileAvatar profile={profile} size="large" />
-            <div>
-              <p className={styles.identityLabel}>Active cadet</p>
-              <h2>{profile ? profile.name : "Complete your identity"}</h2>
-              <p className={styles.identityMeta}>
-                {profile ? `${profile.tierName} · ${profile.school}` : "Enroll to unlock your profile dashboard"}
-              </p>
-            </div>
-          </div>
-          <div className={styles.identityActions}>
-            {profile && <span className={styles.status}><span className={styles.statusDot} /> Profile synced</span>}
-            {profile && <button className="btn-secondary" onClick={() => setShowEditDrawer(true)}>Edit profile</button>}
-          </div>
-        </section>
-
-        <nav className={styles.tabs} aria-label="Profile sections">
-          {TABS.map((tab, index) => (
+        <nav className={styles.tabs}>
+          {TABS.map((tab) => (
             <button
-              key={tab.id}
-              type="button"
-              className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-              onClick={() => setSelectedTab(tab.id)}
-              aria-current={activeTab === tab.id ? "page" : undefined}
+              key={tab}
+              className={`${styles.tabBtn} ${activeTab === tab ? styles.tabBtnActive : ""}`}
+              onClick={() => setActiveTab(tab)}
             >
-              <span className={styles.tabIndex}>0{index + 1}</span>
-              <span>
-                <strong>{tab.label}</strong>
-                <small>{tab.description}</small>
-              </span>
+              {tab}
             </button>
           ))}
         </nav>
 
-        <div className={styles.content}>
-          {activeTab === "Dashboard" && (
-            <div className={styles.dashboard}>
-              <section className={styles.dashboardHero}>
-                <div>
-                  <p className={styles.kicker}>Readiness overview</p>
-                  <h2>{profile ? `Good to see you, ${profile.name.split(" ")[0]}.` : "Build your cadet profile."}</h2>
-                  <p>{profile ? "Keep your identity current so every learning surface reflects the right cadet." : "Start with your name, age, grade, and institution to personalize SafeZone."}</p>
+        {activeTab === "Overview" && (
+          <section className={styles.section}>
+            <div className={styles.readinessCard}>
+              <div className={styles.readinessRing}>
+                <svg viewBox="0 0 100 100" className={styles.ringSvg}>
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-subtle)" strokeWidth="8" />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    stroke="var(--accent-teal)"
+                    strokeWidth="8"
+                    strokeDasharray={2 * Math.PI * 42}
+                    strokeDashoffset={2 * Math.PI * 42 * (1 - readinessPct / 100)}
+                    strokeLinecap="round"
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
+                <div className={styles.ringCenter}>
+                  <span className={styles.ringValue}>{readinessPct}%</span>
+                  <span className={styles.ringLabel}>Ready</span>
                 </div>
-                <div className={styles.readinessValue}>
-                  <strong>{readinessScore}%</strong>
-                  <span>readiness</span>
-                </div>
-              </section>
+              </div>
+              <div className={styles.readinessInfo}>
+                <h2 className="heading-lg">Disaster Readiness</h2>
+                <p className={styles.readinessSub}>
+                  {completedCount} of {totalCount} modules completed across every tier.
+                </p>
+                <button className="btn btn-primary" onClick={() => router.push("/learn")}>
+                  Continue Training →
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
-              {profile ? (
-                <>
-                  <div className={styles.metricGrid}>
-                    <div><span>Tier</span><strong>{profile.tierId} · {profile.tierName}</strong></div>
-                    <div><span>Age band</span><strong>{profile.age} years</strong></div>
-                    <div><span>Learning status</span><strong>Active cadet</strong></div>
-                    <div><span>Institution</span><strong>{profile.school}</strong></div>
+        {activeTab === "My Certificates" && (
+          <section className={styles.section}>
+            {certifiedTiers.length === 0 ? (
+              <p className={styles.emptyState}>Complete every module in a tier to earn your first certificate.</p>
+            ) : (
+              <div className={styles.certGrid}>
+                {certifiedTiers.map((t) => (
+                  <div key={t.tierId} className={styles.certCard}>
+                    <span className={styles.certBadge}>🎖️</span>
+                    <h3 className={styles.certTitle}>Certificate of Completion</h3>
+                    <p className={styles.certName}>{profile.name}</p>
+                    <p className={styles.certMeta}>{profile.school}</p>
+                    <p className={styles.certTier}>{t.name} Tier — All Modules Verified</p>
                   </div>
-                  <AvatarPicker profile={profile} onChange={handleAvatarChange} />
-                </>
-              ) : (
-                <button className="btn-primary" onClick={() => setShowOnboarding(true)}>Create cadet identity</button>
-              )}
-            </div>
-          )}
-          {activeTab === "Certificates" && <ProfileView profile={profile} onOpenEdit={() => setShowEditDrawer(true)} />}
-          {activeTab === "Settings" && (
-            <div className={styles.settingsLayout}>
-              {profile && <AvatarPicker profile={profile} onChange={handleAvatarChange} />}
-              <SettingsView />
-            </div>
-          )}
-          {activeTab === "Leaderboard" && <LeaderboardView />}
-        </div>
-      </main>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-      <CadetOnboardingModal isOpen={showOnboarding} onSubmit={handleOnboarding} onClose={() => profile && setShowOnboarding(false)} />
-      <EditProfileDrawer
-        isOpen={showEditDrawer}
-        initialData={profile || undefined}
-        onSave={handleProfileEdit}
-        onClose={() => setShowEditDrawer(false)}
-      />
+        {activeTab === "Leaderboard" && (
+          <section className={styles.section}>
+            <div className={styles.leaderboardList}>
+              {leaderboard.map((row, i) => (
+                <div key={row.name} className={`${styles.leaderRow} ${row.isYou ? styles.leaderRowYou : ""}`}>
+                  <span className={styles.leaderRank}>#{i + 1}</span>
+                  <span className={styles.leaderName}>{row.isYou ? `${row.name} (You)` : row.name}</span>
+                  <span className={styles.leaderScore}>{row.score}%</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activeTab === "Settings" && (
+          <section className={styles.section}>
+            <div className={styles.settingsList}>
+              <label className={styles.settingRow}>
+                <div>
+                  <span className={styles.settingName}>Drill Sirens</span>
+                  <span className={styles.settingDesc}>Play an audible siren when a campus emergency is injected.</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.drillSiren}
+                  onChange={(e) => updateSetting("drillSiren", e.target.checked)}
+                />
+              </label>
+
+              <label className={styles.settingRow}>
+                <div>
+                  <span className={styles.settingName}>Mitra Voice Language</span>
+                  <span className={styles.settingDesc}>Language Mitra speaks in during simulations.</span>
+                </div>
+                <select
+                  className={styles.select}
+                  value={settings.mitraVoiceLang}
+                  onChange={(e) => updateSetting("mitraVoiceLang", e.target.value)}
+                >
+                  {MITRA_VOICE_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className={styles.settingRow}>
+                <div>
+                  <span className={styles.settingName}>Reduced Motion</span>
+                  <span className={styles.settingDesc}>Turn off animations and transitions across the app.</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.reducedMotion}
+                  onChange={(e) => updateSetting("reducedMotion", e.target.checked)}
+                />
+              </label>
+
+              <div className={styles.settingRow}>
+                <div>
+                  <span className={styles.settingName}>Emergency Contact</span>
+                  <span className={styles.settingDesc}>Who to notify if you're marked unaccounted for during a drill.</span>
+                </div>
+                <div className={styles.contactFields}>
+                  <input
+                    placeholder="Contact name"
+                    value={settings.emergencyContactName}
+                    onChange={(e) => updateSetting("emergencyContactName", e.target.value)}
+                  />
+                  <input
+                    placeholder="Phone number"
+                    value={settings.emergencyContactPhone}
+                    onChange={(e) => updateSetting("emergencyContactPhone", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
+
+      {editing && (
+        <div className={styles.drawerOverlay} onClick={() => setEditing(false)}>
+          <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
+            <h2 className="heading-lg">Edit Details</h2>
+            <CadetProfileForm
+              initial={profile}
+              submitLabel="Save Changes"
+              onSaved={(p) => {
+                setProfile(p);
+                setEditing(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

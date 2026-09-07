@@ -1,2 +1,9 @@
 import CommandPage from "@/components/command/CommandPage";
-export default function Command() { return <CommandPage />; }
+import OnboardingGate from "@/components/onboarding/OnboardingGate";
+export default function Command() {
+  return (
+    <OnboardingGate>
+      <CommandPage />
+    </OnboardingGate>
+  );
+}
