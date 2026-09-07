@@ -291,6 +291,47 @@
   gap: 20px;
 }
 
+/* Header actions row */
+.headerActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Logout button */
+.logoutBtn {
+  background: none;
+  border: 1px solid var(--border-default);
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 10px);
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.logoutBtn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Leaderboard avatar in row */
+.leaderAvatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+/* Empty leaderboard */
+.leaderEmpty {
+  color: var(--text-faint);
+  padding: 32px 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 640px) {
   .layout {
     padding: 88px 16px 64px;

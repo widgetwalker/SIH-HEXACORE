@@ -1,0 +1,368 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: fadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal {
+  /* Make it portrait */
+  max-width: 650px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.closeBtn {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.closeBtn:hover {
+  background: var(--accent-red);
+  color: #fff;
+  border-color: var(--accent-red);
+  transform: rotate(90deg);
+}
+
+.certificateBody {
+  background: #ffffff; /* pure white background */
+  color: #111111; /* nearly black text */
+  border: 12px solid #FF5500; /* vibrant orange border */
+  border-radius: 24px;
+  position: relative;
+  box-shadow: 
+    0 32px 64px rgba(0,0,0,0.5),
+    inset 0 0 0 8px #FFD700;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-image: 
+    radial-gradient(#e0e0e0 1px, transparent 1px),
+    radial-gradient(#e0e0e0 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+  background-color: #ffffff;
+  color-scheme: light; /* Suggest light mode to extensions */
+}
+
+.borderInner {
+  border: 4px dashed #FF5500;
+  margin: 12px;
+  padding: 32px 24px;
+  border-radius: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.95);
+  position: relative;
+}
+
+/* Doodle decorations */
+.borderInner::before, .borderInner::after {
+  content: "⭐";
+  position: absolute;
+  font-size: 2.5rem;
+  opacity: 1;
+  animation: float 3s ease-in-out infinite;
+  z-index: 1;
+}
+.borderInner::before {
+  top: 24px;
+  left: 24px;
+  transform: rotate(-15deg);
+}
+.borderInner::after {
+  top: 24px;
+  right: 24px;
+  transform: rotate(15deg);
+  animation-delay: -1.5s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(15deg); }
+  50% { transform: translateY(-10px) rotate(25deg); }
+}
+
+.header {
+  margin-bottom: 24px;
+  z-index: 2;
+}
+
+.logos {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #FF5500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: #ffffff;
+  padding: 8px 24px;
+  border-radius: 50px;
+  border: 4px solid #FF5500;
+  box-shadow: 4px 4px 0 #FF5500;
+  transform: rotate(-2deg);
+}
+.logoIcon {
+  font-size: 1.5rem;
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 900;
+  color: #0066FF; /* Deep crisp blue */
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+  z-index: 2;
+}
+
+.subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #555555;
+  margin: 0 0 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cadetName {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: 900;
+  color: #D32F2F; /* crisp crimson red */
+  margin: 0 0 24px;
+  display: inline-block;
+  background: #FFF9C4;
+  padding: 8px 32px;
+  border-radius: 12px;
+  border: 4px solid #D32F2F;
+  box-shadow: 6px 6px 0 #D32F2F;
+  transform: rotate(1deg);
+}
+
+.details {
+  font-family: 'Geist', sans-serif;
+  font-size: 1.2rem;
+  color: #111111;
+  line-height: 1.6;
+  max-width: 100%;
+  margin: 0 auto 32px;
+  font-weight: 500;
+}
+.tierHighlight {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.25rem, 5vw, 1.75rem);
+  color: #00897B; /* teal green */
+  margin: 16px 0;
+  font-weight: 800;
+  background: #E0F2F1;
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 24px;
+  border: 3px dashed #00897B;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  margin-top: auto;
+  z-index: 2;
+  gap: 16px;
+}
+
+.signatureBlock, .dateBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  color: #333333;
+  font-size: 0.9rem;
+}
+.signatureLine {
+  width: 120px;
+  border-bottom: 3px dashed #333333;
+  margin-bottom: 8px;
+  height: 32px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-family: 'Caveat', cursive, serif; /* funky signature */
+  font-size: 1.75rem;
+  color: #0066FF;
+  line-height: 0.8;
+}
+
+.seal {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #D32F2F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 4px solid #FFD700;
+  box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+  transform: rotate(-10deg);
+  flex-shrink: 0;
+}
+/* jagged edges for a badge look */
+.seal::before {
+  content: "";
+  position: absolute;
+  top: -8px; left: -8px; right: -8px; bottom: -8px;
+  border: 3px dotted #FFD700;
+  border-radius: 50%;
+  animation: spin 20s linear infinite;
+}
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.sealInner {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 3px dashed #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 900;
+  font-size: 0.9rem;
+  line-height: 1.1;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+.sealInner span:last-child {
+  color: #FFD700;
+}
+
+.celebration {
+  display: flex;
+  justify-content: center;
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+.celebration button {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  padding: 12px 32px;
+  border-radius: 50px;
+  background: #00a859;
+  border: 4px solid #fff;
+  box-shadow: 0 6px 0 #00773f;
+  transform: scale(1);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.celebration button:hover {
+  transform: scale(1.1) translateY(-4px);
+  box-shadow: 0 10px 0 #00773f;
+}
+.celebration button:active {
+  transform: scale(1) translateY(4px);
+  box-shadow: 0 0 0 #00773f;
+}
+
+@media print {
+  /* Hide the rest of the app layout entirely */
+  body > * {
+    display: none !important;
+  }
+
+  /* Extract and show only the printable cert by bringing it to body level via portal or fixed positioning */
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* We use fixed pos directly relative to the viewport to bypass normal flow clipping */
+  .overlay {
+    display: block !important;
+    position: static !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+  }
+
+  .modal {
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #printable-certificate {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 16px !important; /* safe margins for print */
+    overflow: hidden !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  #printable-certificate * {
+    visibility: visible !important;
+  }
+
+  .celebration, .actions {
+    display: none !important;
+  }
+}

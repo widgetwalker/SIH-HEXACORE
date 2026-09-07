@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getTierForAge } from "../onboarding/CadetOnboardingModal";
-import type { CadetProfile } from "@/types/profile";
+import { mapAgeToTier, type CadetProfile } from "@/lib/cadetProfile";
 import styles from "./EditProfileDrawer.module.css";
 
 export interface EditProfileDrawerProps {
@@ -13,7 +12,7 @@ export interface EditProfileDrawerProps {
     grade: string;
     school: string;
   };
-  onSave: (data: Omit<CadetProfile, "avatarId" | "avatarImage">) => void;
+  onSave: (data: { name: string; age: number; grade: string; school: string; tierId: number; tierName: string }) => void;
   onClose: () => void;
   isSaving?: boolean;
 }
@@ -46,7 +45,7 @@ export default function EditProfileDrawer({
   if (!isOpen) return null;
 
   const numericAge = typeof age === "number" && !isNaN(age) ? age : 12;
-  const { tierId, tierName } = getTierForAge(numericAge);
+  const { tierId, tierName } = mapAgeToTier(numericAge);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

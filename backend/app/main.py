@@ -18,7 +18,7 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 # side effects on the API itself.
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
-from app.api.v1 import alerts, buildings, health, mitra, scenarios, webhooks, ws
+from app.api.v1 import alerts, buildings, health, mitra, scenarios, webhooks, ws, users
 from app.services.websocket_manager import ws_manager
 
 app = FastAPI(
@@ -35,7 +35,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "Authorization", "Cookie"],
 )
 
@@ -76,3 +76,4 @@ app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(ws.router, prefix="/api/v1", tags=["websocket"])
 app.include_router(mitra.router, prefix="/api/v1", tags=["mitra"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])

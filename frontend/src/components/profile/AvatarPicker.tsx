@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { PROFILE_AVATARS, type CadetProfile } from "@/types/profile";
+import { PROFILE_AVATARS } from "@/types/profile";
+import type { CadetProfile } from "@/lib/cadetProfile";
 import ProfileAvatar from "./ProfileAvatar";
 import styles from "./AvatarPicker.module.css";
 
