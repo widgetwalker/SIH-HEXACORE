@@ -78,9 +78,9 @@ rarely changes; this also lets the frontend keep its existing TypeScript
 
 ---
 
-## ⚠️ Task 3.2: REST Endpoints
+## ✅ Task 3.2: REST Endpoints
 
-**Status:** 4 of 6 endpoints live; `POST /telemetry/runs` and `GET /telemetry/analytics` still pending.
+**Status:** Complete (Sprint 2 & 3 Landed)
 
 | Method | Route | Status | Purpose |
 | :--- | :--- | :--- | :--- |
@@ -88,25 +88,20 @@ rarely changes; this also lets the frontend keep its existing TypeScript
 | GET | `/api/v1/health/ready` | ✅ | Readiness (DB + Redis ping) |
 | GET | `/api/v1/buildings/{id}` | ✅ | Building metadata |
 | GET | `/api/v1/buildings/{id}/floors` | ✅ | Floor graph + grid for pathfinding |
-| GET | `/api/v1/scenarios` | ✅ | 4 embedded scenarios (matches existing TS interface) |
-| GET | `/api/v1/scenarios/{id}` | ❌ | Single scenario lookup (not needed yet — list endpoint covers it) |
-| POST | `/api/v1/telemetry/runs` | ❌ | Persist `RunTelemetry` payload (replaces localStorage). Schema already in `app/schemas/drill.py::RunTelemetryRequest`. |
-| GET | `/api/v1/telemetry/analytics` | ❌ | Aggregated KPIs + route heatmap matrix for `/admin` |
-| POST | `/api/v1/users/profile` | ❌ | Persist the frontend `CadetProfile` identity and computed NDMA tier. |
-| GET | `/api/v1/users/profile/{id}` | ❌ | Return a persisted cadet profile; `404` should keep onboarding available. |
-| GET | `/api/v1/alerts/live` | ❌ | Return critical Open-Meteo/USGS alerts mapped to the Command Hub banner. |
-| POST | `/api/v1/incidents/inject` | ❌ | Accept a drill incident type/floor and emit an emergency broadcast. |
-| POST | `/api/v1/reports/ndma` | ❌ | NDMA incident form (PDF or JSON) |
-| POST | `/api/v1/mitra/chat` | ❌ | Mitra crisis guidance LLM / rule endpoint |
+| GET | `/api/v1/scenarios` | ✅ | Embedded scenarios matching TS interface |
+| POST | `/api/v1/telemetry/runs` | ✅ | Persist `RunTelemetry` payload (PostgreSQL). |
+| GET | `/api/v1/telemetry/analytics` | ✅ | Aggregated KPIs + route heatmap matrix for `/admin` |
+| POST | `/api/v1/users/profile` | ✅ | Persist `CadetProfile` identity and level/stats. |
+| GET | `/api/v1/users/profile/{id}` | ✅ | Return persisted cadet profile. |
+| GET | `/api/v1/users/leaderboard` | ✅ | Global multi-user leaderboard. |
+| GET | `/api/v1/alerts/live` | ✅ | Multi-hazard live feeds (Open-Meteo + USGS + Drills). See [11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md](./11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md). |
+| POST | `/api/v1/webhooks/inject-incident` | ✅ | Multi-hazard incident drill injector & WebSocket broadcast. |
+| PATCH | `/api/v1/alerts/{alert_id}/acknowledge` | ✅ | Operator acknowledgment & alert deactivation. |
+| POST | `/api/v1/mitra/chat` | ✅ | Mitra crisis AI with Gemini LLM + local rule-based safety fallback. |
 
-### Profile API contract note
+### Detailed Alert Ingestion & Safety Documentation
+Complete specifications regarding API safety, data privacy, parameter schemas, and physical hazard filtering algorithms are documented in [11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md](./11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md).
 
-The pending profile endpoints must preserve the frontend identity fields:
-`name`, `age`, `grade`, `school`, `tierId`, `tierName`, and `avatarId`. The
-browser MVP may also send an optional `avatarImage` data URL; a production
-implementation should replace that field with an object-storage URL and enforce
-an image size/content policy server-side. Until these endpoints land, the
-frontend uses `safezone_cadet_profile_v1` as its offline source of truth.
 
 ---
 

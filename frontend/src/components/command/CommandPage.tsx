@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import { createMockTelemetryStream, getInitialCommandTelemetry, type CommandTelemetry } from "./telemetry";
@@ -635,13 +636,14 @@ export default function CommandPage() {
           >
             📱 QR Headcount Scan
           </button>
-          <button
+          <Link
+            href="/admin"
             className="btn btn-ghost"
             id="cmd-report"
-            onClick={() => showToast("📊 NDMA Incident Report #2026-08 Exported (PDF/JSON)")}
+            title="Open EOC Analytics & NDMA Incident Compliance Export"
           >
-            📊 Generate NDMA Report
-          </button>
+            📊 EOC Analytics & NDMA Report →
+          </Link>
         </div>
       </div>
     </div>

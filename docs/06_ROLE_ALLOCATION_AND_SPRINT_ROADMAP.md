@@ -59,25 +59,17 @@ Based on the core research document and team composition, this blueprint specifi
 - [x] **Task 2.2: Re-layout /learn for Mobile (COMPLETED in Task 1.1)**
 - [x] **Task 2.3: Build Settings, Profile & Leaderboard Views (COMPLETED in Task 1.1)**
 - [x] **Task 2.4: Connect /command to Live WebSocket (COMPLETED in PR #15)**
+- [x] **Task 2.5: Ingest Verbatim Curriculum & Replace Popups with Full-Page Reader (COMPLETED)**
+  - Dedicated full-page reader deployed at `/learn/[moduleId]` (`ModuleReaderPage.tsx`) with `<- Back to Modules` breadcrumbs and scroll-driven progress.
+  - Verbatim ingestion of all 5 age tiers without truncation (Explorers, Rangers, Guardians, Sentinels, Wardens) with interactive checkpoints, quizzes, and certificates.
+  - Dynamic progress tracking and live aggregate completion percentage wired across all tiers.
 
-- **Active Issue 2.5: Ingest Verbatim Curriculum & Replace Popups with Full-Page Reader**
-  - **Prerequisite:** Sync directly with @Manha Ayyan Kuzhiyan on layout and 3D simulation integration.
-  - **No Popups:** Remove modal popups (`ModuleViewer.tsx` modal overlay) and build a dedicated full-page reading layout (e.g. `/learn/[tierId]/[moduleId]` or full-page reader view with `<- Back to Modules`).
-  - **Verbatim Ingestion:** Ingest all 5 tiers without truncation from the approved blueprints:
-    - Explorers (Ages 5-7): 4 modules, 11 sections (~19 min)
-    - Rangers (Ages 8-10): 6 modules, 18 sections (~44 min)
-    - Guardians (Ages 11-13): 6 modules, 23 sections (~66 min)
-    - Sentinels (Ages 14-17): 6 modules, 25 sections (~69 min)
-    - Wardens (Ages 18+): 6 modules, 26 sections (~69 min)
-  - **Scroll-Driven Progress:** Add top sticky neon-teal progress bar (`(window.scrollY / scrollableHeight) * 100`) and save progress in `localStorage` so students can leave midway and resume.
-  - **Dynamic Progress Ring:** Calculate live aggregate tier completion percentage on `/learn` sidebar instead of static 35%.
-
-- **Active Issue 2.6: Mandatory Cadet Onboarding Gate & Dedicated /profile Route**
-  - [x] Onboarding form, age-based tier assignment, local profile persistence, and LearnPage profile/edit integration.
-  - [x] Dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections.
-  - [x] Navbar profile avatar routes to `/profile`; profile/avatar updates propagate through the shared browser event.
-  - [x] Profile settings support six built-in vector avatars and local image upload.
-  - [x] Exempt home page (`/`), but intercept navigation to `/learn`, `/simulate`, `/command`, or `/profile` if no profile exists via `OnboardingGate`.
+- [x] **Task 2.6: Mandatory Cadet Onboarding Gate & Dedicated /profile Route (COMPLETED)**
+  - Onboarding form, age-based tier assignment, local profile persistence, and LearnPage profile/edit integration.
+  - Dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections.
+  - Navbar profile avatar routes to `/profile`; profile/avatar updates propagate through the shared browser event.
+  - Profile settings support six built-in vector avatars and local image upload.
+  - Navigation gate protects `/learn`, `/simulate`, `/command`, and `/profile` until cadet registration is complete.
 
 ### 3. Venkataraman C.V - Backend Lead
 - [x] **Task 3.1: Implement Persistent Telemetry API**

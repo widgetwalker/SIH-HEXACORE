@@ -305,18 +305,22 @@ frontend/src/
 3. **[x] Mandatory Onboarding Gate Interception (Issue 2.6):** Route guard `OnboardingGate.tsx` active on `/learn`, `/simulate`, `/command`, and `/profile`.
 
 ### Venkataraman C.V: Backend Lead
-1. **[x] Live Disaster Feed Ingestion API (Issue 3.3):** Built `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed + DB alerts, and `PATCH /api/v1/alerts/{id}/acknowledge`.
-2. **[x] Campus Incident Injection & WebSocket Broadcast (Issue 3.3):** Implemented `POST /api/v1/incidents/inject` and `POST /api/v1/webhooks/inject-incident` broadcasting `EMERGENCY_BROADCAST` to all active WebSocket clients.
-3. **[x] Persistent Telemetry Endpoints (Task 3.1):** Built `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` persisting simulation runs to PostgreSQL.
-4. **[x] User Profile & NDMA Report Persistence:** `user_profiles` and `ndma_reports` models, alembic migration, and `/users/profile` upsert API.
-5. **[x] Multi-User WebSocket Load Test (Task 3.2):** Validated 50 and 100 client concurrency tests with zero packet loss.
+1. **[x] Live Disaster Feed Ingestion API (Issue 3.3):** Built `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed with physics-based attenuation filtering and in-memory drill persistence. Documented in [11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md](./11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md).
+2. **[x] Campus Incident Injection & WebSocket Broadcast (Issue 3.3):** Implemented `POST /api/v1/webhooks/inject-incident` supporting 7 disaster types (Cyclone, Flash Flood, Earthquake, Tsunami, Fire, Chemical Spill, Gas Leak) broadcasting `EMERGENCY_BROADCAST` to all active WebSocket clients.
+3. **[x] Alert Acknowledgment API:** Built `PATCH /api/v1/alerts/{alert_id}/acknowledge` supporting string drill IDs and UUID records.
+4. **[x] Persistent Telemetry Endpoints (Task 3.1):** Built `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` persisting simulation runs to PostgreSQL.
+5. **[x] User Profile & NDMA Report Persistence:** `user_profiles` and `ndma_reports` models, alembic migration, and `/users/profile` upsert API.
+6. **[x] Multi-User WebSocket Load Test (Task 3.2):** Validated 50 and 100 client concurrency tests with zero packet loss.
 
 ### Manha AK: AI & 3D Frontend
-1. **[x] Mitra AI Crisis Voice Alert Verbalization (Issue 4.3):** Web Speech API connected to verbalize emergency warning protocols during active crisis drills and alerts.
-2. **[x] Interactive 3D Multi-Floor Stack (Task 4.1):** Isometric 3D stacked floor viewer (`FloorStack3D.tsx`) with interactive floor separation and live hazard/student markers.
-3. **[x] Backend Telemetry Dispatch (Task 4.2):** `saveRun()` in `telemetry.ts` and `SimulatePage` dispatches to `POST /api/v1/telemetry/runs` with offline `localStorage` fallback. Admin Dashboard reads real KPIs from `GET /api/v1/telemetry/analytics`.
+1. **[x] Mitra AI Crisis Voice Alert Verbalization (Issue 4.3):** Web Speech API connected to verbalize emergency warning protocols with siren chime during active crisis drills and real hazards.
+2. **[x] Sector Geolocation & Telemetry Control:** Added tactical sector coordinate selector defaulting to Puducherry (`11.9416, 79.8083`), 7 presets, live GPS lock, and manual coordinate calibration.
+3. **[x] Global Navbar Alert Indicator:** Connected Navbar across all routes to real-time broadcasts and live feeds; switches dynamically to `🚨 CRITICAL ALERT` with pulsing red dot.
+4. **[x] Interactive 3D Multi-Floor Stack (Task 4.1):** Isometric 3D stacked floor viewer (`FloorStack3D.tsx` / `MultiFloorVisualizer.tsx`) with interactive floor separation and live hazard/student markers.
+5. **[x] Backend Telemetry Dispatch (Task 4.2):** `saveRun()` in `telemetry.ts` and `SimulatePage` dispatches to `POST /api/v1/telemetry/runs` with offline `localStorage` fallback. Admin Dashboard reads real KPIs from `GET /api/v1/telemetry/analytics`.
 
 ### Trinayani D & Rahul Nayak: Pitch & Multi-Agency Orchestration
 1. **Live Pitch Multi-Device Script (Task 5.1):** Coordinate 3-device live demonstration (Mobile student `/learn`, Laptop 3D sim `/simulate`, Main Screen Command Hub `/command`).
 2. **SIH Pitch Deck (Task 5.2):** Finalize problem statement, dual-engine hybrid architecture, and national deployment roadmap slides.
-3. **Multi-Agency SOP Documentation (Task 5.3):** Verify NDRF/SDMA/Fire SOP protocols and Indian school floorplan seed data.
+3. **Multi-Agency SOP Documentation (Task 5.3):** Verify NDRF/SDMA/Fire SOP protocols and Indian school floorplan seed data. See [11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md](./11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md).
+
