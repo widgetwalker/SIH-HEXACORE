@@ -1,6 +1,6 @@
 # Gamified Disaster Preparedness & Response Education System (SIH MVP)
 
-[![Smart India Hackathon](https://img.shields.io/badge/SIH-2024%2F2026-orange.svg)](https://sih.gov.in)
+[![Smart India Hackathon](https://img.shields.io/badge/SIH-2026-orange.svg)](https://sih.gov.in)
 [![Target MVP Date](https://img.shields.io/badge/Target%20MVP-September%209th-green.svg)]()
 [![Architecture](https://img.shields.io/badge/Architecture-Next.js%2016%20%7C%20Three.js%20%7C%20FastAPI-blue.svg)]()
 [![Compliance](https://img.shields.io/badge/Compliance-NDMA%20%7C%20NFPA%20%7C%20CAP%20v1.2-red.svg)]()
