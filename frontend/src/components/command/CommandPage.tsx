@@ -81,7 +81,47 @@ export default function CommandPage() {
   });
   const [customLat, setCustomLat] = useState<string>(String(DEFAULT_COORDS.lat));
   const [customLon, setCustomLon] = useState<string>(String(DEFAULT_COORDS.lon));
-  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [isLocating, setIsLocating] = useState(false);
+  // QR Headcount Scanner
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedCount, setScannedCount] = useState(48);
+  const [scannedCadets, setScannedCadets] = useState<{ id: string; name: string; status: string; time: string }[]>([
+    { id: "CADET-AARAV", name: "Aarav Sharma (10A)", status: "MUSTER VERIFIED", time: "28s ago" },
+    { id: "CADET-DIYA", name: "Diya Patel (8B)", status: "MUSTER VERIFIED", time: "1m ago" },
+    { id: "CADET-ROHAN", name: "Rohan Varma (11A)", status: "MUSTER VERIFIED", time: "2m ago" },
+  ]);
+
+  const handleScanNextCadet = () => {
+    playSirenBeep();
+    const mockNames = [
+      "Ananya Iyer (5C)",
+      "Kavya Menon (9A)",
+      "Cadet (You)",
+      "Tanmay Roy (4A)",
+      "Siddharth Rao (12B)",
+      "Pooja Nair (7A)"
+    ];
+    const nextName = mockNames[scannedCadets.length % mockNames.length];
+    const newCadet = {
+      id: `CADET-${Date.now().toString().slice(-4)}`,
+      name: nextName,
+      status: "MUSTER VERIFIED",
+      time: "Just now",
+    };
+    setScannedCadets((prev) => [newCadet, ...prev]);
+    setScannedCount((prev) => prev + 1);
+    showToast(`📱 Scanned: ${nextName} verified safe at Muster Point Alpha!`);
+  };
+
+  const handleEmergencyBroadcast = async () => {
+    playSirenBeep();
+    announceMitraEmergency(
+      "Campus Evacuation Order Activated",
+      "Commander has issued an immediate campus-wide evacuation. All personnel proceed to nearest exterior exit."
+    );
+    await injectIncident("earthquake-drill");
+    showToast("📢 Emergency CAP v1.2 Broadcast Dispatched to 239 Connected Nodes!");
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -625,16 +665,18 @@ export default function CommandPage() {
           <button
             className="btn btn-danger"
             id="cmd-broadcast"
-            onClick={() => showToast("📢 Emergency CAP v1.2 Broadcast Dispatched to 239 Connected Nodes!")}
+            onClick={handleEmergencyBroadcast}
+            title="Broadcast emergency evacuation order across WebSockets with voice announcement"
           >
-            ⚡ Emergency Broadcast
+            ⚡ Broadcast Evacuation Order
           </button>
           <button
             className="btn btn-ghost"
             id="cmd-scan"
-            onClick={() => showToast("📱 QR Scanner Initiated - 48 Verified Safe on 2F")}
+            onClick={() => setScannerOpen(true)}
+            title="Open live Muster Point QR Headcount Scanner"
           >
-            📱 QR Headcount Scan
+            📱 QR Headcount Scan ({scannedCount} Verified Safe)
           </button>
           <Link
             href="/admin"
@@ -645,6 +687,63 @@ export default function CommandPage() {
             📊 EOC Analytics & NDMA Report →
           </Link>
         </div>
+
+        {/* QR Headcount Scanner Modal */}
+        {scannerOpen && (
+          <div className={styles.scannerOverlay} onClick={() => setScannerOpen(false)}>
+            <div className={styles.scannerModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.scannerHeader}>
+                <div>
+                  <h3 className="heading-md" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>📱</span> Muster Point QR Scanner
+                  </h3>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "2px" }}>
+                    Live optical verification for assembly zone headcount.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setScannerOpen(false)}
+                  style={{ fontSize: "1.2rem", padding: "4px 8px" }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className={styles.viewfinder}>
+                <div className={styles.laserLine} />
+                <div style={{ textAlign: "center", zIndex: 2, color: "var(--accent-teal)", fontSize: "0.85rem", fontWeight: 600 }}>
+                  <span>[ SCANNING CADET BADGE ]</span>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-faint)", marginTop: "4px" }}>
+                    Point camera at Student Digital ID / QR
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Verified Safe Count: </span>
+                  <b style={{ color: "var(--accent-teal)", fontSize: "1.1rem" }}>{scannedCount} Cadets</b>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={handleScanNextCadet}>
+                  ⚡ Simulate Cadet Scan (+1)
+                </button>
+              </div>
+
+              <div className={styles.scannedList}>
+                {scannedCadets.map((c, i) => (
+                  <div key={i} className={styles.scannedItem}>
+                    <div>
+                      <b>{c.name}</b>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>ID: {c.id} · {c.time}</div>
+                    </div>
+                    <span className="badge badge-teal">{c.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

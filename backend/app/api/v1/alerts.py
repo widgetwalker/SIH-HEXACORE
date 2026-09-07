@@ -111,6 +111,8 @@ async def get_live_alerts(
         for ext in external:
             if len(responses) >= limit:
                 break
+            if severity and severity.lower() not in ext.severity.lower():
+                continue
             try:
                 sent_dt = datetime.fromisoformat(ext.occurred_at)
             except Exception:

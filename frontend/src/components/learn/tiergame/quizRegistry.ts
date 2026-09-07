@@ -3,7 +3,7 @@ import { RANGERS_QUIZ_MODULES } from "./content/quizzes/rangers";
 import { GUARDIANS_QUIZ_MODULES } from "./content/quizzes/guardians";
 import { SENTINELS_QUIZ_MODULES } from "./content/quizzes/sentinels";
 import { WARDENS_QUIZ_MODULES } from "./content/quizzes/wardens";
-import { getActiveUserId, userQuizKey } from "@/lib/cadetProfile";
+import { getActiveUserId, userQuizKey, BACKEND_URL, isUuid } from "@/lib/cadetProfile";
 import type { QuizLevel, QuizModule } from "./types";
 
 export const QUIZ_PASS_PCT = 60;
@@ -53,8 +53,8 @@ export async function saveQuizScore(moduleId: string, level: number, scorePct: n
     const next = { ...all, [moduleId]: { ...moduleScores, [level]: best } };
     window.localStorage.setItem(userQuizKey(userId), JSON.stringify(next));
 
-    if (userId.length > 20) {
-      await fetch(`http://localhost:8000/api/v1/users/${userId}`, {
+    if (isUuid(userId)) {
+      await fetch(`${BACKEND_URL}/api/v1/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quiz_scores: next }),
