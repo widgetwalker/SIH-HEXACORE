@@ -27,6 +27,12 @@ export interface CadetProfile {
   createdAt: number;
 }
 
+export const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
+
+export function isUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 // ── Keys ──────────────────────────────────────────────────────────────────
 
 const ALL_USERS_KEY = "safezone_all_users";
@@ -91,7 +97,7 @@ export function loadCadetProfile(): CadetProfile | null {
 
 export async function fetchLeaderboard(): Promise<any[]> {
   try {
-    const res = await fetch("http://localhost:8000/api/v1/users/leaderboard");
+    const res = await fetch(`${BACKEND_URL}/api/v1/users/leaderboard`);
     if (res.ok) {
       return await res.json();
     }
@@ -104,11 +110,14 @@ export async function fetchLeaderboard(): Promise<any[]> {
 // ── Write helpers ─────────────────────────────────────────────────────────
 
 function generateCadetId(): string {
-  const year = new Date().getFullYear();
-  const rand = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, "0");
-  return `CADET-${year}-${rand}`;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 /**
@@ -130,7 +139,7 @@ export async function saveCadetProfile(input: {
   const { tierId, tierName } = mapAgeToTier(input.age);
   const existing = loadCadetProfile();
   const profile: CadetProfile = {
-    id: existing?.id ?? generateCadetId(), // Will be overridden by DB UUID if new
+    id: existing?.id ?? generateCadetId(), // Always a standard UUID
     name: input.name.trim(),
     age: input.age,
     grade: input.grade.trim(),
@@ -154,16 +163,16 @@ export async function saveCadetProfile(input: {
       tier_scores: loadActiveTierScores(), // Send current scores if updating
     };
 
-    if (existing && existing.id.length > 20) {
+    if (existing && isUuid(existing.id)) {
       // It's a UUID, so update existing user
-      await fetch(`http://localhost:8000/api/v1/users/${existing.id}`, {
+      await fetch(`${BACKEND_URL}/api/v1/users/${existing.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
     } else {
       // New user or legacy CADET-xxxx ID
-      const res = await fetch(`http://localhost:8000/api/v1/users`, {
+      const res = await fetch(`${BACKEND_URL}/api/v1/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -267,8 +276,8 @@ export async function saveUserTierScores(userId: string, scores: Record<number, 
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(userScoresKey(userId), JSON.stringify(scores));
-    if (userId.length > 20) {
-      await fetch(`http://localhost:8000/api/v1/users/${userId}`, {
+    if (isUuid(userId)) {
+      await fetch(`${BACKEND_URL}/api/v1/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tier_scores: scores }),
