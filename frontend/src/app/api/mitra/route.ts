@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODEL = "gemini-1.5-flash";
 
 const SYSTEM_PROMPT = `You are "Mitra" (Hindi for "friend"), an AI crisis companion embedded in a disaster-preparedness training simulator used by Indian school and college students. You are grounded in NDMA, NFPA, and NDRF safety protocols.
 
