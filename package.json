@@ -1,0 +1,12 @@
+{
+  "name": "sih-hexacore",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SIH Disaster Preparedness & Crisis Response Platform",
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint"
+  }
+}
