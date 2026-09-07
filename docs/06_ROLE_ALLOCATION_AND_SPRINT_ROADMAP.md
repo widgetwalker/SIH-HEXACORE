@@ -77,28 +77,28 @@ Based on the core research document and team composition, this blueprint specifi
   - [x] Dedicated `/profile` route with Dashboard, Certificates, Settings, and Leaderboard sections.
   - [x] Navbar profile avatar routes to `/profile`; profile/avatar updates propagate through the shared browser event.
   - [x] Profile settings support six built-in vector avatars and local image upload.
-  - [ ] Exempt home page (`/`), but intercept navigation to `/learn`, `/simulate`, `/command`, or `/profile` if no profile exists.
+  - [x] Exempt home page (`/`), but intercept navigation to `/learn`, `/simulate`, `/command`, or `/profile` if no profile exists via `OnboardingGate`.
 
 ### 3. Venkataraman C.V - Backend Lead
-- **Task 3.1: Implement Persistent Telemetry API**
-  - Create `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics`.
-- **Task 3.2: Multi-User WebSocket Load Test**
-  - Simulate 50-100 concurrent clients on `backend/tests/load_test_client.py`.
-- **Active Issue 3.3: Live Disaster Alert Ingestion & WebSocket Incident Injection**
+- [x] **Task 3.1: Implement Persistent Telemetry API**
+  - Create `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` wired to PostgreSQL.
+- [x] **Task 3.2: Multi-User WebSocket Load Test**
+  - Simulate 50-100 concurrent clients on `backend/tests/load_test_client.py` (validated p50 < 23ms, 0 packet drop).
+- [x] **Active Issue 3.3: Live Disaster Alert Ingestion & WebSocket Incident Injection**
   - [x] Frontend banner and incident-injection control contracts are implemented; local simulated fallback is available.
-  - [ ] Build `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed (filtered strictly for critical incidents).
-  - [ ] Connect `webhooks.py` and `websocket_manager.py` to broadcast manual campus emergency incident injections (electrical fire, chemical spill, gas leak) to all connected clients.
-  - [ ] Map backend events into the `LiveThreatAlert` interface documented in `frontend/INTEGRATION_GUIDE.md`.
+  - [x] Built `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed + DB alerts.
+  - [x] Connected `incidents.py`, `webhooks.py`, and `websocket_manager.py` to broadcast manual campus emergency incident injections to all connected clients.
+  - [x] Mapped backend events into the `LiveThreatAlert` and `EmergencyAlertResponse` interface.
 
 ### 4. Manha AK - AI + 3D Frontend
-- **Task 4.1: Interactive 3D Multi-Floor Stack in /command**
-  - **Files:** `frontend/src/components/command/` (new `FloorStack3D.tsx`), `frontend/src/components/command/CommandPage.tsx`
-  - **Action:** Replace the 2D blueprint with an isometric 3D stacked floor viewer (Ground to 3rd Floor) built with Three.js. Add floor separation animation on click (exploded floor view). Render live 3D hazard pins (fire, smoke) and student dot positions on the active floor.
-- **Task 4.2: Replace localStorage with Backend Telemetry Dispatch**
+- [x] **Task 4.1: Interactive 3D Multi-Floor Stack in /command**
+  - **Files:** `frontend/src/components/command/FloorStack3D.tsx`, `frontend/src/components/command/CommandPage.tsx`
+  - **Action:** Isometric 3D stacked floor viewer (Ground to 3rd Floor) built with Three.js with floor separation animation on click (exploded floor view), live 3D hazard pins, and student dots.
+- [x] **Task 4.2: Replace localStorage with Backend Telemetry Dispatch**
   - **Files:** `frontend/src/components/command/telemetry.ts`, `frontend/src/components/simulate/SimulatePage.tsx`, `frontend/src/app/admin/page.tsx`
-  - **Action:** Update `saveRun()` to `POST` run telemetry to the backend API (`/api/v1/telemetry/runs`), keeping `localStorage` as an offline fallback. Point the Admin Dashboard to read real KPIs from `GET /api/v1/telemetry/analytics`.
-- **Active Issue 4.3: Mitra AI Crisis Voice Verbalization for Live Ingested Alerts**
-  - Ensure that when an emergency alert is active, the Mitra voice bot on `/simulate` and `/command` automatically verbalizes the warning instructions aloud via Web Speech API (`window.speechSynthesis`).
+  - **Action:** Updated `saveRun()` to `POST` run telemetry to the backend API (`/api/v1/telemetry/runs`), keeping `localStorage` as offline fallback. Admin Dashboard reads real KPIs from `GET /api/v1/telemetry/analytics`.
+- [x] **Active Issue 4.3: Mitra AI Crisis Voice Verbalization for Live Ingested Alerts**
+  - Mitra automatically verbalizes warning instructions aloud via Web Speech API (`window.speechSynthesis`) during emergency alerts.
 
 ### 5. Trinayani D & Rahul Nayak (Combined) - Pitch & Orchestration
 

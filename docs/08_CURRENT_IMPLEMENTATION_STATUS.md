@@ -15,15 +15,15 @@
 | :--- | :--- | :--- |
 | Landing & navigation shell | Built | `LandingPage` HazardScrollScene slow 360-degree scroll collapse, ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch, mobile menu full-screen overlay with opaque backdrop and scroll-lock (Task 1.1) |
 | Pillar I - Pedagogical Engine | Built / Active Issue | `LearnPage` with age-tiered curriculum, interactive sidebar nav, mobile quick bar and slide-over drawer, Settings/Profile/Leaderboard subviews, plus persisted cadet onboarding/edit flow (Task 1.1 / Issue 1.3). In Progress: Verbatim NDMA curriculum ingestion (103 sections across 28 modules), full-page scroll reader replacing modal popups, dynamic progress ring (Issue 2.5). |
-| User Identity & Profile | Frontend surface complete / Active Issue | Cadet onboarding, age-to-tier mapping, local profile persistence, shared Navbar identity, dedicated `/profile`, Dashboard, Certificates, Settings, Leaderboard, vector avatar choices, upload, and EditProfileDrawer are wired. Route-wide gating remains (Issue 2.6). |
-| Pillar II - Simulation Engine | Built | Playable 3D evacuation drills, 4 JSON scenarios, fire/smoke/door/blockages, NPC crowd, synthesized WebAudio, full run telemetry, per-hazard overlays. Dynamic A* rerouting benchmarked at sub-15ms (0.18ms initial, 0.12ms dynamic reroute across 6 floors to stairwell portals) with automated pytest and profiler (Task 1.2). |
-| Pillar II - Admin Analytics | Built | `/admin` dashboard: KPIs, canvas route & casualty heatmap, drill log table |
-| Pillar III - Command Hub | UI built / Active Issue | `/command` receives live telemetry through WebSocket/local drillEventBus and now includes the Live Threat Banner plus Incident Injection Deck with simulated fallbacks. Critical external alert ingestion and backend incident broadcast remain (Task 2.4 / Issue 3.3). |
+| User Identity & Profile | Built | Multi-user onboarding gate (`OnboardingGate.tsx`), age-to-tier mapping, persistent profile route (`/profile`), account switching, custom avatar selection/upload, and PostgreSQL user sync (`/api/v1/users`). (Issue 2.6) |
+| Pillar II - Simulation Engine | Built | Playable 3D evacuation drills, 4 JSON scenarios, fire/smoke/door/blockages, NPC crowd, synthesized WebAudio, full run telemetry, per-hazard overlays. Dynamic A* rerouting benchmarked at sub-15ms. Mobile touch virtual joystick and buttons implemented. (Tasks 1.2, 5.1) |
+| Pillar II - Admin Analytics | Built | `/admin` dashboard: KPIs from PostgreSQL backend (`/api/v1/telemetry/analytics`) with offline `localStorage` fallback, canvas route & casualty heatmap, drill log table. (Tasks 3.1, 4.2) |
+| Pillar III - Command Hub | Built | `/command` receives live telemetry through WebSocket/local drillEventBus, features 3D FloorStack isometric view, Live Threat Banner connected to `GET /api/v1/alerts/live` (USGS + Open-Meteo), and Incident Injection Deck wired to `/api/v1/incidents/inject`. (Tasks 2.4, 3.3, 4.1) |
 | Global FX Layer | Built | Custom cursor, RippleLink, parallax/tilt/reveal, framer-motion, ScenarioEffects, Geist font |
-| "Mitra" Crisis Companion | Rule-based + GSAP | Contextual coaching in sim. In Progress: Web Speech API voice alert verbalization for active emergency events (Issue 4.3). |
-| Backend / persistence | Built / Active Task | DynamicPathfinder and FastAPI WebSocket hub are running. Profile, live-alert, incident-injection, and telemetry persistence endpoints remain pending; frontend contracts are documented in `frontend/INTEGRATION_GUIDE.md` (Tasks 3.1 / Issue 3.3). |
+| "Mitra" Crisis Companion | Rule-based + GSAP + Voice | Contextual coaching in sim, Gemini fallback, Web Speech API voice alert verbalization for active emergency events. (Issue 4.3) |
+| Backend / persistence | Built | DynamicPathfinder, FastAPI WebSocket hub, PostgreSQL telemetry persistence (`POST /runs`, `GET /analytics`), UserProfile & NDMAReport models, live disaster alerts feed (`GET /alerts/live`), and incident injection webhooks. (Tasks 3.1, 3.3) |
 | Multiplayer drill battles | Not started | Spec-only (docs 01/02) |
-| Mobile / touch controls | Not started | Current 3D game is keyboard-only (WASD/arrows + SHIFT/B) |
+| Mobile / touch controls | Built | Virtual on-screen joystick (dx/dz) and touch buttons for crouch/box-breathe in `EvacuationGame.tsx`. |
 
 ---
 
@@ -295,23 +295,26 @@ frontend/src/
 
 ### Dheeraj: AI & Design Lead
 1. **[x] Cadet Onboarding UI & Profile Edit Flow (Issue 1.3):** Modal, local profile contract, LearnPage wiring, tier assignment, ProfileView, EditProfileDrawer, and shared avatar identity are complete.
-2. **[x] Dedicated `/profile` route (Issue 2.6):** Profile console, Navbar avatar routing, global Settings entry, built-in avatars, and local image upload are complete. Route-wide onboarding interception remains.
-3. **[x] Live Alert Card & Injection Panel UI (Issue 1.3 / 3.3):** Command Hub banner and incident controls are complete with local simulated fallbacks.
+2. **[x] Dedicated `/profile` route (Issue 2.6):** Profile console, Navbar avatar routing, global Settings entry, built-in avatars, and local image upload are complete.
+3. **[x] Certificates System Overhaul:** Per-module triggers, printable single-page portrait layout, kid-friendly adventure design, and Chrome print-to-PDF fix.
+4. **[x] Multi-User Auth & Global Leaderboards:** Multi-user registration/switching, PostgreSQL `users` table sync, and `/api/v1/users/leaderboard`.
 
 ### I. Sravya: Frontend Core
 1. **Verbatim Curriculum Ingestion (Issue 2.5):** Ingest verbatim NDMA curriculum across all 5 age tiers (103 sections across 28 modules) from the approved source blueprints.
-2. **Full-Page Scroll Reader (Issue 2.5):** Replace modal popups (`ModuleViewer.tsx`) with a full-page scroll layout featuring a top neon-teal progress bar, `localStorage` mid-lesson progress persistence, and dynamic aggregate progress calculation for the `/learn` sidebar progress ring.
-3. **Mandatory Onboarding Gate Interception (Issue 2.6):** Implement route guard in `frontend/src/` for `/learn`, `/simulate`, `/command`, and `/profile`. The dedicated profile surface and Navbar routing are shipped; route-wide gating remains.
+2. **[x] Full-Page Scroll Reader (Issue 2.5):** Dedicated `/learn/[moduleId]` reader view with top sticky progress bar and per-module quizzes.
+3. **[x] Mandatory Onboarding Gate Interception (Issue 2.6):** Route guard `OnboardingGate.tsx` active on `/learn`, `/simulate`, `/command`, and `/profile`.
 
 ### Venkataraman C.V: Backend Lead
-1. **Live Disaster Feed Ingestion API (Issue 3.3):** Create `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed, strictly filtered for critical severity incidents. Map results to the frontend `LiveThreatAlert` contract.
-2. **Campus Incident Injection & WebSocket Broadcast (Issue 3.3):** Implement API endpoints to trigger manual school emergency simulations (fire, chemical spill, gas leak) and broadcast `EMERGENCY_BROADCAST` to all active WebSocket clients. The frontend deck is ready for this handoff.
-3. **Persistent Telemetry Endpoints (Task 3.1):** Build `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` to persist simulation runs to PostgreSQL.
+1. **[x] Live Disaster Feed Ingestion API (Issue 3.3):** Built `GET /api/v1/alerts/live` in FastAPI integrating Open-Meteo Severe Weather / Flood API and USGS Earthquake GeoJSON feed + DB alerts, and `PATCH /api/v1/alerts/{id}/acknowledge`.
+2. **[x] Campus Incident Injection & WebSocket Broadcast (Issue 3.3):** Implemented `POST /api/v1/incidents/inject` and `POST /api/v1/webhooks/inject-incident` broadcasting `EMERGENCY_BROADCAST` to all active WebSocket clients.
+3. **[x] Persistent Telemetry Endpoints (Task 3.1):** Built `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` persisting simulation runs to PostgreSQL.
+4. **[x] User Profile & NDMA Report Persistence:** `user_profiles` and `ndma_reports` models, alembic migration, and `/users/profile` upsert API.
+5. **[x] Multi-User WebSocket Load Test (Task 3.2):** Validated 50 and 100 client concurrency tests with zero packet loss.
 
 ### Manha AK: AI & 3D Frontend
-1. **Mitra AI Crisis Voice Alert Verbalization (Issue 4.3):** Connect Web Speech API (`window.speechSynthesis`) to Mitra on `/simulate` and `/command` to automatically verbalize emergency warning protocols during active crisis drills or ingested alerts.
-2. **Interactive 3D Multi-Floor Stack (Task 4.1):** Replace the 2D blueprint on `/command` with an isometric 3D stacked floor viewer (Ground to 3rd Floor) with interactive floor separation and live hazard/student markers.
-3. **Backend Telemetry Dispatch (Task 4.2):** Connect `saveRun()` in `telemetry.ts` to `POST /api/v1/telemetry/runs` with offline `localStorage` fallback.
+1. **[x] Mitra AI Crisis Voice Alert Verbalization (Issue 4.3):** Web Speech API connected to verbalize emergency warning protocols during active crisis drills and alerts.
+2. **[x] Interactive 3D Multi-Floor Stack (Task 4.1):** Isometric 3D stacked floor viewer (`FloorStack3D.tsx`) with interactive floor separation and live hazard/student markers.
+3. **[x] Backend Telemetry Dispatch (Task 4.2):** `saveRun()` in `telemetry.ts` and `SimulatePage` dispatches to `POST /api/v1/telemetry/runs` with offline `localStorage` fallback. Admin Dashboard reads real KPIs from `GET /api/v1/telemetry/analytics`.
 
 ### Trinayani D & Rahul Nayak: Pitch & Multi-Agency Orchestration
 1. **Live Pitch Multi-Device Script (Task 5.1):** Coordinate 3-device live demonstration (Mobile student `/learn`, Laptop 3D sim `/simulate`, Main Screen Command Hub `/command`).
