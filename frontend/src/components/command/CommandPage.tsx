@@ -18,6 +18,8 @@ import { playSirenBeep } from "@/lib/siren";
 import { loadCadetSettings } from "@/lib/cadetSettings";
 import LiveThreatBanner, { type LiveThreatAlert } from "./LiveThreatBanner";
 
+import { announceMitraEmergency } from "@/components/shared/speech";
+
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
   { ssr: false }
@@ -48,7 +50,7 @@ const AGENCIES = [
   { name: "Ambulance EMS", status: "Standby", role: "Medical Triage", color: "violet" },
 ];
 
-const LIVE_ALERT_POLL_MS = 30_000;
+const LIVE_ALERT_POLL_MS = 20_000;
 
 function liveAlertColor(severity: string): string {
   const s = severity.toLowerCase();
@@ -82,7 +84,7 @@ export default function CommandPage() {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
   const handleSelectPreset = (presetId: string) => {
@@ -136,6 +138,8 @@ export default function CommandPage() {
   };
 
   // Compute highest-priority active threat for LiveThreatBanner
+  // STRICT RULE: Only active if there is a real CRITICAL or WARNING threat, or an injected drill.
+  // Calm baseline telemetry will NEVER display an emergency threat banner.
   const activeBannerThreat: LiveThreatAlert | null = (() => {
     if (broadcasts.length > 0) {
       const b = broadcasts[0];
@@ -153,26 +157,28 @@ export default function CommandPage() {
     const available = liveAlerts.filter((a) => !dismissedAlertIds.has(a.id));
     if (available.length === 0) return null;
 
+    // Filter strictly to severe threats
+    const critical = available.find((a) => {
+      const s = a.severity.toLowerCase();
+      return s.includes("extreme") || s.includes("critical");
+    });
+    const warning = available.find((a) => {
+      const s = a.severity.toLowerCase();
+      return s.includes("warn") || s.includes("severe");
+    });
+
+    let target = critical || warning;
+
+    // If operator clicked a specific alert in the list, prioritize it only if it's a real warning/threat
     if (activeAlertId && !dismissedAlertIds.has(activeAlertId)) {
-      const found = available.find((a) => a.id === activeAlertId);
-      if (found) {
-        const isCrit = found.severity.toLowerCase().includes("extreme") || found.severity.toLowerCase().includes("critical");
-        const isWarn = found.severity.toLowerCase().includes("warn") || found.severity.toLowerCase().includes("severe");
-        return {
-          id: found.id,
-          source: found.source,
-          severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
-          title: found.headline,
-          detail: found.detail,
-          timestamp: new Date(found.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-        };
+      const selected = available.find((a) => a.id === activeAlertId);
+      if (selected && selected.severity.toLowerCase() !== "normal" && selected.severity.toLowerCase() !== "info") {
+        target = selected;
       }
     }
 
-    // Default to highest severity or first available threat
-    const critical = available.find((a) => a.severity.toLowerCase().includes("extreme") || a.severity.toLowerCase().includes("critical"));
-    const warning = available.find((a) => a.severity.toLowerCase().includes("warn") || a.severity.toLowerCase().includes("severe"));
-    const target = critical || warning || available[0];
+    // If no critical or warning threats exist, do NOT show an emergency threat banner
+    if (!target) return null;
 
     const isCrit = target.severity.toLowerCase().includes("extreme") || target.severity.toLowerCase().includes("critical");
     const isWarn = target.severity.toLowerCase().includes("warn") || target.severity.toLowerCase().includes("severe");
@@ -205,10 +211,23 @@ export default function CommandPage() {
   const handleTriggerProtocol = () => {
     const title = activeBannerThreat?.title ?? "Campus Emergency";
     showToast(`⚡ Emergency Protocol Activated: [${title}] — All buildings notified`);
+    announceMitraEmergency(
+      `Campus Emergency Protocol Activated for ${title}`,
+      "All sectors proceed to designated assembly zones immediately.",
+      `trigger-${Date.now()}`
+    );
   };
 
   const handleInject = async (type: IncidentType) => {
     setInjecting(type);
+    const preset = INCIDENT_PRESETS.find((p) => p.type === type);
+    if (preset) {
+      announceMitraEmergency(
+        `Emergency drill triggered: ${preset.label}`,
+        `Location: ${preset.location}. Initiate emergency protocols immediately.`,
+        `drill-${type}-${Date.now()}`
+      );
+    }
     const ok = await injectIncident(type);
     showToast(ok ? "📡 Incident injected — broadcasting to all clients" : "⚠️ Injection failed — is the backend running?");
     setInjecting(null);
@@ -232,9 +251,6 @@ export default function CommandPage() {
       if (!cancelled) {
         setLiveAlerts(alerts);
         setLiveAlertsLoading(false);
-        if (alerts.length > 0 && !activeAlertId) {
-          setActiveAlertId(alerts[0].id);
-        }
       }
     };
     poll();
@@ -245,14 +261,38 @@ export default function CommandPage() {
     };
   }, [coords.lat, coords.lon]);
 
-  // Siren on every newly received emergency broadcast, gated by the
-  // cadet's own Settings toggle.
+  // Mitra voice announcement on incoming WebSocket broadcasts
   useEffect(() => {
     if (broadcasts.length === 0) return;
-    if (loadCadetSettings().drillSiren) playSirenBeep();
-    showToast(`🚨 ${broadcasts[0].msg}`);
+    const latest = broadcasts[0];
+    showToast(`🚨 ${latest.msg}`);
+    announceMitraEmergency(
+      `Campus Emergency Drill: ${latest.msg}`,
+      "All personnel initiate emergency safety protocols immediately and proceed to safety.",
+      `drill-${latest.receivedAt}`
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcasts.length]);
+
+  // Mitra voice shoutout on real critical hazard detection (storm, flood, cyclone, earthquake)
+  useEffect(() => {
+    if (liveAlerts.length === 0) return;
+    const severeHazard = liveAlerts.find(
+      (a) =>
+        !dismissedAlertIds.has(a.id) &&
+        (a.severity.toLowerCase().includes("extreme") ||
+          a.severity.toLowerCase().includes("critical") ||
+          a.severity.toLowerCase().includes("warn"))
+    );
+    if (severeHazard) {
+      announceMitraEmergency(
+        `${severeHazard.severity} Hazard: ${severeHazard.headline}`,
+        severeHazard.detail,
+        severeHazard.id
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveAlerts]);
 
   const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);

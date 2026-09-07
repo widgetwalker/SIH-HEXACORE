@@ -67,12 +67,25 @@ export async function fetchLiveAlerts(lat: number = DEFAULT_COORDS.lat, lon: num
   }
 }
 
-export type IncidentType = "electrical-fire" | "chemical-spill" | "gas-leak";
+export type IncidentType =
+  | "electrical-fire"
+  | "chemical-spill"
+  | "gas-leak"
+  | "storm-cyclone"
+  | "flash-flood"
+  | "earthquake-drill"
+  | "tsunami-warning";
+
+export const CAMPUS_EMERGENCY_EVENT = "campus_emergency_alert";
 
 export const INCIDENT_PRESETS: { type: IncidentType; label: string; location: string; icon: string }[] = [
+  { type: "storm-cyclone", label: "Severe Cyclone / Gale Surge", location: "Coastal Campus Perimeter", icon: "🌀" },
+  { type: "flash-flood", label: "Flash Flood / Cloudburst", location: "Campus Ground & Drainage Corridor", icon: "🌊" },
+  { type: "earthquake-drill", label: "M6.2 Seismic Tremor & Structural Breach", location: "Academic Blocks A & B", icon: "⚡" },
+  { type: "tsunami-warning", label: "Tsunami Inundation Warning", location: "Bay of Bengal Coastal Sector", icon: "🌊" },
   { type: "electrical-fire", label: "Electrical Transformer Fire", location: "Ground Floor Lobby", icon: "🔥" },
   { type: "chemical-spill", label: "Chemical Lab Spill", location: "Science Block, Floor 2", icon: "🧪" },
-  { type: "gas-leak", label: "Gas Leak", location: "Near Staircase B", icon: "☢️" },
+  { type: "gas-leak", label: "Gas Leak Hazard", location: "Near Staircase B", icon: "☣️" },
 ];
 
 export async function injectIncident(incidentType: IncidentType): Promise<boolean> {
@@ -82,9 +95,26 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ incident_type: incidentType }),
     });
-    return res.ok;
+    if (res.ok) {
+      if (typeof window !== "undefined") {
+        const preset = INCIDENT_PRESETS.find((p) => p.type === incidentType);
+        window.dispatchEvent(
+          new CustomEvent(CAMPUS_EMERGENCY_EVENT, {
+            detail: {
+              incidentType,
+              label: preset?.label ?? incidentType,
+              location: preset?.location ?? "Campus",
+              severity: "Extreme",
+            },
+          })
+        );
+      }
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
+
 

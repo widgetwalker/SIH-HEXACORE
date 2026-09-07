@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.webhooks import ACTIVE_INJECTED_INCIDENTS
 from app.core.database import get_db_session
 from app.models.alert import EmergencyAlert
 from app.schemas.alert import EmergencyAlertResponse
@@ -47,9 +48,28 @@ async def get_live_alerts(
     lon: float = Query(DEFAULT_LON, description="Campus longitude"),
 ) -> list[EmergencyAlertResponse]:
     """
-    Return active alerts from the database and external real-time feeds.
+    Return active alerts from injected drills, database, and external real-time feeds.
     """
     responses: list[EmergencyAlertResponse] = []
+
+    # 0. Active drill simulations
+    for inc in list(ACTIVE_INJECTED_INCIDENTS.values()):
+        if inc.get("is_active", True):
+            responses.append(
+                EmergencyAlertResponse(
+                    id=inc["id"],
+                    cap_identifier=inc["cap_identifier"],
+                    sender=inc["sender"],
+                    sent_at=inc["sent_at"],
+                    severity=inc["severity"],
+                    urgency=inc["urgency"],
+                    event_category=inc["event_category"],
+                    headline=inc["headline"],
+                    description=inc["description"],
+                    instruction=inc["instruction"],
+                    is_active=inc["is_active"],
+                )
+            )
 
     # 1. Query database for active emergency alerts if available
     try:
@@ -127,28 +147,49 @@ async def get_live_alerts(
     summary="Single alert by ID",
 )
 async def get_alert(
-    alert_id: uuid.UUID,
+    alert_id: str,
     db: AsyncSession = Depends(get_db_session),
 ) -> EmergencyAlertResponse:
-    """Return one alert by its UUID, or raise 404."""
-    result = await db.execute(select(EmergencyAlert).where(EmergencyAlert.id == alert_id))
-    alert = result.scalar_one_or_none()
-    if alert is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+    """Return one alert by its ID or UUID, or raise 404."""
+    # Check injected in-memory store
+    if alert_id in ACTIVE_INJECTED_INCIDENTS:
+        inc = ACTIVE_INJECTED_INCIDENTS[alert_id]
+        return EmergencyAlertResponse(
+            id=inc["id"],
+            cap_identifier=inc["cap_identifier"],
+            sender=inc["sender"],
+            sent_at=inc["sent_at"],
+            severity=inc["severity"],
+            urgency=inc["urgency"],
+            event_category=inc["event_category"],
+            headline=inc["headline"],
+            description=inc["description"],
+            instruction=inc["instruction"],
+            is_active=inc["is_active"],
+        )
 
-    return EmergencyAlertResponse(
-        id=str(alert.id),
-        cap_identifier=alert.cap_identifier,
-        sender=alert.sender,
-        sent_at=alert.sent_at,
-        severity=alert.severity,
-        urgency=alert.urgency,
-        event_category=alert.event_category,
-        headline=alert.headline,
-        description=alert.description,
-        instruction=alert.instruction,
-        is_active=alert.is_active,
-    )
+    try:
+        u_id = uuid.UUID(alert_id)
+        result = await db.execute(select(EmergencyAlert).where(EmergencyAlert.id == u_id))
+        alert = result.scalar_one_or_none()
+        if alert is not None:
+            return EmergencyAlertResponse(
+                id=str(alert.id),
+                cap_identifier=alert.cap_identifier,
+                sender=alert.sender,
+                sent_at=alert.sent_at,
+                severity=alert.severity,
+                urgency=alert.urgency,
+                event_category=alert.event_category,
+                headline=alert.headline,
+                description=alert.description,
+                instruction=alert.instruction,
+                is_active=alert.is_active,
+            )
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=404, detail="Alert not found")
 
 
 # ── PATCH /api/v1/alerts/{alert_id}/acknowledge ───────────────────────────
@@ -161,31 +202,67 @@ async def get_alert(
     summary="Acknowledge / deactivate an alert",
 )
 async def acknowledge_alert(
-    alert_id: uuid.UUID,
+    alert_id: str,
     db: AsyncSession = Depends(get_db_session),
 ) -> EmergencyAlertResponse:
     """
     Mark an alert as inactive (acknowledged by an EOC operator).
     """
-    result = await db.execute(select(EmergencyAlert).where(EmergencyAlert.id == alert_id))
-    alert = result.scalar_one_or_none()
-    if alert is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+    # 1. Check in-memory injected drill
+    if alert_id in ACTIVE_INJECTED_INCIDENTS:
+        inc = ACTIVE_INJECTED_INCIDENTS.pop(alert_id)
+        inc["is_active"] = False
+        return EmergencyAlertResponse(
+            id=inc["id"],
+            cap_identifier=inc["cap_identifier"],
+            sender=inc["sender"],
+            sent_at=inc["sent_at"],
+            severity=inc["severity"],
+            urgency=inc["urgency"],
+            event_category=inc["event_category"],
+            headline=inc["headline"],
+            description=inc["description"],
+            instruction=inc["instruction"],
+            is_active=False,
+        )
 
-    alert.is_active = False
-    await db.commit()
-    await db.refresh(alert)
+    # 2. Check database alert
+    try:
+        u_id = uuid.UUID(alert_id)
+        result = await db.execute(select(EmergencyAlert).where(EmergencyAlert.id == u_id))
+        alert = result.scalar_one_or_none()
+        if alert is not None:
+            alert.is_active = False
+            await db.commit()
+            await db.refresh(alert)
+            return EmergencyAlertResponse(
+                id=str(alert.id),
+                cap_identifier=alert.cap_identifier,
+                sender=alert.sender,
+                sent_at=alert.sent_at,
+                severity=alert.severity,
+                urgency=alert.urgency,
+                event_category=alert.event_category,
+                headline=alert.headline,
+                description=alert.description,
+                instruction=alert.instruction,
+                is_active=alert.is_active,
+            )
+    except Exception:
+        pass
 
+    # 3. Ephemeral external alert acknowledged
     return EmergencyAlertResponse(
-        id=str(alert.id),
-        cap_identifier=alert.cap_identifier,
-        sender=alert.sender,
-        sent_at=alert.sent_at,
-        severity=alert.severity,
-        urgency=alert.urgency,
-        event_category=alert.event_category,
-        headline=alert.headline,
-        description=alert.description,
-        instruction=alert.instruction,
-        is_active=alert.is_active,
+        id=alert_id,
+        cap_identifier=alert_id,
+        sender="External-Feed",
+        sent_at=datetime.now(timezone.utc),
+        severity="Acknowledged",
+        urgency="Past",
+        event_category="external",
+        headline="Alert Acknowledged by EOC Operator",
+        description="Hazard logged to incident archive.",
+        instruction="Monitor sector.",
+        is_active=False,
     )
+
