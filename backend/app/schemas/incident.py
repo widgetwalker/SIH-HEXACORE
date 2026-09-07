@@ -7,7 +7,15 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-IncidentType = Literal["electrical-fire", "chemical-spill", "gas-leak"]
+IncidentType = Literal[
+    "electrical-fire",
+    "chemical-spill",
+    "gas-leak",
+    "storm-cyclone",
+    "flash-flood",
+    "earthquake-drill",
+    "tsunami-warning",
+]
 
 INCIDENT_PRESETS: dict[str, dict[str, str]] = {
     "electrical-fire": {
@@ -21,8 +29,28 @@ INCIDENT_PRESETS: dict[str, dict[str, str]] = {
         "severity": "Warning",
     },
     "gas-leak": {
-        "label": "Gas Leak",
+        "label": "Gas Leak Hazard",
         "location": "Near Staircase B",
+        "severity": "Extreme",
+    },
+    "storm-cyclone": {
+        "label": "Severe Cyclone / Gale Surge",
+        "location": "Coastal Campus Perimeter",
+        "severity": "Extreme",
+    },
+    "flash-flood": {
+        "label": "Torrential Flash Flood / Cloudburst",
+        "location": "Campus Ground & Drainage Corridor",
+        "severity": "Extreme",
+    },
+    "earthquake-drill": {
+        "label": "M6.2 Seismic Tremor & Structural Risk",
+        "location": "Academic Blocks A & B",
+        "severity": "Extreme",
+    },
+    "tsunami-warning": {
+        "label": "Tsunami Inundation Warning",
+        "location": "Bay of Bengal Coastal Sector",
         "severity": "Extreme",
     },
 }

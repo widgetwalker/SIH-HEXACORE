@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { loadCadetProfile, CADET_PROFILE_EVENT, type CadetProfile } from "@/lib/cadetProfile";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { fetchLiveAlerts, CAMPUS_EMERGENCY_EVENT, type LiveAlert } from "@/lib/liveAlerts";
+import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
@@ -14,6 +16,9 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<CadetProfile | null>(null);
+  const { broadcasts } = useEmergencyBroadcasts();
+  const [criticalLiveAlert, setCriticalLiveAlert] = useState<LiveAlert | null>(null);
+  const [manualEventAlert, setManualEventAlert] = useState<string | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -28,10 +33,57 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
     return () => window.removeEventListener(CADET_PROFILE_EVENT, onProfileUpdate);
   }, []);
 
+  // Poll for active critical hazards from backend
+  useEffect(() => {
+    let cancelled = false;
+    const checkAlerts = async () => {
+      const alerts = await fetchLiveAlerts();
+      if (!cancelled) {
+        const crit = alerts.find((a) => {
+          const s = a.severity.toLowerCase();
+          return s.includes("extreme") || s.includes("critical") || s.includes("warn");
+        });
+        setCriticalLiveAlert(crit ?? null);
+      }
+    };
+    checkAlerts();
+    const interval = setInterval(checkAlerts, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Listen for instant manual incident injection events across the client
+  useEffect(() => {
+    const onEmergency = (e: Event) => {
+      const custom = e as CustomEvent<{ label?: string; severity?: string }>;
+      if (custom.detail?.label) {
+        setManualEventAlert(custom.detail.label);
+      }
+    };
+    window.addEventListener(CAMPUS_EMERGENCY_EVENT, onEmergency);
+    return () => window.removeEventListener(CAMPUS_EMERGENCY_EVENT, onEmergency);
+  }, []);
+
+  const hasActiveAlert =
+    mode === "emergency" ||
+    broadcasts.length > 0 ||
+    criticalLiveAlert !== null ||
+    manualEventAlert !== null;
+
+  const alertBadgeText = (() => {
+    if (manualEventAlert) return `🚨 DRILL: ${manualEventAlert}`;
+    if (broadcasts.length > 0) return `🚨 DRILL: ${broadcasts[0].msg.split("—")[0].trim()}`;
+    if (criticalLiveAlert) return `🚨 ${criticalLiveAlert.severity.toUpperCase()} ALERT`;
+    if (mode === "emergency") return "🚨 EMERGENCY ACTIVE";
+    return "No Alerts";
+  })();
+
   return (
     <nav
       className={`${styles.navbar} ${scrolled ? styles.scrolled : ""} ${
-        mode === "emergency" ? styles.emergency : ""
+        hasActiveAlert ? styles.emergency : ""
       }`}
       aria-label="Main navigation"
     >
@@ -68,9 +120,9 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           <span className={styles.logoText}>
             Safe<span className={styles.logoAccent}>Zone</span>
           </span>
-          {mode === "emergency" && (
+          {hasActiveAlert && (
             <span className={`badge badge-red badge-pulse ${styles.emergencyBadge}`}>
-              LIVE
+              LIVE ALERT
             </span>
           )}
         </Link>
@@ -111,14 +163,24 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           <Link
             href="/command"
             prefetch={true}
-            className={`${styles.alertIndicator} ${mode === "emergency" ? styles.alertActive : ""}`}
+            className={`${styles.alertIndicator} ${hasActiveAlert ? styles.alertActive : ""}`}
             style={{ textDecoration: "none" }}
+            title={hasActiveAlert ? alertBadgeText : "No Active Hazards in Sector"}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" suppressHydrationWarning>
-              <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" suppressHydrationWarning />
-              <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" suppressHydrationWarning />
-            </svg>
-            <span>{mode === "emergency" ? "SACHET ALERT" : "No Alerts"}</span>
+            {hasActiveAlert ? (
+              <>
+                <span className={styles.alertPulseDot} />
+                <span className={styles.alertActiveText}>{alertBadgeText}</span>
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" suppressHydrationWarning>
+                  <path d="M8 1.5L1.5 13h13L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" suppressHydrationWarning />
+                  <path d="M8 6v3.5M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" suppressHydrationWarning />
+                </svg>
+                <span>No Alerts</span>
+              </>
+            )}
           </Link>
 
           <Link

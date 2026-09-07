@@ -20,13 +20,10 @@ from app.schemas.live_alert import LiveAlert
 DEFAULT_LAT = 11.9416
 DEFAULT_LON = 79.8083
 
-RAINFALL_SEVERE_MM_H = 20.0
-RAINFALL_ADVISORY_MM_H = 5.0
+RAINFALL_SEVERE_MM_H = 15.0
+RAINFALL_ADVISORY_MM_H = 8.0
 WIND_SEVERE_KMH = 45.0
-WIND_ADVISORY_KMH = 25.0
-
-EARTHQUAKE_MIN_MAGNITUDE = 3.5
-EARTHQUAKE_RADIUS_KM = 3500.0  # Regional Indian Ocean / Bay of Bengal / South Asia fault zones
+WIND_ADVISORY_KMH = 30.0
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 USGS_FEED_URL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
@@ -60,9 +57,36 @@ async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
     wind_now = curr.get("wind_speed_10m", 0)
     rain_now = curr.get("precipitation", 0)
     humidity = curr.get("relative_humidity_2m")
+    weather_code = curr.get("weather_code")
 
-    # If severe right now
-    if rain_now is not None and rain_now > RAINFALL_SEVERE_MM_H:
+    # Severe convective thunderstorm or cloudburst
+    if weather_code in [95, 96, 99]:
+        alerts.append(
+            LiveAlert(
+                id=f"weather-thunderstorm-{int(datetime.now().timestamp())}",
+                source="Open-Meteo",
+                category="severe-weather",
+                severity="Extreme",
+                headline=f"Severe Thunderstorm & Lightning Warning (Code {weather_code})",
+                detail=f"Intense convective storm cells with lightning in sector ({lat:.2f}°N, {lon:.2f}°E). Cease outdoor movement immediately.",
+                occurred_at=now_iso,
+            )
+        )
+    elif weather_code in [65, 67, 82]:
+        alerts.append(
+            LiveAlert(
+                id=f"weather-downpour-{int(datetime.now().timestamp())}",
+                source="Open-Meteo",
+                category="flood",
+                severity="Warning",
+                headline=f"Torrential Downpour / Heavy Showers (Code {weather_code})",
+                detail=f"Intense localized rainfall in sector ({lat:.2f}°N, {lon:.2f}°E). Monitor drainage and ground floor.",
+                occurred_at=now_iso,
+            )
+        )
+
+    # Severe rainfall / flood breach
+    if rain_now is not None and rain_now >= RAINFALL_SEVERE_MM_H:
         alerts.append(
             LiveAlert(
                 id=f"weather-now-rain-{int(datetime.now().timestamp())}",
@@ -70,11 +94,37 @@ async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
                 category="flood",
                 severity="Extreme",
                 headline=f"Flash Flood Warning: {rain_now:.1f} mm/h precipitation recorded",
-                detail=f"Campus coordinates ({lat:.4f}, {lon:.4f}) exceed torrential rain threshold. Waterlogging likely.",
+                detail=f"Campus coordinates ({lat:.4f}, {lon:.4f}) exceed torrential rain threshold. Flash waterlogging imminent.",
                 occurred_at=now_iso,
             )
         )
-    elif wind_now is not None and wind_now > WIND_SEVERE_KMH:
+    elif rain_now is not None and rain_now >= RAINFALL_ADVISORY_MM_H:
+        alerts.append(
+            LiveAlert(
+                id=f"weather-rain-advisory-{int(datetime.now().timestamp())}",
+                source="Open-Meteo",
+                category="flood",
+                severity="Warning",
+                headline=f"Heavy Rain Alert: {rain_now:.1f} mm/h precipitation",
+                detail=f"Persistent rainfall detected in campus sector ({lat:.4f}, {lon:.4f}). Low-lying corridors vulnerable.",
+                occurred_at=now_iso,
+            )
+        )
+
+    # Severe storm / cyclonic wind gusts
+    if wind_now is not None and wind_now >= WIND_SEVERE_KMH:
+        alerts.append(
+            LiveAlert(
+                id=f"weather-now-wind-{int(datetime.now().timestamp())}",
+                source="Open-Meteo",
+                category="severe-weather",
+                severity="Extreme",
+                headline=f"Severe Cyclone / Gale Warning: {wind_now:.1f} km/h wind gusts",
+                detail=f"Dangerous storm-force wind corridor in sector ({lat:.4f}, {lon:.4f}). Structural and projectile risk.",
+                occurred_at=now_iso,
+            )
+        )
+    elif wind_now is not None and wind_now >= WIND_ADVISORY_KMH:
         alerts.append(
             LiveAlert(
                 id=f"weather-now-wind-{int(datetime.now().timestamp())}",
@@ -83,19 +133,6 @@ async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
                 severity="Warning",
                 headline=f"High Wind Advisory: {wind_now:.1f} km/h wind gusts",
                 detail=f"Elevated wind velocity in campus corridor ({lat:.4f}, {lon:.4f}). Secure exterior fixtures.",
-                occurred_at=now_iso,
-            )
-        )
-    elif temp is not None:
-        # Provide continuous live telemetric baseline for the operator
-        alerts.append(
-            LiveAlert(
-                id=f"weather-telemetry-{int(datetime.now().timestamp() // 300)}",
-                source="Open-Meteo",
-                category="weather-telemetry",
-                severity="Advisory",
-                headline=f"Sector Telemetry: {temp:.1f}°C, Wind {wind_now:.1f} km/h ({lat:.2f}°N, {lon:.2f}°E)",
-                detail=f"Relative Humidity: {humidity}% · Precipitation: {rain_now} mm/h. Live meteorological radar streaming.",
                 occurred_at=now_iso,
             )
         )
@@ -110,7 +147,7 @@ async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
         rain_val = rain[i] if i < len(rain) else None
         wind_val = wind[i] if i < len(wind) else None
 
-        if rain_val is not None and rain_val > RAINFALL_SEVERE_MM_H:
+        if rain_val is not None and rain_val >= RAINFALL_SEVERE_MM_H:
             alerts.append(
                 LiveAlert(
                     id=f"weather-rain-{t}",
@@ -122,7 +159,7 @@ async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
                     occurred_at=t,
                 )
             )
-        if wind_val is not None and wind_val > WIND_SEVERE_KMH:
+        if wind_val is not None and wind_val >= WIND_SEVERE_KMH:
             alerts.append(
                 LiveAlert(
                     id=f"weather-wind-{t}",
@@ -135,6 +172,20 @@ async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
                 )
             )
 
+    # 3. Always include calm telemetric baseline as Normal (informational only)
+    if temp is not None:
+        alerts.append(
+            LiveAlert(
+                id=f"weather-telemetry-{int(datetime.now().timestamp() // 300)}",
+                source="Open-Meteo",
+                category="weather-telemetry",
+                severity="Normal",
+                headline=f"Sector Telemetry: {temp:.1f}°C, Wind {wind_now:.1f} km/h ({lat:.2f}°N, {lon:.2f}°E)",
+                detail=f"Relative Humidity: {humidity}% · Precipitation: {rain_now} mm/h. Live meteorological radar streaming.",
+                occurred_at=now_iso,
+            )
+        )
+
     return alerts
 
 
@@ -144,6 +195,27 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dlon = radians(lon2 - lon1)
     a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
     return 2 * earth_radius_km * atan2(sqrt(a), sqrt(1 - a))
+
+
+def _classify_earthquake_threat(mag: float, distance_km: float) -> tuple[bool, str]:
+    """
+    Evaluate whether a seismic event presents a genuine physical threat to the sector.
+    Distant quakes outside actual felt/damage radii are excluded to prevent false alarm fatigue.
+    """
+    # Catastrophic / Tsunami generation magnitude
+    if mag >= 7.0 and distance_km <= 1000.0:
+        return True, "Extreme"
+    # Severe damaging earthquake
+    if mag >= 6.0 and distance_km <= 400.0:
+        return True, "Extreme"
+    # Moderate damaging earthquake
+    if mag >= 5.0 and distance_km <= 180.0:
+        return True, "Warning"
+    # Localized perceptible tremor
+    if mag >= 4.0 and distance_km <= 60.0:
+        return True, "Warning"
+
+    return False, "Normal"
 
 
 async def fetch_earthquake_alerts(lat: float, lon: float) -> list[LiveAlert]:
@@ -162,12 +234,15 @@ async def fetch_earthquake_alerts(lat: float, lon: float) -> list[LiveAlert]:
         props = feature.get("properties", {})
         mag = props.get("mag")
         coords = feature.get("geometry", {}).get("coordinates", [])
-        if mag is None or mag < EARTHQUAKE_MIN_MAGNITUDE or len(coords) < 2:
+        if mag is None or len(coords) < 2:
             continue
 
         quake_lon, quake_lat = coords[0], coords[1]
         distance_km = _haversine_km(lat, lon, quake_lat, quake_lon)
-        if distance_km > EARTHQUAKE_RADIUS_KM:
+
+        is_threat, severity = _classify_earthquake_threat(mag, distance_km)
+        if not is_threat:
+            # Strictly filter out distant tremors that cannot impact this campus
             continue
 
         occurred_ms = props.get("time")
@@ -181,9 +256,9 @@ async def fetch_earthquake_alerts(lat: float, lon: float) -> list[LiveAlert]:
                 id=f"usgs-{feature.get('id')}",
                 source="USGS",
                 category="earthquake",
-                severity="Extreme" if mag >= 6.0 else "Warning" if mag >= 4.5 else "Advisory",
-                headline=f"M{mag:.1f} Seismic Event — {distance_km:.0f} km from sector",
-                detail=props.get("place") or "Regional tectonic movement detected by USGS seismic sensor network.",
+                severity=severity,
+                headline=f"M{mag:.1f} Seismic Tremor Detected — {distance_km:.0f} km from sector",
+                detail=props.get("place") or "Active tectonic movement in sector proximity detected by USGS seismic sensors.",
                 occurred_at=occurred_iso,
             )
         )
