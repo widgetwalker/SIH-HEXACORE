@@ -70,7 +70,7 @@ const PILLARS = [
 const STACK = [
   "GenAI Scenario Synthesizer",
   "GNN Dynamic A* Routing",
-  "MediaPipe Posture CV",
+  "Autonomous Crowd Simulation",
   "“Mitra” Crisis Companion",
   "Adaptive Difficulty Engine",
   "Offline-First PWA",

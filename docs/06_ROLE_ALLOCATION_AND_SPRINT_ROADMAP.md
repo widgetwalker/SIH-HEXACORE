@@ -121,7 +121,7 @@ Based on the core research document and team composition, this blueprint specifi
 | **FastAPI, PostGIS & WebSocket Hub** | C | **A / R** | C | C | I | I |
 | **GenAI Dynamic Scenario Synthesizer** | **A / R** | C | C | I | C | C |
 | **GNN Real-Time Dynamic Route Optimizer** | **A / R** | C | C | I | I | C |
-| **CV Edge "Drop-Cover-Hold" Posture Model** | **A / R** | I | C | C | C | I |
+| **Autonomous NPC Crowd Dynamics Engine** | **A / R** | I | C | C | C | I |
 | **"Mitra" Conversational Crisis Bot** | C | C | **A / R** | C | I | C |
 | **Campus EOC Multi-Agency Dashboard** | C | C | C | **A / R** | I | C |
 | **End-to-End System Integration & Testing** | R | R | R | R | R | **A** |
@@ -165,19 +165,36 @@ Based on the core research document and team composition, this blueprint specifi
 - **Day 4 (Aug 26):** Basic 2D floorplan coordinate schema and graph node adjacency definitions (Venkataraman, Dheeraj).
 - **Day 5 (Aug 27):** Sprint 1 Review & Architecture sync: Verify all local development environments run seamlessly.
 
-#### Sprint 2: Core Dual-Engine Development (Aug 28 - Sep 1)
+## 3. Sprint Timeline & Day-by-Day Execution Matrix
 
-- **Day 6 (Aug 28):** Scaffold Three.js multi-floor building canvas and Rapier physics character controller (Manha, Dheeraj).
-- **Day 7 (Aug 29):** Build PWA student learning modules (5 age cohorts) with PASS simulator (I.Sravya, Trinayani).
-- **Day 8 (Aug 30):** Implement WebSocket bidirectional event stream for multiplayer drill synchronization (Venkataraman).
-- **Day 9 (Aug 31):** Build LLM scenario generator with JSON schema validation & baseline GNN pathfinding (Dheeraj).
-- **Day 10 (Sep 1):** Connect frontend 3D simulation to backend WebSocket hazard events (Manha, Venkataraman).
+The 18-day sprint leads up to the target MVP milestone on September 9th:
+
+```
+[SPRINT 1: CORE DUAL-ENGINE] ──► [SPRINT 2: SIMULATION & GAMING] ──► [SPRINT 3: EOC & AI SUITE] ──► [SPRINT 4: HARDENING]
+      (Days 1 - 5)                     (Days 6 - 10)                       (Days 11 - 14)               (Days 15 - 18)
+```
+
+#### Sprint 1: Core Dual-Engine Scaffolding (Aug 23 - Aug 27)
+
+- **Day 1 (Aug 23):** Establish mono-repo structure, PWA Next.js scaffolding, FastAPI backend, and Alembic migrations (Venkataraman, Dheeraj).
+- **Day 2 (Aug 24):** Ingest 6-floor campus building CAD blueprints into GeoJSON and floorplan schemas (Rahul, Trinayani).
+- **Day 3 (Aug 25):** Implement UI design system with accessible contrast tokens and high-end typography (Dheeraj, I.Sravya).
+- **Day 4 (Aug 26):** Set up 5-Tier Age Curriculum database and initial lesson JSON files (I.Sravya, Trinayani).
+- **Day 5 (Aug 27):** Complete Sprint 1 code review and establish CI/CD pipeline (Venkataraman, Rahul).
+
+#### Sprint 2: 3D Simulation & Gamification (Aug 28 - Sep 1)
+
+- **Day 6 (Aug 28):** Build Three.js 3D building viewer with multi-floor level switcher (Manha, Dheeraj).
+- **Day 7 (Aug 29):** Implement hazard particle shaders (flame, smoke, gas, structural debris) (Manha, Dheeraj).
+- **Day 8 (Aug 30):** Develop student player movement, collision detection, and stamina/panic meter (Manha, I.Sravya).
+- **Day 9 (Aug 31):** Implement Tier 1-3 micro-learning games (PASS extinguisher sequence, hazard sorting) (I.Sravya, Trinayani).
+- **Day 10 (Sep 1):** Connect WebSocket telemetry streaming for live student drill coordinates (Venkataraman, Manha).
 
 #### Sprint 3: Command Hub & AI Frontier Systems (Sep 2 - Sep 5)
 
 - **Day 11 (Sep 2):** Develop Campus EOC Dashboard with real-time floor status visualizer and QR scanner (I.Sravya, Dheeraj).
 - **Day 12 (Sep 3):** Implement CAP v1.2 SACHET alert parser and geofenced automatic emergency mode switch (Venkataraman, Rahul).
-- **Day 13 (Sep 4):** Integrate "Mitra" multilingual crisis chatbot and WebAssembly MediaPipe posture detector (Manha, Dheeraj).
+- **Day 13 (Sep 4):** Integrate "Mitra" multilingual crisis chatbot and dynamic A* evacuation pathfinding (Manha, Dheeraj).
 - **Day 14 (Sep 5):** Multi-tenant role authentication test (Admin, Warden, Student, NDRF responder) (Venkataraman, I.Sravya).
 
 #### Sprint 4: Hardening, Polish & MVP Submission (Sep 6 - Sep 9)

@@ -70,7 +70,7 @@ For the Smart India Hackathon (SIH) and nationwide school/college deployment, we
 |   [ 3. DATA & CACHING TIER ]             [ 4. FRONTIER AI / ML SERVICES TIER ]                   |
 |   • PostgreSQL 16 + PostGIS 3.4          • GenAI Scenario Synthesis Agent                        |
 |   • Redis 7 (In-Memory Pub/Sub)          • GNN Dynamic A* Evacuation Route Optimizer             |
-|   • IndexedDB (Local Edge Storage)       • Edge CV MediaPipe Posture Validator                   |
+|   • IndexedDB (Local Edge Storage)       • Autonomous NPC Crowd Dynamics Engine                  |
 |                                          • "Mitra" Crisis Voice/Text NLP Bot                     |
 |                                                                                                  |
 +--------------------------------------------------------------------------------------------------+

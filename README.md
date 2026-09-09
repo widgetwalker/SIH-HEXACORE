@@ -92,7 +92,7 @@ GEMINI_API_KEY=your-key-here
 | **[01. Executive Summary & Vision](./docs/01_EXECUTIVE_SUMMARY_AND_VISION.md)** | Problem Statement, India Campus Vulnerabilities, Strategic Triad, KPIs & SIH Hackathon Evaluation Edge. |
 | **[02. Feature Specification Duality](./docs/02_FEATURE_SPECIFICATION_DUALITY.md)** | Pedagogical Learning Engine (5 Age Tiers: 5-18+), Immersive 3D Simulation Engine, Unified Multi-Agency EOC Command Hub. |
 | **[03. Technical Architecture & Tech Stack](./docs/03_TECHNICAL_ARCHITECTURE_AND_TECH_STACK.md)** | Web App (PWA) vs Website Rationale, Next.js, Three.js / WebGPU, FastAPI, PostGIS, Sub-50ms WebSockets, Offline PWA. |
-| **[04. Frontier AI / ML Systems](./docs/04_FRONTIER_AI_ML_SYSTEMS.md)** | GenAI Dynamic Scenario Generator, GNN Evacuation Routing, CV "Drop-Cover-Hold" Posture Validator, "Mitra" Crisis NLP Bot. |
+| **[04. Frontier AI / ML Systems](./docs/04_FRONTIER_AI_ML_SYSTEMS.md)** | GenAI Dynamic Scenario Generator, Sub-15ms A* Dynamic Routing, "Mitra" Crisis NLP Bot, Autonomous Crowd Simulation. |
 | **[05. Knowledge Graph & Ontology](./docs/05_KNOWLEDGE_GRAPH_AND_ONTOLOGY.md)** | Master Domain Ontology, Semantic Triples, Ground-5th Floor Spatial Knowledge Graph, JSON-LD Schemas. |
 | **[06. Team Role Allocation & Roadmap](./docs/06_ROLE_ALLOCATION_AND_SPRINT_ROADMAP.md)** | 6-Member Work Breakdown, RACI Matrix & Day-by-Day Sprint to Sept 9. |
 | **[07. Dynamic Scenarios & Decision Matrices](./docs/07_DYNAMIC_SCENARIOS_AND_DECISION_MATRICES.md)** | Universal Prohibitions, Floor-by-Floor (Gnd-5th) Rules, Dynamic Fire & Hazards, Compound Disasters, Exit Trees. |
