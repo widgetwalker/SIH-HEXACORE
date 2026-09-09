@@ -33,6 +33,7 @@ from app.api.v1 import (
     websockets,
     ws,
 )
+from app.services.cap_ingestion import cancel_cap_poller, start_cap_poller
 from app.services.pathfinder_bridge import pathfinder_bridge  # noqa: F401
 from app.services.websocket_manager import ws_manager
 
@@ -60,10 +61,14 @@ async def on_startup() -> None:
     _ = ws_manager
     _ = redis_client
 
+    # Start the NDMA SACHET CAP feed poller (if SACHET_FEED_URL is configured).
+    await start_cap_poller()
+
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
-    """Close the shared Redis connection cleanly on app shutdown."""
+    """Cancel the CAP poller and close the shared Redis connection on shutdown."""
+    await cancel_cap_poller()
     try:
         await redis_client.aclose()
     except Exception:  # noqa: BLE001 - intentional: best-effort cleanup

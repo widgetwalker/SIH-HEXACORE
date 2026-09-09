@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # Leave empty in dev to allow loopback-only calls without a signature.
     SACHET_WEBHOOK_SECRET: str = ""
 
+    # NDMA SACHET / OASIS CAP v1.2 XML feed URL for the background poller.
+    # Leave empty to disable the poller (safe default for dev/CI).
+    SACHET_FEED_URL: str = ""
+
     # extra="ignore": a local .env may carry keys other branches/features
     # use (e.g. GEMINI_API_KEY for the Mitra backend) that this branch's
     # Settings doesn't declare yet - ignoring them here means switching

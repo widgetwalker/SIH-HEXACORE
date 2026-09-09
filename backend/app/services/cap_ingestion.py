@@ -20,6 +20,7 @@ import asyncio
 import logging
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -33,6 +34,7 @@ except ImportError:  # pragma: no cover
     _HTTPX_AVAILABLE = False
     httpx = None  # type: ignore[assignment]
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.alert import EmergencyAlert
 from app.models.institution import Institution
@@ -42,8 +44,9 @@ from app.services.websocket_manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
-# NDMA SACHET / OASIS CAP feed endpoint - placeholder, replace with real URL
-CAP_FEED_URL = "https://example.gov.in/sachet/cap/feed"
+# NDMA SACHET / OASIS CAP feed endpoint — read from config, not hardcoded.
+# Set SACHET_FEED_URL in the environment to activate the background poller.
+CAP_FEED_URL = settings.SACHET_FEED_URL
 
 # Namespace used in NDMA SACHET CAP XML documents
 NS = {"cap": "urn:oasis:names:tc:emergency:cap:1.2"}
@@ -322,18 +325,30 @@ async def ingest_alert_xml(raw_xml: str) -> EmergencyAlert | None:
 
 # ── Background CAP feed poller ─────────────────────────────────────────
 
+# Cache file for tracking last-seen alert ID (absolute path for reliability)
+_LAST_ID_FILE = Path(__file__).resolve().parents[3] / "data" / ".last_cap_alert_id"
+# Module-level task reference for shutdown cancellation
+_cap_poller_task: asyncio.Task | None = None
+
+
 async def _poll_loop(poll_interval_seconds: float = 60.0) -> None:
     """
     Background loop that polls the SACHET CAP feed and ingests new alerts.
 
     Uses a local cache file to track the last-seen alert identifier so
     repeated entries are skipped without a database round-trip.
+    Restarts automatically if an unexpected exception occurs.
     """
-    last_id_file = "data/.last_cap_alert_id"
+    global _cap_poller_task  # noqa: PLC2401
+
+    if not CAP_FEED_URL:
+        logger.warning("SACHET_FEED_URL not set - CAP poller disabled")
+        return
+
     last_id: str | None = None
 
     try:
-        with open(last_id_file) as f:
+        with open(_LAST_ID_FILE, encoding="utf-8") as f:
             last_id = f.read().strip() or None
     except FileNotFoundError:
         pass
@@ -341,7 +356,8 @@ async def _poll_loop(poll_interval_seconds: float = 60.0) -> None:
     if not _HTTPX_AVAILABLE:
         logger.warning("httpx not installed - CAP poller disabled")
         return
-    async with httpx.AsyncClient(timeout=30.0) as client:
+
+    async with httpx.AsyncClient(timeout=30.0) as client:  # type: ignore[union-attr]
         while True:
             try:
                 response = await client.get(CAP_FEED_URL)
@@ -356,15 +372,41 @@ async def _poll_loop(poll_interval_seconds: float = 60.0) -> None:
                     if parsed and parsed["cap_identifier"] != last_id:
                         await ingest_alert_xml(chunk)
                         last_id = parsed["cap_identifier"]
-                        with open(last_id_file, "w") as f:
+                        with open(_LAST_ID_FILE, "w", encoding="utf-8") as f:
                             f.write(last_id)
 
-            except httpx.HTTPError as e:
-                logger.error("CAP feed poll failed: %s", e)
+            except asyncio.CancelledError:
+                logger.info("CAP poller cancelled")
+                raise
+            except Exception as e:  # noqa: BLE001 - catch-all to keep poller alive
+                logger.error("CAP poller unexpected error: %s. Restarting in 5s", e)
+                await asyncio.sleep(5.0)
+                continue
 
             await asyncio.sleep(poll_interval_seconds)
 
 
-def start_cap_poller(poll_interval: float = 60.0) -> asyncio.Task:
+async def start_cap_poller(poll_interval: float = 60.0) -> asyncio.Task:
     """Start the background CAP feed poller as an asyncio task."""
-    return asyncio.create_task(_poll_loop(poll_interval))
+    global _cap_poller_task  # noqa: PLC2401
+    if _cap_poller_task is not None and not _cap_poller_task.done():
+        _cap_poller_task.cancel()
+        try:
+            await _cap_poller_task
+        except asyncio.CancelledError:
+            pass
+    _cap_poller_task = asyncio.create_task(_poll_loop(poll_interval))
+    return _cap_poller_task
+
+
+async def cancel_cap_poller() -> None:
+    """Cancel the background CAP poller task if running."""
+    global _cap_poller_task  # noqa: PLC2401
+    if _cap_poller_task is not None and not _cap_poller_task.done():
+        _cap_poller_task.cancel()
+        try:
+            await _cap_poller_task
+        except asyncio.CancelledError:
+            pass
+        _cap_poller_task = None
+        logger.info("CAP poller cancelled")
