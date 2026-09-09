@@ -264,8 +264,8 @@ export default function CommandPage() {
     const preset = INCIDENT_PRESETS.find((p) => p.type === type);
     if (preset) {
       announceMitraEmergency(
-        `Emergency drill triggered: ${preset.label}`,
-        `Location: ${preset.location}. Initiate emergency protocols immediately.`,
+        preset.label,
+        preset.voiceMessage,
         `drill-${type}-${Date.now()}`
       );
     }

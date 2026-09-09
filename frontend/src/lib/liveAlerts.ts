@@ -78,14 +78,56 @@ export type IncidentType =
 
 export const CAMPUS_EMERGENCY_EVENT = "campus_emergency_alert";
 
-export const INCIDENT_PRESETS: { type: IncidentType; label: string; location: string; icon: string }[] = [
-  { type: "storm-cyclone", label: "Severe Cyclone / Gale Surge", location: "Coastal Campus Perimeter", icon: "🌀" },
-  { type: "flash-flood", label: "Flash Flood / Cloudburst", location: "Campus Ground & Drainage Corridor", icon: "🌊" },
-  { type: "earthquake-drill", label: "M6.2 Seismic Tremor & Structural Breach", location: "Academic Blocks A & B", icon: "⚡" },
-  { type: "tsunami-warning", label: "Tsunami Inundation Warning", location: "Bay of Bengal Coastal Sector", icon: "🌊" },
-  { type: "electrical-fire", label: "Electrical Transformer Fire", location: "Ground Floor Lobby", icon: "🔥" },
-  { type: "chemical-spill", label: "Chemical Lab Spill", location: "Science Block, Floor 2", icon: "🧪" },
-  { type: "gas-leak", label: "Gas Leak Hazard", location: "Near Staircase B", icon: "☣️" },
+export const INCIDENT_PRESETS: { type: IncidentType; label: string; location: string; icon: string; voiceMessage: string }[] = [
+  {
+    type: "storm-cyclone",
+    label: "Severe Cyclone / Gale Surge",
+    location: "Coastal Campus Perimeter",
+    icon: "🌀",
+    voiceMessage: "Severe Cyclone Warning in Coastal Campus Perimeter. Move indoors immediately. Stay away from glass windows, exterior doors, and sheet roofing. Shelter in interior hallways.",
+  },
+  {
+    type: "flash-flood",
+    label: "Flash Flood / Cloudburst",
+    location: "Campus Ground & Drainage Corridor",
+    icon: "🌊",
+    voiceMessage: "Torrential Flash Flood in Ground and Drainage Corridor. Move to upper floors immediately. Do not step into moving water. Avoid basement classrooms.",
+  },
+  {
+    type: "earthquake-drill",
+    label: "M6.2 Seismic Tremor & Structural Breach",
+    location: "Academic Blocks A & B",
+    icon: "⚡",
+    voiceMessage: "Earthquake tremor detected in Academic Blocks A and B. Drop, Cover, and Hold on under sturdy desks. Protect your head. After shaking stops, evacuate using marked stairways.",
+  },
+  {
+    type: "tsunami-warning",
+    label: "Tsunami Inundation Warning",
+    location: "Bay of Bengal Coastal Sector",
+    icon: "🌊",
+    voiceMessage: "Tsunami Inundation Warning for Coastal Sector. Evacuate immediately to designated high-ground muster points or vertical evacuation structures at least 3 stories high.",
+  },
+  {
+    type: "electrical-fire",
+    label: "Electrical Transformer Fire",
+    location: "Ground Floor Lobby",
+    icon: "🔥",
+    voiceMessage: "Electrical Transformer Fire in Ground Floor Lobby. Evacuate through alternate stairwells immediately. Stay low beneath the smoke. Do not use elevators.",
+  },
+  {
+    type: "chemical-spill",
+    label: "Chemical Lab Spill",
+    location: "Science Block, Floor 2",
+    icon: "🧪",
+    voiceMessage: "Hazardous Chemical Spill on Science Block Floor 2. Evacuate upwind immediately. Cover nose and mouth with a damp cloth. Do not inhale chemical fumes.",
+  },
+  {
+    type: "gas-leak",
+    label: "Gas Leak Hazard",
+    location: "Near Staircase B",
+    icon: "☣️",
+    voiceMessage: "Combustible Gas Leak detected near Staircase B. Extinguish all open flames immediately. Do not touch electrical switches. Evacuate to outdoor assembly grounds.",
+  },
 ];
 
 /** Map frontend incident types to backend incident types */
