@@ -154,7 +154,7 @@ export function applyWebSocketTelemetry(
   }
 
   const floors = previous.floors.map((floor) => {
-    let next = { ...floor };
+    const next = { ...floor };
     if (prior && prior.floorId === floor.id) {
       next[prior.category] = Math.max(0, next[prior.category] - 1);
     }
