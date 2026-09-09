@@ -39,7 +39,6 @@ To lead in technical innovation during the Smart India Hackathon (SIH) evaluatio
 | **Cellular Automata Hazards** | Physics Engine | **2D Grid Cellular Automata** with Door Firebreaks | ✅ **Live** | [`frontend/src/components/simulate/game/EvacuationGame.tsx`](../frontend/src/components/simulate/game/EvacuationGame.tsx) |
 | **Diagnostic Debrief Engine** | Telemetry / Analytics | **Rule-based Diagnostic Classifier** | ✅ **Live** | [`frontend/src/components/simulate/game/telemetry.ts`](../frontend/src/components/simulate/game/telemetry.ts) |
 | **Geo-Spatial Alert Matching** | Command Center | **PostGIS Geofencing & Intersects** | ✅ **Live** | [`backend/app/services/cap_ingestion.py`](../backend/app/services/cap_ingestion.py) |
-| **Physical Posture Verification** | Edge Vision Minigames | **MediaPipe Pose + YOLOv8-pose Wasm** | 🟡 *Spec / Roadmap* | Described in §3 below |
 | **Physics-Informed Smoke Spread** | Environmental Prediction| **PINN / Fourier Neural Operator (FNO)** | 🚀 *Next-Gen Proposal* | Described in §6.1 below |
 | **Progressive Structural Collapse**| Sensor Analytics | **Graph Neural Network (GNN) + XGBoost**| 🚀 *Next-Gen Proposal* | Described in §6.2 below |
 | **Stampede & Choke Prediction** | Crowd Intelligence | **Multi-Agent RL (MARL - PPO)** | 🚀 *Next-Gen Proposal* | Described in §6.4 below |
@@ -107,26 +106,28 @@ During an active disaster, static exit signs lead people directly into lethal tr
 
 ---
 
-## 3. Computer Vision (CV) Drill Compliance & Posture Validator
+## 3. Autonomous NPC Crowd Dynamics & Agent Simulation
 
-### 3.1 Edge-Based "Drop, Cover, Hold On" Pose Verification
-During classroom physical drills, lightweight edge Computer Vision (MediaPipe Pose + YOLOv8-pose via WebAssembly in the browser) verifies physical drill posture in real time with **zero server video transmission (100% privacy-compliant)**.
+### 3.1 Multi-Agent Evacuation Modeling
+During simulated emergencies, real human crowds do not move in neat single files — they exhibit dynamic compression, panic-induced slowdowns, and emergent avoidance behaviors. The **Simulation Engine** embeds an autonomous multi-agent crowd system (~18 student agents) directly into the WebGL runtime.
 
 ```
 +--------------------------------------------------------------------------------------------------+
-|                            COMPUTER VISION POSTURE PIPELINE                                      |
+|                            AUTONOMOUS NPC AGENT PIPELINE                                         |
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
-|   1. Video Stream ──► MediaPipe 33-Point Skeletal Landmark Tracker (Browser Wasm)                |
+|   1. BFS Distance-Field Flow Map:                                                                |
+|      • Recalculates cost field toward nearest reachable green assembly exit beacons              |
+|      • Accounts for dynamically closed firebreak doors and corridor collapses                    |
 |                                                                                                  |
-|   2. Compute Keypoint Biometrics:                                                                |
-|      • Knee Flexion Angle: Drop below 40% standing height within 2.5 seconds                     |
-|      • Torso / Neck Angle: Hands positioned over posterior cervical spine                        |
-|      • Anchor Proximity: Hand keypoints anchored to sturdy table leg                             |
+|   2. Flocking & Collision Steering (Boids Variant):                                              |
+|      • Separation Forces: Prevents unnatural agent stacking and reproduces crush dynamics       |
+|      • Goal Seeking: Drives velocity along the negative gradient of the BFS field                |
 |                                                                                                  |
-|   3. Instant HUD Feedback:                                                                       |
-|      • [ COMPLIANT ✅ ]  ➔ "Perfect Drop, Cover & Hold! Score: 100/100"                          |
-|      • [ WARNING   ⚠️ ]  ➔ "Alert: Neck uncovered! Protect cervical spine immediately."          |
+|   3. Hazard Response State Machine:                                                              |
+|      • Smoke Inhalation: Movement speed penalized proportionally to ambient smoke density        |
+|      • Thermal Contact: Transitions into casualty state upon prolonged contact with fire cells   |
+|      • Safe Evacuation: Smoothly despawns upon crossing assembly threshold                       |
 |                                                                                                  |
 +--------------------------------------------------------------------------------------------------+
 ```
@@ -221,12 +222,10 @@ To push the state of the art for smart disaster resilience, the following fronti
 ### 6.3 Edge Computer Vision Search & Rescue (YOLOv9-Dense / RT-DETR)
 1. **Thermal Smoke-Penetration Detection:**
    - Deployed on warden thermal imaging cameras or indoor inspection drones.
-   - Detects trapped victims through dense smoke using infrared spectrum bounding boxes and classifies victim mobility posture (`standing`, `crawling`, `prone/unconscious`).
+   - Detects trapped victims through dense smoke using infrared spectrum bounding boxes and classifies victim mobility status (`standing`, `crawling`, `prone/unconscious`).
 2. **Instant Assembly Courtyard Drone Roll-Call:**
    - Drone camera sweeps the outdoor assembly ground post-evacuation.
    - Automatically counts students, cross-references physical headcount with classroom attendance rosters, and isolates the exact names and sections of unaccounted cadets in under 30 seconds.
-3. **Webcam Fire Extinguisher PASS Technique Tracker:**
-   - MediaPipe hand and object tracking validates the correct 4-step fire extinguisher sequence: **P**ull pin, **A**im at base, **S**queeze handle, **S**weep side-to-side.
 
 ### 6.4 Multi-Agent Reinforcement Learning (MARL) for Stampede & Choke-Point Prediction
 - **Algorithm:** Multi-Agent Proximal Policy Optimization (MAPPO) fused with Helbing’s Social Force Model.
