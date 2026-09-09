@@ -105,7 +105,7 @@ CREATE TABLE student_drill_telemetry (
     final_status VARCHAR(50) NOT NULL, -- 'EVACUATED_SAFE', 'TRAPPED_SHELTERED', 'VIRTUAL_CASUALTY'
     evacuation_time_sec NUMERIC(8,2),
     panic_peak_score NUMERIC(5,2),
-    cv_posture_compliance_score NUMERIC(5,2), -- Compliance score metric
+    compliance_score NUMERIC(5,2), -- Compliance score metric
     prohibitions_violated JSONB DEFAULT '[]'::jsonb,
     escape_route_taken JSONB DEFAULT '[]'::jsonb,
     completed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

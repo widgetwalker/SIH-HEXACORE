@@ -11,7 +11,7 @@ Based on the core research document and team composition, this blueprint specifi
 +--------------------------------------------------------------------------------------------------+
 |                                                                                                  |
 |   1. DHEERAJ            ──► AI + Design                                                          |
-|                             • GenAI Scenarios, GNN Pathfinding, CV Model, UI/UX Design System    |
+|                             • GenAI Scenarios, GNN Pathfinding, Crowd Dynamics AI, UI/UX Design System |
 |                                                                                                  |
 |   2. VENKATARAMAN C.V   ──► Backend                                                              |
 |                             • FastAPI Microservices, PostGIS DB, WebSockets, CAP Alert Feed      |

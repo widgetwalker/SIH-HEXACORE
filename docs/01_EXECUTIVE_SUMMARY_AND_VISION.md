@@ -101,7 +101,7 @@ Our platform is engineered in strict compliance with:
 +-----------------------------------------------------------------------------------------+
 |                                  THE WINNING FORMULA                                    |
 +-----------------------------------------------------------------------------------------+
-|  1. Frontier AI/ML: Dynamic Generative Scenarios + GNN Evacuation Routing + Edge CV     |
+|  1. Frontier AI/ML: Dynamic Generative Scenarios + GNN Evacuation Routing + Crowd Dynamics AI |
 |  2. WebGPU/Three.js 3D Physics: Hyper-engaging gamified simulation running in browser    |
 |  3. Real Disaster Readiness: Dual-Mode switch (Simulation Mode vs Real Emergency Mode) |
 |  4. Low-Spec & Offline-First: Runs on low-end school lab computers without install      |
