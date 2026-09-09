@@ -1,11 +1,11 @@
 # 08. Current Implementation Status
 
-> **Last updated:** September 8, 2026 v8 · Branch `main` · **PR #27 Merged; Full platform integrity, live backend sync, and operational tools complete**
+> **Last updated:** September 10, 2026 v9 · Branch `main` · **PR #28 Merged; SACHET CAP poller lifecycle, Pondicherry OSM footprint integration, Frontier AI Suite documentation, and zero-error build/lint hardening complete**
 >
 > This document tracks what is **actually built and working** versus what remains
 > spec-only. It complements docs 01-07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
-> **Sept 8 v8 delta:** Merged PR #27 (`platform-fixes`). Standardized Cadet IDs to RFC 4122 UUIDs with live Postgres sync (`/api/v1/users`); wired live backend leaderboard to `/learn`; operationalized Command Hub evacuation order with Mitra audio/voice alerts; added interactive QR Headcount Scanner HUD (`cmd-scan`); un-orphaned backend NDMA reports API (`/api/v1/reports/ndma`) with printable Form-IV audit generator on `/admin`; and added strict severity filtering to `/api/v1/alerts/live`.
+> **Sept 10 v9 delta:** Merged PR #28 (`feature/final-works`). Ingested configurable `SACHET_FEED_URL` with dynamic setting resolution and auto-creation of cache directories; integrated authentic Pondicherry University OpenStreetMap campus footprints into Command Hub 2D SVG map and 3D MultiFloorVisualizer; resolved landing page video contrast with slate-dark typography and strokes; added ConstellationField particle backgrounds across simulation and command views; fixed single-page certificate print-to-PDF styles; updated Frontier AI/ML documentation with 7 predictive next-horizon models; and eliminated all ESLint errors with full type safety across `LeaderboardUser`.
 
 ---
 
@@ -13,15 +13,15 @@
 
 | Pillar / Module | Status | Notes |
 | :--- | :--- | :--- |
-| Landing & navigation shell | Built | `LandingPage` HazardScrollScene slow 360-degree scroll collapse, ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch, mobile menu full-screen overlay with opaque backdrop and scroll-lock (Task 1.1) |
+| Landing & navigation shell | Built | `LandingPage` HazardScrollScene slow 360-degree scroll collapse, video background with dark slate high-contrast typography, ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch, mobile menu full-screen overlay (Task 1.1) |
 | Pillar I - Pedagogical Engine | Built / Active Issue | `LearnPage` with age-tiered curriculum, interactive sidebar nav, mobile quick bar and slide-over drawer, Settings/Profile/Leaderboard subviews, plus persisted cadet onboarding/edit flow (Task 1.1 / Issue 1.3). In Progress: Verbatim NDMA curriculum ingestion (103 sections across 28 modules), full-page scroll reader replacing modal popups, dynamic progress ring (Issue 2.5). |
 | User Identity & Profile | Built | Multi-user onboarding gate (`OnboardingGate.tsx`), age-to-tier mapping, persistent profile route (`/profile`), account switching, custom avatar selection/upload, and PostgreSQL user sync (`/api/v1/users`). (Issue 2.6) |
-| Pillar II - Simulation Engine | Built | Playable 3D evacuation drills, 4 JSON scenarios, fire/smoke/door/blockages, NPC crowd, synthesized WebAudio, full run telemetry, per-hazard overlays. Dynamic A* rerouting benchmarked at sub-15ms. Mobile touch virtual joystick and buttons implemented. (Tasks 1.2, 5.1) |
+| Pillar II - Simulation Engine | Built | Playable 3D evacuation drills, 4 JSON scenarios, fire/smoke/door/blockages, NPC crowd, synthesized WebAudio, full run telemetry, per-hazard overlays, ambient ConstellationField particle canvas. Dynamic A* rerouting benchmarked at sub-15ms. Mobile touch virtual joystick and buttons implemented. (Tasks 1.2, 5.1) |
 | Pillar II - Admin Analytics | Built | `/admin` dashboard: KPIs from PostgreSQL backend (`/api/v1/telemetry/analytics`) with offline `localStorage` fallback, canvas route & casualty heatmap, drill log table. (Tasks 3.1, 4.2) |
-| Pillar III - Command Hub | Built | `/command` receives live telemetry through WebSocket/local drillEventBus, features 3D FloorStack isometric view, Live Threat Banner connected to `GET /api/v1/alerts/live` (USGS + Open-Meteo), and Incident Injection Deck wired to `/api/v1/incidents/inject`. (Tasks 2.4, 3.3, 4.1) |
-| Global FX Layer | Built | Custom cursor, RippleLink, parallax/tilt/reveal, framer-motion, ScenarioEffects, Geist font |
-| "Mitra" Crisis Companion | Rule-based + GSAP + Voice | Contextual coaching in sim, Gemini fallback, Web Speech API voice alert verbalization for active emergency events. (Issue 4.3) |
-| Backend / persistence | Built | DynamicPathfinder, FastAPI WebSocket hub, PostgreSQL telemetry persistence (`POST /runs`, `GET /analytics`), UserProfile & NDMAReport models, live disaster alerts feed (`GET /alerts/live`), and incident injection webhooks. (Tasks 3.1, 3.3) |
+| Pillar III - Command Hub | Built | `/command` receives live telemetry through WebSocket/local drillEventBus, features 3D FloorStack isometric view with real Pondicherry University OSM campus polygon footprint, Live Threat Banner connected to `GET /api/v1/alerts/live` (USGS + Open-Meteo), and Incident Injection Deck wired to `/api/v1/incidents/inject`. (Tasks 2.4, 3.3, 4.1) |
+| Global FX Layer | Built | Custom cursor, RippleLink, parallax/tilt/reveal, framer-motion, ScenarioEffects, ConstellationField, Geist font |
+| "Mitra" Crisis Companion | Rule-based + GSAP + Voice | Contextual coaching in sim, Gemini 1.5 Flash API with offline rule-based fallback, Web Speech API voice alert verbalization for active emergency events. (Issue 4.3) |
+| Backend / persistence | Built | DynamicPathfinder (<15ms A*), FastAPI WebSocket hub, PostgreSQL telemetry persistence (`POST /runs`, `GET /analytics`), UserProfile & NDMAReport models, live disaster alerts feed (`GET /alerts/live`), incident injection webhooks, and background SACHET CAP feed poller with configurable `SACHET_FEED_URL`. (Tasks 3.1, 3.3, PR #28) |
 | Multiplayer drill battles | Not started | Spec-only (docs 01/02) |
 | Mobile / touch controls | Built | Virtual on-screen joystick (dx/dz) and touch buttons for crouch/box-breathe in `EvacuationGame.tsx`. |
 
@@ -310,6 +310,7 @@ frontend/src/
 4. **[x] Persistent Telemetry Endpoints (Task 3.1):** Built `POST /api/v1/telemetry/runs` and `GET /api/v1/telemetry/analytics` persisting simulation runs to PostgreSQL.
 5. **[x] User Profile & NDMA Report Persistence:** `user_profiles` and `ndma_reports` models, alembic migration, and `/users/profile` upsert API.
 6. **[x] Multi-User WebSocket Load Test (Task 3.2):** Validated 50 and 100 client concurrency tests with zero packet loss.
+7. **[x] Robust SACHET CAP Poller & Config (PR #28):** Configurable `SACHET_FEED_URL`, safe dev/CI bypass, dynamic settings resolution, automatic cache dir creation, and clean poller lifecycle management.
 
 ### Manha AK: AI & 3D Frontend
 1. **[x] Mitra AI Crisis Voice Alert Verbalization (Issue 4.3):** Web Speech API connected to verbalize emergency warning protocols with siren chime during active crisis drills and real hazards.
@@ -317,6 +318,7 @@ frontend/src/
 3. **[x] Global Navbar Alert Indicator:** Connected Navbar across all routes to real-time broadcasts and live feeds; switches dynamically to `🚨 CRITICAL ALERT` with pulsing red dot.
 4. **[x] Interactive 3D Multi-Floor Stack (Task 4.1):** Isometric 3D stacked floor viewer (`FloorStack3D.tsx` / `MultiFloorVisualizer.tsx`) with interactive floor separation and live hazard/student markers.
 5. **[x] Backend Telemetry Dispatch (Task 4.2):** `saveRun()` in `telemetry.ts` and `SimulatePage` dispatches to `POST /api/v1/telemetry/runs` with offline `localStorage` fallback. Admin Dashboard reads real KPIs from `GET /api/v1/telemetry/analytics`.
+6. **[x] Pondicherry Campus Blueprint Ingestion & Visual Polish:** Ingested real OpenStreetMap geo-footprints (`pondi_uni.json`, `campusData.ts`) into 2D/3D visualizers, added `<ConstellationField />` ambient particle canvas, fixed certificate PDF printing, and polished video contrast.
 
 ### Trinayani D & Rahul Nayak: Pitch & Multi-Agency Orchestration
 1. **Live Pitch Multi-Device Script (Task 5.1):** Coordinate 3-device live demonstration (Mobile student `/learn`, Laptop 3D sim `/simulate`, Main Screen Command Hub `/command`).
