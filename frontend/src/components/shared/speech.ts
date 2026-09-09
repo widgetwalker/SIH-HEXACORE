@@ -50,15 +50,18 @@ export function speak(text: string, forceBackend = false) {
       const utter = new SpeechSynthesisUtterance(text);
       activeUtterance = utter;
       utter.lang = "en-IN";
-      utter.rate = 1.02;
-      utter.pitch = 1.05;
+      utter.rate = 1.04;
+      utter.pitch = 1.25; // Crisp elevated pitch eliminates low-frequency raspy robot buzz
       utter.volume = 1.0;
 
       const voices = window.speechSynthesis.getVoices();
+      // Prioritize natural female voices (Google, Natural, Samantha, Zira, Neerja, Victoria, Karen)
       const preferred =
-        voices.find((v) => v.lang === "en-IN" && (v.name.includes("Female") || v.name.includes("Natural") || v.name.includes("Google"))) ||
+        voices.find((v) => /female|zira|samantha|victoria|neerja|karen|serena|ava|jenny|google.*(female|uk|in)/i.test(v.name)) ||
+        voices.find((v) => v.lang === "en-IN" && /female|natural/i.test(v.name)) ||
         voices.find((v) => v.lang === "en-IN") ||
-        voices.find((v) => v.lang.startsWith("en") && (v.name.includes("Natural") || v.name.includes("Google"))) ||
+        voices.find((v) => /natural|google/i.test(v.name) && v.lang.startsWith("en")) ||
+        voices.find((v) => v.lang.startsWith("en") && !/male|david|mark|george|espeak-default/i.test(v.name)) ||
         voices.find((v) => v.lang.startsWith("en"));
       if (preferred) utter.voice = preferred;
 
@@ -100,7 +103,10 @@ export function announceMitraEmergency(headline: string, detail?: string, alertK
   playSirenBeep();
 
   const cleanDetail = detail ? detail.replace(/·/g, ",").trim() : "";
-  const speechText = `Emergency alert! Attention all personnel: ${headline}. ${cleanDetail ? cleanDetail + "." : ""} Initiate campus emergency safety protocols immediately and proceed to safety.`;
+  // If a specific tactical NDMA message is provided, broadcast it directly
+  const speechText = cleanDetail
+    ? `Emergency alert! ${cleanDetail}`
+    : `Emergency alert! Attention all personnel: ${headline}. Initiate campus emergency safety protocols immediately and proceed to safety.`;
 
   speak(speechText);
 }

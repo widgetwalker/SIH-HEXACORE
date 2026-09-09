@@ -233,8 +233,8 @@ async def _generate_tts_wav(text: str, lang: str = "en-in") -> bytes:
 
     if tts_bin:
         try:
-            voice = "en-in" if "in" in lang.lower() else "en"
-            cmd = [tts_bin, "--stdout", "-v", voice, "-s", "150", "-p", "50", safe_text]
+            voice = "en-in+f3" if "in" in lang.lower() else "en+f3"
+            cmd = [tts_bin, "--stdout", "-v", voice, "-s", "155", "-p", "65", safe_text]
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
