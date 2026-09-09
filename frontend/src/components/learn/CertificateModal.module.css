@@ -318,8 +318,12 @@
 
 @media print {
   /* Hide the rest of the app layout entirely */
-  body > * {
-    display: none !important;
+  body * {
+    visibility: hidden;
+  }
+  
+  #printable-certificate, #printable-certificate * {
+    visibility: visible !important;
   }
 
   /* Extract and show only the printable cert by bringing it to body level via portal or fixed positioning */

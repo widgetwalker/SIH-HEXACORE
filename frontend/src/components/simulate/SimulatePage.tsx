@@ -19,6 +19,11 @@ const ScenarioEffects = dynamic(
   { ssr: false }
 );
 
+const ConstellationField = dynamic(
+  () => import("@designcodeio/threeui/components/ConstellationField").then((mod) => mod.ConstellationField),
+  { ssr: false }
+);
+
 import styles from "./SimulatePage.module.css";
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -335,6 +340,10 @@ export default function SimulatePage() {
   return (
     <div className={styles.page}>
       <Navbar mode="simulation" />
+      
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, opacity: 0.3, pointerEvents: "none" }}>
+        <ConstellationField />
+      </div>
 
       <div className={styles.stage}>
         {(phase === "running" || phase === "ended") && (

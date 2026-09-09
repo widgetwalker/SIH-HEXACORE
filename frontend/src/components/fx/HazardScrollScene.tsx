@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+
 
 interface HazardScrollSceneProps {
   accent?: string;
@@ -142,19 +142,22 @@ export default function HazardScrollScene({
     };
   }, [scrollProgress]);
 
+  // ── Preload Animation Frames ──
+  useEffect(() => {
+    for (let i = 1; i <= 50; i++) {
+      const img = new window.Image();
+      img.src = `/assets/scroll-frames/ezgif-frame-${String(i).padStart(3, "0")}.png`;
+    }
+  }, []);
+
   // ── Calculated 3D Transform Values ──
   const translateY = scrollProgress * -80; // Smooth parallax lift
   const scale = 1 + scrollProgress * 0.12; // Gentle zoom on scroll
   const rotateX = mousePos.y * 3.5 + scrollProgress * -4; // Tilt on mouse + scroll
   const rotateY = mousePos.x * 5.0;
 
-  // Filter tinting per hazard act
-  let filterStyle = "brightness(0.92) contrast(1.05)";
-  if (scrollProgress > 0.33 && scrollProgress <= 0.66) {
-    filterStyle = "brightness(0.88) contrast(1.1) hue-rotate(180deg) saturate(1.2)";
-  } else if (scrollProgress > 0.66) {
-    filterStyle = "brightness(0.95) contrast(1.15) sepia(0.4) hue-rotate(-20deg) saturate(1.4)";
-  }
+  // Filter tinting per hazard act (color shifts removed per user request)
+  let filterStyle = "brightness(0.95) contrast(1.05)";
 
   return (
     <div
@@ -195,23 +198,22 @@ export default function HazardScrollScene({
         <div
           style={{
             position: "relative",
-            width: "85vw",
-            maxWidth: "1100px",
-            height: "75vh",
-            maxHeight: "800px",
+            width: "100vw",
+            height: "100vh",
             transform: `translate3d(0, ${translateY}px, 0) scale(${scale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
             transition: "transform 0.12s ease-out",
             filter: filterStyle,
           }}
         >
-          <Image
-            src="/building-scroll.webp"
-            alt="Campus 3D Building Scroll Scene"
-            fill
-            priority
-            unoptimized
+          <img
+            src={`/assets/scroll-frames/ezgif-frame-${String(
+              Math.min(50, Math.max(1, Math.floor(scrollProgress * 49) + 1))
+            ).padStart(3, "0")}.png`}
+            alt="Campus 3D Building Scroll Sequence"
             style={{
-              objectFit: "contain",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
               objectPosition: "center",
               filter: "drop-shadow(0 20px 50px rgba(0, 0, 0, 0.7))",
             }}

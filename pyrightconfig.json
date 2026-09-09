@@ -1,0 +1,7 @@
+{
+  "venvPath": "/home/widget/REQUIREMENTS/sih/SIH-HEXACORE/backend",
+  "venv": "venv",
+  "extraPaths": [
+    "/home/widget/REQUIREMENTS/sih/SIH-HEXACORE/backend"
+  ]
+}

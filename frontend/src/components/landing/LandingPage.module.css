@@ -67,19 +67,20 @@
   gap: 0.05em;
   perspective: 800px;
 }
-.titleSolid { color: var(--text-primary); }
+.titleSolid { 
+  color: #0f172a !important; 
+}
 .titleGhost {
   color: transparent;
-  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.3);
+  -webkit-text-stroke: 3px #0f172a;
 }
 .word {
   display: inline-block;
-  background: linear-gradient(135deg, #d9b47e 0%, #d49a89 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: wordIn 0.65s var(--ease-out-expo) both;
-  filter: drop-shadow(0 0 16px rgba(212, 154, 137, 0.25));
 }
 @keyframes wordIn {
   from { opacity: 0; transform: translateY(40px) rotateX(70deg); }
@@ -89,7 +90,9 @@
   max-width: 640px;
   margin: 32px auto 0;
   font-size: clamp(1rem, 1.6vw, 1.2rem);
-  color: var(--text-secondary);
+  color: #0f172a !important;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(255, 255, 255, 0.8);
 }
 .ctaRow {
   display: flex;

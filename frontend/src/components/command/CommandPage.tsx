@@ -21,6 +21,8 @@ import LiveThreatBanner, { type LiveThreatAlert } from "./LiveThreatBanner";
 
 import { announceMitraEmergency } from "@/components/shared/speech";
 
+import { CAMPUS_SVG_POINTS } from "@/lib/campusData";
+
 const MultiFloorVisualizer = dynamic(
   () => import("./MultiFloorVisualizer"),
   { ssr: false }
@@ -351,8 +353,8 @@ export default function CommandPage() {
       )}
 
       {/* Background */}
-      <div className={styles.bgLayer}>
-        <ConstellationField variant="defense-lines" style={{ width: "100%", height: "100%" }} />
+      <div className={styles.bgLayer} style={{ position: "fixed", inset: 0, zIndex: 0, opacity: 0.4, pointerEvents: "none" }}>
+        <ConstellationField />
       </div>
 
       <div className={styles.dashboard}>
@@ -576,29 +578,25 @@ export default function CommandPage() {
           {/* Center: Campus map placeholder */}
           <div className={`${styles.panel} ${styles.blueprintPanel}`}>
             <div className={styles.panelHeader}>
-              <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
+                <span className="hud-label">CAMPUS BLUEPRINT - LIVE</span>
               <span className="badge badge-red badge-pulse" style={{ fontSize: "0.6rem" }}>LIVE</span>
             </div>
             <div className={styles.mapArea}>
               <div className={styles.mapPlaceholder}>
                 {/* Simplified building outline */}
                 <svg viewBox="0 0 400 300" className={styles.mapSvg}>
-                  <rect x="80" y="40" width="240" height="220" rx="4" fill="none" stroke="var(--border-default)" strokeWidth="1" />
-                  {/* Floors */}
-                  {[0,1,2,3,4,5].map((i) => (
-                    <g key={i} onClick={() => setSelectedFloor(`${5-i}F`)} style={{ cursor: "pointer" }}>
-                      <line x1="80" y1={40 + i * 36.67} x2="320" y2={40 + i * 36.67} stroke="var(--border-subtle)" strokeWidth="0.5" />
-                      <text x="75" y={40 + i * 36.67 + 20} fill={selectedFloor === `${5-i}F` ? "var(--accent-teal)" : "var(--text-faint)"} fontSize="8" fontFamily="var(--font-mono)" textAnchor="end">{5-i}F</text>
-                    </g>
-                  ))}
-                  {/* Fire indicator on 4F */}
-                  <circle cx="200" cy={40 + 36.67 + 18} r="14" fill="rgba(239,68,68,0.15)" stroke="var(--accent-red)" strokeWidth="1">
+                  {/* Real OSM Footprint for Pondicherry University */}
+                  <polygon points={CAMPUS_SVG_POINTS} fill="rgba(0, 212, 170, 0.05)" stroke="var(--border-default)" strokeWidth="1" />
+                  
+                  {/* Fire indicator */}
+                  <circle cx="180" cy="120" r="14" fill="rgba(239,68,68,0.15)" stroke="var(--accent-red)" strokeWidth="1">
                     <animate attributeName="r" values="14;18;14" dur="1.5s" repeatCount="indefinite" />
                     <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
                   </circle>
-                  <text x="200" y={40 + 36.67 + 22} fill="var(--accent-red)" fontSize="10" textAnchor="middle" fontWeight="bold">🔥</text>
+                  <text x="180" y="124" fill="var(--accent-red)" fontSize="10" textAnchor="middle" fontWeight="bold">🔥</text>
+                  
                   {/* Evac route arrow */}
-                  <path d="M200,95 L200,260 L340,260" fill="none" stroke="var(--accent-teal)" strokeWidth="2" strokeDasharray="6 3" opacity="0.7">
+                  <path d="M180,120 L180,260 L340,260" fill="none" stroke="var(--accent-teal)" strokeWidth="2" strokeDasharray="6 3" opacity="0.7">
                     <animate attributeName="stroke-dashoffset" values="0;-18" dur="1s" repeatCount="indefinite" />
                   </path>
                   <text x="345" y="264" fill="var(--accent-teal)" fontSize="8" fontFamily="var(--font-mono)">EXIT →</text>
