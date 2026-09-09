@@ -95,11 +95,23 @@ export function loadCadetProfile(): CadetProfile | null {
   return users.find((u) => u.id === activeId) ?? null;
 }
 
-export async function fetchLeaderboard(): Promise<any[]> {
+export interface LeaderboardUser {
+  id: string;
+  full_name: string;
+  grade?: string | null;
+  school?: string | null;
+  avatar_id?: string | null;
+  avatar_image?: string | null;
+  score_percentage: number;
+  completed_modules: number;
+  total_modules: number;
+}
+
+export async function fetchLeaderboard(): Promise<LeaderboardUser[]> {
   try {
     const res = await fetch(`${BACKEND_URL}/api/v1/users/leaderboard`);
     if (res.ok) {
-      return await res.json();
+      return (await res.json()) as LeaderboardUser[];
     }
   } catch (err) {
     console.error("Failed to fetch leaderboard from backend:", err);

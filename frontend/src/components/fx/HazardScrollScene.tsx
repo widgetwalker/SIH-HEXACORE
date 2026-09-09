@@ -157,7 +157,7 @@ export default function HazardScrollScene({
   const rotateY = mousePos.x * 5.0;
 
   // Filter tinting per hazard act (color shifts removed per user request)
-  let filterStyle = "brightness(0.95) contrast(1.05)";
+  const filterStyle = "brightness(0.95) contrast(1.05)";
 
   return (
     <div

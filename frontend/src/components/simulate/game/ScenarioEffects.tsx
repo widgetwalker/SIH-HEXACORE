@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { motion, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
 import type { GameState } from "./EvacuationGame";
 import type { Scenario } from "./floorplan";

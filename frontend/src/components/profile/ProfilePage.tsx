@@ -107,9 +107,9 @@ export default function ProfilePage() {
           const remoteRows = dbLeaderboard.map((u) => ({
             id: u.id,
             name: u.full_name,
-            avatarId: u.avatar_id,
-            avatarImage: u.avatar_image,
-            score: Math.round(u.score_percentage),
+            avatarId: u.avatar_id ?? undefined,
+            avatarImage: u.avatar_image ?? undefined,
+            score: Math.round(u.score_percentage ?? 0),
             isYou: profile ? u.id === profile.id : false,
           }));
           setLeaderboard(remoteRows.sort((a, b) => b.score - a.score));

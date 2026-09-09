@@ -361,7 +361,7 @@ export default function LearnPage() {
           <section className={styles.quizArenaSection}>
             <h2 className="heading-lg">🎯 Quiz Arena</h2>
             <p style={{ color: "var(--text-faint)", fontSize: "0.9rem", marginTop: "-8px" }}>
-              Test what you've learned — {TIERS.find((t) => t.id === activeTier)?.label ?? "this tier"} · Ages {TIERS.find((t) => t.id === activeTier)?.age ?? ""}
+              Test what you&apos;ve learned — {TIERS.find((t) => t.id === activeTier)?.label ?? "this tier"} · Ages {TIERS.find((t) => t.id === activeTier)?.age ?? ""}
             </p>
             <div className={styles.quizModuleGrid}>
               {(QUIZ_MODULES_BY_TIER[activeTier] ?? []).map((qm) => {

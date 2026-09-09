@@ -43,7 +43,7 @@ export default function CertificateModal({ profile, moduleName, moduleType, onCl
               </div>
             </div>
             
-            <h1 className={styles.title}>Hero's Certificate</h1>
+            <h1 className={styles.title}>Hero&apos;s Certificate</h1>
             <p className={styles.subtitle}>This legendary scroll certifies that</p>
             <h2 className={styles.cadetName}>{profile.name}</h2>
             
