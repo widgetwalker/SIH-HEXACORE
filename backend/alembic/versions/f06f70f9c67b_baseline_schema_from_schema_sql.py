@@ -148,7 +148,7 @@ def upgrade() -> None:
             final_status VARCHAR(50) NOT NULL,
             evacuation_time_sec NUMERIC(8,2),
             panic_peak_score NUMERIC(5,2),
-            cv_posture_compliance_score NUMERIC(5,2),
+            compliance_score NUMERIC(5,2),
             prohibitions_violated JSONB DEFAULT '[]'::jsonb,
             escape_route_taken JSONB DEFAULT '[]'::jsonb,
             completed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

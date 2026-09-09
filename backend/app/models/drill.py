@@ -106,7 +106,7 @@ class StudentDrillTelemetry(Base):
     final_status: Mapped[str] = mapped_column(String(50), nullable=False)
     evacuation_time_sec: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     panic_peak_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
-    cv_posture_compliance_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    compliance_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     prohibitions_violated: Mapped[list] = mapped_column(JSONB, default=list)
     escape_route_taken: Mapped[list] = mapped_column(JSONB, default=list)
     completed_at: Mapped[datetime] = mapped_column(
