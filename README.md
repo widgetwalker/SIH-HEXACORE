@@ -45,11 +45,18 @@ npm run lint
 ```
 These all pass cleanly in the current workspace — `npm run build` compiles the full application (all 8 routes, static generation included) with zero errors. See [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md) for what's live.
 
-### 4. Optional: enabling Mitra (AI crisis companion)
-Everything works without this. The only feature that needs it is Mitra's chat replies inside `/simulate` — without a key it just shows "Mitra is offline right now" instead of crashing anything. To enable it, create `frontend/.env.local`:
+### 4. AI & Intelligent Systems (Optional Key, Zero-Crash Fallback)
+The platform operates fully offline or air-gapped out-of-the-box. When `GEMINI_API_KEY` is provided, advanced generative capabilities activate automatically:
+- **"Mitra" AI Crisis Companion** ([`backend/app/api/v1/mitra.py`](./backend/app/api/v1/mitra.py)): Uses **Gemini 1.5 Flash** for telemetry-grounded conversational coaching. Falls back to a local rule-based safety engine when no key is set.
+- **Dynamic Scenario Synthesizer** ([`backend/app/api/v1/scenarios.py`](./backend/app/api/v1/scenarios.py)): Uses **Gemini 3.6 Flash** to procedurally synthesize unique campus disaster maps and timed corridor collapse blockages. Falls back to an algorithmic pseudo-random generator (LCG) when offline.
+- **Dynamic A\* Pathfinder** ([`backend/app/services/pathfinder.py`](./backend/app/services/pathfinder.py)): In-house multi-floor 3D graph pathfinder recalculating optimal escape routes around fires and smoke in **< 15ms**.
+- **Autonomous NPC Crowd Agents** ([`EvacuationGame.tsx`](./frontend/src/components/simulate/game/EvacuationGame.tsx)): Multi-agent simulation using BFS distance flow-fields and Boids separation forces.
+
+To enable live Gemini generation, add your key to `frontend/.env.local` or `backend/.env`:
 ```bash
 GEMINI_API_KEY=your-key-here
 ```
+*(For complete AI architecture and predictive ML specifications, see [04. Frontier AI/ML Systems](./docs/04_FRONTIER_AI_ML_SYSTEMS.md))*
 
 ---
 

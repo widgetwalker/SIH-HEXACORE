@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { FloorTelemetry } from "./telemetry";
 import styles from "./CommandPage.module.css";
+import { CAMPUS_3D_POINTS } from "@/lib/campusData";
 
 interface Props {
   floors: FloorTelemetry[];
@@ -13,8 +14,19 @@ interface Props {
 }
 
 const FLOOR_HEIGHT = 1.55;
-const FLOOR_WIDTH = 5.2;
-const FLOOR_DEPTH = 3.6;
+
+// Construct the ThreeJS Shape from the footprint points
+const campusShape = new THREE.Shape();
+CAMPUS_3D_POINTS.forEach((pt, i) => {
+  if (i === 0) campusShape.moveTo(pt[0], pt[1]);
+  else campusShape.lineTo(pt[0], pt[1]);
+});
+
+const extrudeSettings = { depth: 0.16, bevelEnabled: false };
+const floorGeometry = new THREE.ExtrudeGeometry(campusShape, extrudeSettings);
+// ExtrudeGeometry extrudes along Z. Rotate to lay it flat on the XZ plane.
+floorGeometry.rotateX(Math.PI / 2);
+floorGeometry.translate(0, 0.08, 0); // Center the height
 
 function floorColor(status: FloorTelemetry["status"]): number {
   if (status === "danger") return 0xef4444;
@@ -79,7 +91,7 @@ export default function MultiFloorVisualizer({ floors, selectedFloor, onSelectFl
       group.userData.floorId = floor.id;
 
       const slab = new THREE.Mesh(
-        new THREE.BoxGeometry(FLOOR_WIDTH, 0.16, FLOOR_DEPTH),
+        floorGeometry,
         new THREE.MeshStandardMaterial({ color: 0x142238, metalness: 0.35, roughness: 0.7 })
       );
       slab.userData.floorId = floor.id;
@@ -87,17 +99,17 @@ export default function MultiFloorVisualizer({ floors, selectedFloor, onSelectFl
       interactiveMeshes.push(slab);
 
       const edge = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(FLOOR_WIDTH, 0.65, FLOOR_DEPTH)),
+        new THREE.EdgesGeometry(floorGeometry),
         new THREE.LineBasicMaterial({ color: floorColor(floor.status), transparent: true, opacity: 0.72 })
       );
-      edge.position.y = 0.38;
+      edge.position.y = 0; // Geometry is already translated
       group.add(edge);
 
       const statusLight = new THREE.Mesh(
         new THREE.SphereGeometry(0.17, 12, 12),
         new THREE.MeshBasicMaterial({ color: floorColor(floor.status) })
       );
-      statusLight.position.set(-2.45, 0.45, 1.72);
+      statusLight.position.set(-2.0, 0.45, 4.0); // Placed at one of the outer corners
       group.add(statusLight);
 
       if (floor.status === "danger" || floor.status === "warning") {
@@ -105,14 +117,14 @@ export default function MultiFloorVisualizer({ floors, selectedFloor, onSelectFl
           new THREE.SphereGeometry(0.26, 16, 16),
           new THREE.MeshBasicMaterial({ color: floorColor(floor.status), transparent: true, opacity: 0.9 })
         );
-        hazard.position.set(0.65, 0.7, 0.1);
+        hazard.position.set(2.0, 0.7, -1.5); // Place somewhere inside the footprint
         group.add(hazard);
         hazardMarkers.push(hazard);
       }
 
       floorGroups.set(floor.id, group);
       building.add(group);
-      routePoints.unshift(new THREE.Vector3(2.25, y + 0.22, 1.5));
+      routePoints.unshift(new THREE.Vector3(2.0, y + 0.22, -1.5));
     });
 
     const route = new THREE.Line(

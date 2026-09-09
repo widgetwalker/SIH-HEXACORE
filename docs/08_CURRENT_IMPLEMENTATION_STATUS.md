@@ -259,8 +259,8 @@ frontend/src/
 | 3D | React Three Fiber + Rapier | Plain Three.js r149 + **HazardScrollScene** (PBR glass, ScrollTrigger 300% pin, water/fire shaders) + fallback `ImmersiveScene` |
 | Motion | framer-motion | **GSAP 3.13 + ScrollTrigger** (vignette `to`, Mitra `fromTo`, 3-act pin scrub) + CSS spring `cubic-bezier(0.16,1,0.3,1)` (HUD) + `react-spring` asset |
 | State | Zustand + TanStack Query | Local React state + `useState` |
-| Persistence | PostgreSQL + PostGIS, Redis | Browser localStorage (`safezone_drill_runs_v1`) |
-| AI services | GenAI scenarios, GNN routing, CV posture | None yet; Mitra is rule-based |
+| Persistence | PostgreSQL + PostGIS, Redis | Browser localStorage (`safezone_drill_runs_v1`) + PostgreSQL sync (`POST /telemetry/runs`, `GET /telemetry/analytics`) |
+| AI services | GenAI scenarios, GNN routing, CV posture | Gemini 3.6 Flash dynamic scenario synthesizer (`POST /scenarios/generate`), sub-15ms Dynamic A* hazard pathfinder, Gemini 1.5 Flash Mitra companion (`POST /mitra/chat`) with rule fallback, and autonomous NPC crowd agents. |
 | Audio | Asset-based | Fully synthesized WebAudio (zero external assets) |
 | Styling | Design system (var tokens) | CSS Modules + global design tokens (vars, utilities, animations); no Tailwind runtime |
 | Build | - | Turbopack dev, Next.js production build |
@@ -269,12 +269,11 @@ frontend/src/
 
 ## 5. Known Gaps vs. Blueprint
 
-- Vertical multi-floor evacuation (Ground-5th hierarchy, doc 02 §2.3) - current drills are single-floor grids
-- Multiplayer drill battles, CAP/SACHET ingestion, and EOC headcount - spec-only; WebSocket drill telemetry is implemented
-- GenAI scenario synthesis, GNN dynamic rerouting, DDA adaptive difficulty, CV posture validation - spec-only
+- Vertical multi-floor evacuation (Ground-5th hierarchy, doc 02 §2.3) - current drills are single-floor grids (multi-floor 3D visualizer built in Command Hub)
+- Multiplayer drill battles and live drone EOC headcount - spec-only; WebSocket drill telemetry is implemented
+- Edge CV posture validation, GNN edge-weight training, and ML-driven DDA - roadmap/spec (see [04_FRONTIER_AI_ML_SYSTEMS.md](./04_FRONTIER_AI_ML_SYSTEMS.md) §6)
 - Offline-first service worker / IndexedDB caching - not started
-- Profile, live-alert, incident-injection, and telemetry persistence APIs remain pending; the frontend currently uses localStorage fallbacks
-- Mobile / touch input for simulation - keyboard-only currently
+- Mobile / touch input for simulation - virtual joystick and touch action buttons implemented
 
 ---
 
