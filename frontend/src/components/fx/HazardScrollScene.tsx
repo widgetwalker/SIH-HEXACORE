@@ -213,7 +213,7 @@ export default function HazardScrollScene({
             style={{
               objectFit: "contain",
               objectPosition: "center",
-              dropShadow: "0 20px 50px rgba(0, 0, 0, 0.7)",
+              filter: "drop-shadow(0 20px 50px rgba(0, 0, 0, 0.7))",
             }}
           />
         </div>
