@@ -35,11 +35,40 @@ export const PROFILE_AVATARS: ProfileAvatarDefinition[] = [
   { id: "orbit", label: "Orbit", accent: "#A78BFA", secondary: "#00D4AA" },
 ];
 
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
 /**
- * Load cadet profile from localStorage.
+ * Load cadet profile from the backend API.
+ * Falls back to localStorage when the backend is unreachable.
  * Returns null if no profile exists or data is corrupted.
  */
-export function loadCadetProfile(): CadetProfile | null {
+export async function loadCadetProfile(): Promise<CadetProfile | null> {
+  // First try the backend API
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
+      credentials: "include",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const profile: CadetProfile = {
+        name: data.full_name ?? data.name ?? "",
+        age: data.age ?? 0,
+        grade: data.grade ?? "",
+        school: data.school ?? "",
+        tierId: data.tierId ?? data.tier_id ?? 1,
+        tierName: data.tierName ?? data.tier_name ?? "Explorers",
+        avatarId: data.avatarId ?? data.avatar_id ?? data.avatar_seed ?? DEFAULT_AVATAR_ID,
+        avatarImage: data.avatarImage ?? data.avatar_image ?? data.avatar_image_url,
+      };
+      if (profile.name && profile.age && profile.grade && profile.school && profile.tierId && profile.tierName) {
+        return profile;
+      }
+    }
+  } catch {
+    // Backend unreachable — fall through to localStorage fallback
+  }
+
+  // Fallback: localStorage
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(CADET_PROFILE_KEY);
@@ -63,15 +92,36 @@ export function loadCadetProfile(): CadetProfile | null {
 }
 
 /**
- * Save cadet profile to localStorage.
+ * Save cadet profile to the backend API.
+ * Falls back to localStorage when the backend is unreachable.
  */
-export function saveCadetProfile(profile: CadetProfile): void {
-  if (typeof window === "undefined") return;
+export async function saveCadetProfile(profile: CadetProfile): Promise<void> {
   try {
-    window.localStorage.setItem(CADET_PROFILE_KEY, JSON.stringify(profile));
-    window.dispatchEvent(new CustomEvent<CadetProfile>(CADET_PROFILE_UPDATED_EVENT, { detail: profile }));
+    await fetch(`${BACKEND_URL}/api/v1/users/profile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        full_name: profile.name,
+        age: profile.age,
+        grade: profile.grade,
+        school: profile.school,
+        avatar_id: profile.avatarId,
+        avatar_image_url: profile.avatarImage,
+        tier_id: profile.tierId,
+        tier_name: profile.tierName,
+      }),
+      credentials: "include",
+    });
   } catch {
-    // Storage full or unavailable - non-fatal
-    console.warn("Failed to save cadet profile to localStorage");
+    // Backend unreachable — fall through to localStorage fallback
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(CADET_PROFILE_KEY, JSON.stringify(profile));
+      window.dispatchEvent(new CustomEvent<CadetProfile>(CADET_PROFILE_UPDATED_EVENT, { detail: profile }));
+    } catch {
+      console.warn("Failed to save cadet profile to localStorage");
+    }
   }
 }
