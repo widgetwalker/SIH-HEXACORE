@@ -163,6 +163,7 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
         persist: true,
       }),
     });
+
     if (res.ok) {
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -179,6 +180,7 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
       return true;
     }
     return false;
+
   } catch {
     return false;
   }
