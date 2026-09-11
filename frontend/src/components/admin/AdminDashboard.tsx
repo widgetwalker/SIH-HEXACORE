@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { loadRuns, loadRunsFromAPI, loadAnalyticsFromAPI, fmtTime, topViolation, VIOLATION_LABELS, type RunTelemetry } from "@/lib/telemetry";
+import { loadRuns, loadRunsFromAPI, fmtTime, topViolation, VIOLATION_LABELS, type RunTelemetry } from "@/components/simulate/game/telemetry";
 import { parseFloorplan, SCENARIOS } from "@/components/simulate/game/floorplan";
 import styles from "./AdminDashboard.module.css";
 
@@ -62,13 +62,17 @@ export default function AdminDashboard() {
     });
 
     // Fetch aggregated analytics from the backend
-    loadAnalyticsFromAPI().then((analytics) => {
-      if (analytics) {
-        setBackendKpis(analytics.kpis);
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/analytics`);
+        if (!res.ok) return;
+        const data = (await res.json()) as BackendAnalyticsResponse;
+        setBackendKpis(data.kpis);
+      } catch {
+        /* backend unavailable - fall back to localStorage only */
       }
-    }).catch(() => {
-      /* backend unavailable - fall back to localStorage only */
-    });
+    };
+    fetchAnalytics();
   }, []);
 
   const scenarioRuns = useMemo(
