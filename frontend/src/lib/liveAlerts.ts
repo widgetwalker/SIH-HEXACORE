@@ -135,7 +135,10 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
     const res = await fetch(`${BACKEND_URL}/api/v1/webhooks/inject-incident`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ incident_type: incidentType }),
+      body: JSON.stringify({
+        incident_type: incidentType,
+        campus_id: process.env.NEXT_PUBLIC_CAMPUS_ID ?? "CAMPUS-01",
+      }),
     });
     if (res.ok) {
       if (typeof window !== "undefined") {
@@ -158,5 +161,4 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
     return false;
   }
 }
-
 

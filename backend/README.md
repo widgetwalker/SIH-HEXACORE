@@ -15,9 +15,9 @@ Visit http://localhost:8000/api/v1/health — you should see `{"status": "ok"}`.
 
 ## Current API scope
 
-The current backend workstream has health, building, scenario, and WebSocket
-drill-telemetry support. Profile persistence, live Open-Meteo/USGS alert
-ingestion, incident injection, and telemetry analytics are still pending.
+The current backend workstream has health, building, scenario, authenticated
+WebSocket drill-telemetry, live alert ingestion, and incident injection
+support. Telemetry analytics remain pending.
 
 The frontend is already prepared for those handoffs. See
 `../frontend/INTEGRATION_GUIDE.md` for request/response shapes and the
