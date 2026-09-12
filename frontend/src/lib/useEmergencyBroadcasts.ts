@@ -16,16 +16,21 @@ export interface EmergencyBroadcast {
  * and /simulate (so Mitra can verbalize the warning). Connection failures
  * degrade silently: `connected` just stays false, no user-visible error.
  */
-export function useEmergencyBroadcasts(campusId = "CAMPUS-01") {
+export function useEmergencyBroadcasts(
+  campusId = process.env.NEXT_PUBLIC_CAMPUS_ID ?? "CAMPUS-01",
+) {
   const [broadcasts, setBroadcasts] = useState<EmergencyBroadcast[]>([]);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     let socket: WebSocket;
+    const token = process.env.NEXT_PUBLIC_WS_TOKEN;
+    if (!token || typeof window === "undefined" || !window.WebSocket) return;
+
     try {
       const wsUrl = `${BACKEND_URL.replace(/^http/, "ws")}/api/v1/ws`;
-      socket = new WebSocket(wsUrl);
+      socket = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
     } catch {
       return;
     }
@@ -33,7 +38,7 @@ export function useEmergencyBroadcasts(campusId = "CAMPUS-01") {
 
     socket.onopen = () => {
       setConnected(true);
-      socket.send(JSON.stringify({ type: "JOIN_CAMPUS", campus_id: campusId, role: "OBSERVER" }));
+      socket.send(JSON.stringify({ type: "JOIN_CAMPUS", campus_id: campusId }));
     };
     socket.onclose = () => setConnected(false);
     socket.onerror = () => setConnected(false);

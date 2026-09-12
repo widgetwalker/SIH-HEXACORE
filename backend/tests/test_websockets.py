@@ -202,16 +202,21 @@ class TestIntegration:
             ws.send_json({"type": "JOIN_CAMPUS", "campus_id": "T-01"})
 
     def test_telemetry_persists(self, client):
-        token = make_token(str(uuid4()))
+        sender_token = make_token(str(uuid4()))
+        receiver_token = make_token(str(uuid4()))
         session_id = str(uuid4())
-        with client.websocket_connect(f"/api/v1/ws?token={token}") as ws:
-            ws.send_json({"type": "JOIN_CAMPUS", "campus_id": "T-02"})
-            ws.send_json({
-                "type": "DRILL_TELEMETRY",
-                "drill_session_id": session_id,
-                "floor": 1,
-                "cell": [2, 2],
-                "status": "EVACUATING",
-            })
-            # consume the echo
-            ws.receive_text()
+        with client.websocket_connect(f"/api/v1/ws?token={sender_token}") as sender:
+            with client.websocket_connect(f"/api/v1/ws?token={receiver_token}") as receiver:
+                sender.send_json({"type": "JOIN_CAMPUS", "campus_id": "T-02"})
+                receiver.send_json({"type": "JOIN_CAMPUS", "campus_id": "T-02"})
+                sender.send_json({
+                    "type": "DRILL_TELEMETRY",
+                    "drill_session_id": session_id,
+                    "floor": 1,
+                    "cell": [2, 2],
+                    "status": "EVACUATING",
+                })
+                message = receiver.receive_json()
+                assert message["type"] == "DRILL_TELEMETRY"
+                assert message["floor"] == 1
+                assert message["status"] == "EVACUATING"

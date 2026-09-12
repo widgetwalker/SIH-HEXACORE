@@ -131,9 +131,9 @@ Suggested event payload:
 }
 ```
 
-The connection should be owned by `CommandPage` or a dedicated hook and
-closed on unmount. Keep the present `LiveThreatAlert` type as the boundary for
-the UI.
+The connection is owned by `useEmergencyBroadcasts`, uses
+`NEXT_PUBLIC_WS_TOKEN`, joins `NEXT_PUBLIC_CAMPUS_ID`, and closes on unmount.
+Keep the present `LiveThreatAlert` type as the boundary for the UI.
 
 ## Verification checklist
 
@@ -143,5 +143,8 @@ the UI.
 - Click the Navbar profile icon and confirm `/profile` opens with Dashboard, Certificates, Settings, and Leaderboard tabs.
 - In Profile → Settings, choose each vector avatar and upload a small image; confirm the Navbar and Learn sidebar update immediately.
 - Open `/command`, acknowledge the seeded alert, and trigger the protocol action.
-- Select an incident and floor, inject it, and confirm the banner changes after the simulated response.
+- Set `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_WS_TOKEN`, and
+  `NEXT_PUBLIC_CAMPUS_ID`, open `/command` and `/simulate` in separate devices
+  or tabs, then inject an incident and confirm the other connected client
+  receives the `EMERGENCY_BROADCAST` over the WebSocket.
 - Check the onboarding/drawer at 320–375px widths with a virtual keyboard open.

@@ -21,7 +21,6 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.core.database import AsyncSessionLocal
 from app.schemas.websocket import DrillTelemetryMessage, JoinCampusMessage
 from app.services.websocket_manager import ws_manager
 
@@ -82,9 +81,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 elif msg_type == "DRILL_TELEMETRY":
                     # Same — Pydantic validation up front.
                     DrillTelemetryMessage(**message)
-                    await ws_manager.handle_telemetry(
-                        websocket, message, AsyncSessionLocal
-                    )
+                    await ws_manager.handle_telemetry(websocket, message)
                 else:
                     logger.warning("Unknown WebSocket message type: %s", msg_type)
                     await _send_error(websocket, f"Unknown message type: {msg_type}")

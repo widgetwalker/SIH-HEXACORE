@@ -151,22 +151,36 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
     const preset = INCIDENT_PRESETS.find((p) => p.type === incidentType);
     if (!preset) return false;
 
-    const campusId = process.env.NEXT_PUBLIC_CAMPUS_ID ?? "campus-123";
-    const backendType = BACKEND_INCIDENT_TYPE[incidentType];
+    const campusId = process.env.NEXT_PUBLIC_CAMPUS_ID ?? "CAMPUS-01";
 
-    const res = await fetch(`${BACKEND_URL}/api/v1/incidents/inject`, {
+    // Primary: Webhook endpoint for campus-scoped drill broadcast (verified in PR #31)
+    let res = await fetch(`${BACKEND_URL}/api/v1/webhooks/inject-incident`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        incident_type: backendType,
-        title: preset.label,
-        detail: preset.location,
-        severity: "CRITICAL",
-        floor: null,
+        incident_type: incidentType,
         campus_id: campusId,
-        persist: true,
       }),
     });
+
+    // Fallback: Incident Deck API with persistence if webhook is unavailable
+    if (!res.ok) {
+      const backendType = BACKEND_INCIDENT_TYPE[incidentType] ?? "custom";
+      res = await fetch(`${BACKEND_URL}/api/v1/incidents/inject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          incident_type: backendType,
+          title: preset.label,
+          detail: preset.location,
+          severity: "CRITICAL",
+          floor: null,
+          campus_id: campusId,
+          persist: true,
+        }),
+      });
+    }
+
     if (res.ok) {
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -183,10 +197,8 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
       return true;
     }
     return false;
-
   } catch {
     return false;
   }
 }
-
 

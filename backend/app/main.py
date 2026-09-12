@@ -31,7 +31,6 @@ from app.api.v1 import (
     users,
     webhooks,
     websockets,
-    ws,
 )
 from app.services.cap_ingestion import cancel_cap_poller, start_cap_poller
 from app.services.pathfinder_bridge import pathfinder_bridge  # noqa: F401
@@ -46,6 +45,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
+    allow_origin_regex=r"https?://(10\.76\.108\.155|192\.168\.\d+\.\d+)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "Authorization", "Cookie"],
@@ -88,4 +88,3 @@ app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
 app.include_router(pathfinder.router, prefix="/api/v1", tags=["pathfinder"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(websockets.router, prefix="/api/v1", tags=["websockets"])
-app.include_router(ws.router, prefix="/api/v1", tags=["websocket"])

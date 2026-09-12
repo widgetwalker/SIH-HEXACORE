@@ -23,9 +23,12 @@ import json
 import logging
 from typing import Any
 
+import jwt
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 
+from app.core.config import settings
+from app.models.user import UserRole
 from app.schemas.websocket import JoinCampusMessage, DrillTelemetryMessage
 
 logger = logging.getLogger(__name__)
@@ -48,8 +51,45 @@ class WebSocketManager:
 
     # ── connection lifecycle ────────────────────────────────────────────────
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket) -> bool:
+        """Authenticate and accept a WebSocket connection."""
+        token = websocket.query_params.get("token")
+        if not token:
+            await websocket.close(code=1008)
+            return False
+
+        try:
+            claims = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+                issuer=settings.JWT_ISSUER,
+                audience=settings.JWT_AUDIENCE,
+                options={
+                    "require": ["exp", "sub"],
+                    "verify_iss": settings.JWT_ISSUER is not None,
+                    "verify_aud": settings.JWT_AUDIENCE is not None,
+                },
+            )
+            user_id = str(claims["sub"])
+            from uuid import UUID
+
+            UUID(user_id)
+        except (jwt.PyJWTError, ValueError, TypeError, KeyError):
+            await websocket.close(code=1008)
+            return False
+
+        websocket.scope.setdefault("state", {})["user_id"] = user_id
+        websocket.scope["state"]["role"] = self._validate_role(claims.get("role"))
         await websocket.accept()
+        return True
+
+    @staticmethod
+    def _validate_role(role: Any) -> str:
+        try:
+            return UserRole(role).value
+        except (ValueError, TypeError):
+            return UserRole.STUDENT.value
 
     async def join_campus(self, websocket: WebSocket, payload: dict[str, Any]) -> None:
         """
@@ -59,8 +99,9 @@ class WebSocketManager:
         msg = JoinCampusMessage(**payload)
         async with self._lock:
             room = self._rooms.setdefault(msg.campus_id, set())
-            room.add((websocket, payload.get("user_id", "anonymous"), msg.role))
-        logger.info("WebSocket joined campus=%s role=%s", msg.campus_id, msg.role)
+            state = websocket.scope.get("state", {})
+            room.add((websocket, state.get("user_id", "anonymous"), state.get("role", "STUDENT")))
+        logger.info("WebSocket joined campus=%s", msg.campus_id)
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove the socket from whatever room it was in."""
@@ -95,9 +136,14 @@ class WebSocketManager:
             # was set when the socket joined via JOIN_CAMPUS. Look the
             # socket up across all rooms to find which one it's in.
             target_room: set | None = None
+            sender_user_id = "anonymous"
             for room in self._rooms.values():
-                if any(ws is websocket for ws, _, _ in room):
-                    target_room = room
+                for ws, user_id, _ in room:
+                    if ws is websocket:
+                        target_room = room
+                        sender_user_id = user_id
+                        break
+                if target_room is not None:
                     break
 
         if target_room is None:
@@ -111,7 +157,7 @@ class WebSocketManager:
 
         broadcast = {
             "type": "DRILL_TELEMETRY",
-            "user_id": msg.user_id,
+            "user_id": sender_user_id,
             "floor": msg.floor,
             "cell": msg.cell,
             "status": msg.status,
