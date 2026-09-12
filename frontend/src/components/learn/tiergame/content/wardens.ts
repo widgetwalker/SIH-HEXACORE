@@ -17,7 +17,7 @@ export const WARDENS_MODULE_1: TierModuleContent = {
       title: "Your Own Safety Comes First, Still",
       estMinutes: 2,
       body: [
-        "Even as a warden, Drop-Cover-Hold applies to you before anything else. You can't lead an evacuation if you're injured in the first ten seconds. Model the behavior — don't try to organize others while shaking is still happening.",
+        "Even as a warden, Drop-Cover-Hold applies to you before anything else. You can't lead an evacuation if you're injured in the first ten seconds. Model the behavior—don't try to organize others while shaking is still happening.",
       ],
     },
     {
@@ -26,7 +26,7 @@ export const WARDENS_MODULE_1: TierModuleContent = {
       title: "Post-Shaking Assessment",
       estMinutes: 3,
       body: [
-        "Once shaking stops, your job shifts to rapid triage: check for injuries near you, scan for obvious structural damage (cracks, leaning fixtures, debris), and decide whether your floor's evacuation routes are usable — all within roughly the first minute.",
+        "Once shaking stops, your job shifts to rapid triage: check for injuries near you, scan for obvious structural damage (cracks, leaning fixtures, debris), and decide whether your floor's evacuation routes are usable—all within roughly the first minute.",
       ],
     },
     {
@@ -47,12 +47,12 @@ export const WARDENS_MODULE_1: TierModuleContent = {
       checkpoint: {
         scenario: "You're the floor warden. Shaking has stopped. One staircase shows cracking near the base; people are already starting to head toward it out of habit.",
         correct: {
-          label: "Physically position yourself at that stairwell entrance and redirect people to the alternate route immediately — don't wait for someone to get hurt to prove the point.",
+          label: "Physically position yourself at that stairwell entrance and redirect people to the alternate route immediately—don't wait for someone to get hurt to prove the point.",
           explanation: "Habit-driven movement toward a known-damaged route needs an active physical intervention, not a verbal warning shouted from a distance.",
         },
         wrong: {
           label: "Assume people will notice the crack themselves and self-correct.",
-          explanation: "People moving out of habit under stress often don't register hazards they're not actively looking for — assuming self-correction risks an injury you could have prevented.",
+          explanation: "People moving out of habit under stress often don't register hazards they're not actively looking for—assuming self-correction risks an injury you could have prevented.",
           hazardIcon: "🧱",
         },
       },
@@ -74,7 +74,7 @@ export const WARDENS_MODULE_2: TierModuleContent = {
       title: "Fire Classification Still Matters at This Level",
       estMinutes: 2,
       body: [
-        "As a warden, you may be the one deciding whether a fire is small enough to address with a trained extinguisher response or whether it's an evacuate-now situation. Electrical and oil fires must never get water. If there's any doubt about the source or your ability to control it safely, the call is always evacuate and let responders handle it — not attempt heroics.",
+        "As a warden, you may be the one deciding whether a fire is small enough to address with a trained extinguisher response or whether it's an evacuate-now situation. Electrical and oil fires must never get water. If there's any doubt about the source or your ability to control it safely, the call is always evacuate and let responders handle it—not attempt heroics.",
       ],
     },
     {
@@ -83,7 +83,7 @@ export const WARDENS_MODULE_2: TierModuleContent = {
       title: "Sequencing a Building-Level Evacuation",
       estMinutes: 3,
       body: [
-        "Not everyone leaves at once in an ideal evacuation — but you're not always working with ideal conditions. Prioritize routes by hazard proximity: people on the fire floor and the floor above move first, others follow in order. Keep the flow moving; a warden's job includes preventing bottlenecks, not just pointing at exits.",
+        "Not everyone leaves at once in an ideal evacuation—but you're not always working with ideal conditions. Prioritize routes by hazard proximity: people on the fire floor and the floor above move first, others follow in order. Keep the flow moving; a warden's job includes preventing bottlenecks, not just pointing at exits.",
       ],
     },
     {
@@ -92,7 +92,7 @@ export const WARDENS_MODULE_2: TierModuleContent = {
       title: "When a Staircase Fails Mid-Evacuation",
       estMinutes: 3,
       body: [
-        "If you learn a staircase you've already sent people toward has become unsafe (smoke reported, structural failure), you need a way to redirect people already in motion — verbally, by relay through other wardens, or by physically blocking the entrance to that route. Waiting for people to reach the blocked point themselves costs time you don't have.",
+        "If you learn a staircase you've already sent people toward has become unsafe (smoke reported, structural failure), you need a way to redirect people already in motion—verbally, by relay through other wardens, or by physically blocking the entrance to that route. Waiting for people to reach the blocked point themselves costs time you don't have.",
       ],
     },
     {
@@ -114,7 +114,7 @@ export const WARDENS_MODULE_2: TierModuleContent = {
         scenario: "You're coordinating an evacuation. A radio report says the staircase you already sent 15 people toward now has smoke coming up from below.",
         correct: {
           label: "Immediately relay a redirect (in person, by another warden, or by phone/radio) to that group, and personally verify the alternate route is clear before more people are sent.",
-          explanation: "People already in motion toward a now-unsafe route need an active redirect - and verifying the alternate yourself prevents sending them into a second problem.",
+          explanation: "People already in motion toward a now-unsafe route need an active redirect—and verifying the alternate yourself prevents sending them into a second problem.",
         },
         wrong: {
           label: "Assume the group will notice the smoke themselves and figure out an alternate on their own.",
@@ -148,7 +148,7 @@ export const WARDENS_MODULE_3: TierModuleContent = {
       title: "Reading Real-Time Hazard Signals",
       estMinutes: 3,
       body: [
-        "The same signals apply as for other tiers (smoke, fire, standing water, structural damage, stalled crowds) — but your added responsibility is communicating these signals outward: to other wardens, to responders, and to the people you're directing.",
+        "The same signals apply as for other tiers (smoke, fire, standing water, structural damage, stalled crowds)—but your added responsibility is communicating these signals outward: to other wardens, to responders, and to the people you're directing.",
       ],
     },
     {
@@ -157,7 +157,7 @@ export const WARDENS_MODULE_3: TierModuleContent = {
       title: "Accountability at the Assembly Point",
       estMinutes: 2,
       body: [
-        "Evacuation isn't complete when people are outside — it's complete when everyone is accounted for. Wardens should have a way to check who made it out (headcount, roll call, or check-in system) and immediately flag anyone missing to responders rather than waiting.",
+        "Evacuation isn't complete when people are outside—it's complete when everyone is accounted for. Wardens should have a way to check who made it out (headcount, roll call, or check-in system) and immediately flag anyone missing to responders rather than waiting.",
       ],
     },
     {
@@ -169,7 +169,7 @@ export const WARDENS_MODULE_3: TierModuleContent = {
       checkpoint: {
         scenario: "Your floor has evacuated. At the assembly point, your headcount is short by two people.",
         correct: {
-          label: "Immediately report the missing individuals and last-known location to emergency responders — do not re-enter the building yourself to search.",
+          label: "Immediately report the missing individuals and last-known location to emergency responders—do not re-enter the building yourself to search.",
           explanation: "Responders are equipped and trained for search under active hazard conditions; a warden re-entering adds a second person at risk instead of resolving the first.",
         },
         wrong: {
@@ -226,7 +226,7 @@ export const WARDENS_MODULE_4: TierModuleContent = {
       checkpoint: {
         scenario: "A chemical spill has occurred and one person has visible skin contact but is refusing to go to the eyewash station because \"it's probably fine.\"",
         correct: {
-          label: "Insist calmly, escort them to the station per protocol, and call for medical responders regardless of their protest — exposure risk isn't something to leave to guesswork.",
+          label: "Insist calmly, escort them to the station per protocol, and call for medical responders regardless of their protest—exposure risk isn't something to leave to guesswork.",
           explanation: "Chemical exposure symptoms can be delayed or invisible at first, so \"it's probably fine\" from the exposed person isn't a reliable safety signal.",
         },
         wrong: {
@@ -252,7 +252,7 @@ export const WARDENS_MODULE_5: TierModuleContent = {
       title: "Deciding to Shelter vs. Relocate",
       estMinutes: 3,
       body: [
-        "As a warden, you may need to decide whether your group stays in place (interior room, away from windows) or moves to a higher floor because of flood risk — often based on incomplete information. Default to the safer, more conservative option when uncertain, and update the decision as official information arrives.",
+        "As a warden, you may need to decide whether your group stays in place (interior room, away from windows) or moves to a higher floor because of flood risk—often based on incomplete information. Default to the safer, more conservative option when uncertain, and update the decision as official information arrives.",
       ],
     },
     {
@@ -270,7 +270,7 @@ export const WARDENS_MODULE_5: TierModuleContent = {
       title: "Electrical and Water Hazard Judgment",
       estMinutes: 2,
       body: [
-        "Never let anyone approach an electrical panel or outlet that floodwater has reached or may reach — this is a firm rule, not a judgment call to relax under pressure. Isolate the area and wait for trained personnel.",
+        "Never let anyone approach an electrical panel or outlet that floodwater has reached or may reach—this is a firm rule, not a judgment call to relax under pressure. Isolate the area and wait for trained personnel.",
       ],
     },
     {
@@ -283,11 +283,11 @@ export const WARDENS_MODULE_5: TierModuleContent = {
         scenario: "Floodwater is rising toward a ground-floor electrical panel while your group waits for evacuation transport.",
         correct: {
           label: "Move the group away from the panel's area entirely and keep everyone clear until trained personnel isolate the power.",
-          explanation: "A live electrical panel near rising water is a firm no-approach rule - the safe response is distance, not intervention.",
+          explanation: "A live electrical panel near rising water is a firm no-approach rule—the safe response is distance, not intervention.",
         },
         wrong: {
           label: "Try to shut off the panel yourself to \"prevent a bigger problem.\"",
-          explanation: "Approaching a panel near floodwater risks electrocution - the exact outcome the firm rule exists to prevent, regardless of good intent.",
+          explanation: "Approaching a panel near floodwater risks electrocution—the exact outcome the firm rule exists to prevent, regardless of good intent.",
           hazardIcon: "⚡",
         },
       },
@@ -309,7 +309,7 @@ export const WARDENS_MODULE_6: TierModuleContent = {
       title: "Why This Is the Capstone Module",
       estMinutes: 2,
       body: [
-        "Everything in this tier converges here: personal safety, group direction, hazard judgment, and accountability — all while conditions can change mid-response.",
+        "Everything in this tier converges here: personal safety, group direction, hazard judgment, and accountability—all while conditions can change mid-response.",
       ],
     },
     {
@@ -318,7 +318,7 @@ export const WARDENS_MODULE_6: TierModuleContent = {
       title: "Sequencing Multiple Hazards",
       estMinutes: 3,
       body: [
-        "Example: an earthquake damages a staircase, which is then found to have a gas leak nearby. The correct sequence is always: protect yourself first, reassess before moving, identify secondary hazards before choosing a route, then act — not \"get out\" as a single undifferentiated instinct.",
+        "Example: an earthquake damages a staircase, which is then found to have a gas leak nearby. The correct sequence is always: protect yourself first, reassess before moving, identify secondary hazards before choosing a route, then act—not \"get out\" as a single undifferentiated instinct.",
       ],
     },
     {
@@ -336,7 +336,7 @@ export const WARDENS_MODULE_6: TierModuleContent = {
       title: "Handing Off to Professional Responders",
       estMinutes: 2,
       body: [
-        "When responders arrive, your job shifts to information transfer, not continued command: give them your headcount status, known hazards, and any missing/injured persons — then follow their direction rather than continuing to run your own plan in parallel.",
+        "When responders arrive, your job shifts to information transfer, not continued command: give them your headcount status, known hazards, and any missing/injured persons—then follow their direction rather than continuing to run your own plan in parallel.",
       ],
     },
     {
@@ -353,7 +353,7 @@ export const WARDENS_MODULE_6: TierModuleContent = {
         },
         wrong: {
           label: "Continue running your own evacuation plan independently of what responders are now coordinating.",
-          explanation: "Two uncoordinated command chains on the same scene can work against each other - the handoff itself is the correct command decision once responders arrive.",
+          explanation: "Two uncoordinated command chains on the same scene can work against each other—the handoff itself is the correct command decision once responders arrive.",
         },
       },
     },
