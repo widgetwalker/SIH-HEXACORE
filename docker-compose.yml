@@ -46,7 +46,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d sih_db"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   redis:
     image: redis:7
@@ -57,6 +58,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:
