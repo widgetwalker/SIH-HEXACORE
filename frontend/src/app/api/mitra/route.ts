@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 const SYSTEM_PROMPT = `You are "Mitra" (Hindi for "friend"), an AI crisis companion embedded in a disaster-preparedness training simulator used by Indian school and college students. You are grounded in NDMA, NFPA, and NDRF safety protocols.
 
@@ -191,6 +191,7 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json();
     const text: string | undefined = data?.candidates?.[0]?.content?.parts
+      ?.filter((p: { thought?: boolean; text?: string }) => !p.thought)
       ?.map((p: { text?: string }) => p.text ?? "")
       .join("")
       .trim();

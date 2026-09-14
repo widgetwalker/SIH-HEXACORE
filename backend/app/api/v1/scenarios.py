@@ -333,7 +333,7 @@ def _generate_scenario(hazard_label: str, seed: int) -> Scenario:
         spreadChance=spread_chance,
         fogDensity=fog_density,
         colors=template["colors"],
-        map=template["map"],
+        floors=template["floors"],
         blockages=[],
     )
 

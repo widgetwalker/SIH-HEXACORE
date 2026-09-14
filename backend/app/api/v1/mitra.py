@@ -33,7 +33,7 @@ class MitraTTSRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=1000, description="Text to synthesize to speech audio")
     lang: str = Field("en-in", description="Voice language/accent code (e.g. en-in, en)")
 
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 SYSTEM_PROMPT = """You are "Mitra" (Hindi for "friend"), an AI crisis companion embedded in a disaster-preparedness training simulator used by Indian school and college students. You are grounded in NDMA, NFPA, and NDRF safety protocols.
@@ -196,7 +196,7 @@ async def mitra_chat(body: MitraChatRequest) -> MitraChatResponse:
 
     candidates = data.get("candidates") or []
     parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
-    text = "".join(p.get("text", "") for p in parts).strip()
+    text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
 
     if not text:
         raise HTTPException(status_code=502, detail="Mitra couldn't form a response — try again.")
