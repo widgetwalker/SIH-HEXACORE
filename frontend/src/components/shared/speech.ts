@@ -146,7 +146,7 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
       resolve(result);
     };
 
-    // 8-second timeout to allow Edge Neural TTS synthesis and streaming
+    // 5-second timeout: if TTS endpoint doesn't respond fast enough, fall back to browser speech
     const timeoutTimer = setTimeout(() => {
       if (backendAudioInstance) {
         try {
@@ -157,7 +157,7 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
         }
       }
       finish(false);
-    }, 8000);
+    }, 5000);
 
     try {
       // Direct same-origin Next.js endpoint: synthesizes Microsoft Neural en-IN-NeerjaNeural
