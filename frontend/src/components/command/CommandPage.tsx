@@ -227,14 +227,14 @@ export default function CommandPage() {
       return s.includes("warn") || s.includes("severe");
     });
 
-    let target = critical || warning;
-
-    // If operator clicked a specific alert in the list, prioritize it only if it's a real warning/threat
+    let target: LiveAlert | undefined = undefined;
+    // 1. If operator clicked or injected a specific drill/alert, prioritize it immediately
     if (activeAlertId && !dismissedAlertIds.has(activeAlertId)) {
-      const selected = available.find((a) => a.id === activeAlertId);
-      if (selected && selected.severity.toLowerCase() !== "normal" && selected.severity.toLowerCase() !== "info") {
-        target = selected;
-      }
+      target = available.find((a) => a.id === activeAlertId);
+    }
+    // 2. Otherwise default to highest severity critical or warning
+    if (!target) {
+      target = critical || warning;
     }
 
     // If no critical or warning threats exist, do NOT show an emergency threat banner
@@ -419,26 +419,6 @@ export default function CommandPage() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcasts.length]);
-
-  // Mitra voice shoutout on real critical hazard detection (storm, flood, cyclone, earthquake)
-  useEffect(() => {
-    if (liveAlerts.length === 0) return;
-    const severeHazard = liveAlerts.find(
-      (a) =>
-        !dismissedAlertIds.has(a.id) &&
-        (a.severity.toLowerCase().includes("extreme") ||
-          a.severity.toLowerCase().includes("critical") ||
-          a.severity.toLowerCase().includes("warn"))
-    );
-    if (severeHazard) {
-      announceMitraEmergency(
-        `${severeHazard.severity} Hazard: ${severeHazard.headline}`,
-        severeHazard.detail,
-        severeHazard.id
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveAlerts]);
 
   const totalStudents = telemetry.floors.reduce((a, f) => a + f.students, 0);
   const totalSafe = telemetry.floors.reduce((a, f) => a + f.safe, 0);

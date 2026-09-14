@@ -12,7 +12,7 @@ import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { loadCadetSettings } from "@/lib/cadetSettings";
-import { speak, stopSpeaking } from "@/components/shared/speech";
+import { speak, stopSpeaking, unlockAudioPlayer } from "@/components/shared/speech";
 import { localMitraReply } from "@/lib/mitraFallback";
 
 const ScenarioEffects = dynamic(
@@ -238,6 +238,7 @@ export default function SimulatePage() {
   }, [mitraMessages, mitraLoading]);
 
   const openMitra = () => {
+    unlockAudioPlayer();
     setMitraOpen((open) => {
       const next = !open;
       if (next) {
@@ -267,6 +268,7 @@ export default function SimulatePage() {
   }, [broadcasts.length]);
 
   const sendMitra = async (raw: string) => {
+    unlockAudioPlayer();
     const text = raw.trim();
     if (!text || mitraLoading) return;
     const history = [...mitraMessages, { role: "user" as const, text }];
