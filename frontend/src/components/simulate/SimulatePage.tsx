@@ -12,7 +12,7 @@ import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { loadCadetSettings } from "@/lib/cadetSettings";
-import { speak, playBackendAudio } from "@/components/shared/speech";
+import { speak, playBackendAudio, stopSpeaking } from "@/components/shared/speech";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -189,6 +189,12 @@ export default function SimulatePage() {
     setMitraMessages((m) => [...m, { role: "mitra", text: `🚨 ${latest.msg}` }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcasts.length]);
+
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
 
   const sendMitra = async (raw: string) => {
     const text = raw.trim();

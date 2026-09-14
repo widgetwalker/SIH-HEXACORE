@@ -143,6 +143,34 @@
   transform: translateY(0);
 }
 
+.btnAcknowledged {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #10B981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  cursor: default !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnDismiss {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-faint);
+  font-size: 0.875rem;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.btnDismiss:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .banner {

@@ -31,6 +31,18 @@ services:
     volumes:
       - ./backend/app:/app/app  # live-mounts code, no rebuild needed on edits
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+
   postgres:
     image: postgis/postgis:16-3.4
     environment:

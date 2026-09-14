@@ -35,28 +35,33 @@ The frontend is fully self-contained for the local MVP: **no database, no backen
    cd frontend && npm install && npm run dev
    ```
 
-**Option B: Full Docker Stack**
-To bring up PostgreSQL, PostGIS, Redis, and the FastAPI backend all inside Docker:
+**Option B: Full Docker Stack (Single Command)**
+To bring up PostgreSQL (PostGIS), Redis, FastAPI backend, and Next.js frontend all inside Docker:
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
-Then start the frontend:
-```bash
-cd frontend && npm install && npm run dev
-```
+All four services start automatically:
+- **Frontend (Next.js):** `http://localhost:3000`
+- **Backend (FastAPI):** `http://localhost:8000/docs`
+- **PostgreSQL (PostGIS 16):** `localhost:5432`
+- **Redis 7:** `localhost:6379`
 
-Either way the dev server starts at **`http://localhost:3000`**.
+### 3. Netlify Cloud Deployment
+The repository includes production-ready Netlify configuration (`netlify.toml` and `@netlify/plugin-nextjs`):
+1. Import `SIH-HEXACORE` into [Netlify](https://app.netlify.com).
+2. Netlify will automatically detect `netlify.toml`:
+   - **Base directory:** `frontend`
+   - **Build command:** `npm run build`
+   - **Publish directory:** `.next`
+   - **Plugin:** `@netlify/plugin-nextjs`
+3. Set optional environment variable:
+   - `NEXT_PUBLIC_BACKEND_URL`: URL of your deployed FastAPI backend.
+4. Deploy! Live site will be provisioned with edge caching and full Next.js App Router support.
 
-### 3. Production Build & Verification
+### 4. Production Build & Local Verification
 ```bash
-cd frontend
 npm run build
 npm run start
-```
-Use the following checks before handoff:
-```bash
-./node_modules/.bin/tsc --noEmit --pretty false
-npm run lint
 ```
 These all pass cleanly in the current workspace — `npm run build` compiles the full application (all 8 routes, static generation included) with zero errors. See [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md) for what's live.
 

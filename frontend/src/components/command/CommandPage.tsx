@@ -18,8 +18,7 @@ import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { playSirenBeep } from "@/lib/siren";
 import { loadCadetSettings } from "@/lib/cadetSettings";
 import LiveThreatBanner, { type LiveThreatAlert } from "./LiveThreatBanner";
-
-import { announceMitraEmergency } from "@/components/shared/speech";
+import { announceMitraEmergency, stopSpeaking } from "@/components/shared/speech";
 
 import { CAMPUS_SVG_POINTS } from "@/lib/campusData";
 
@@ -73,6 +72,7 @@ export default function CommandPage() {
   const { broadcasts, connected } = useEmergencyBroadcasts();
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
+  const [acknowledgedAlertIds, setAcknowledgedAlertIds] = useState<Set<string>>(new Set());
 
   // Geolocation & Sector coordinates (Defaults to Puducherry / Pondicherry)
   const [selectedPreset, setSelectedPreset] = useState<string>("puducherry");
@@ -184,8 +184,10 @@ export default function CommandPage() {
   // STRICT RULE: Only active if there is a real CRITICAL or WARNING threat, or an injected drill.
   // Calm baseline telemetry will NEVER display an emergency threat banner.
   const activeBannerThreat: LiveThreatAlert | null = (() => {
-    if (broadcasts.length > 0) {
-      const b = broadcasts[0];
+    // 1. Check active broadcasts that haven't been completely dismissed
+    const activeBroadcasts = broadcasts.filter((b) => !dismissedAlertIds.has(`drill-${b.receivedAt}`));
+    if (activeBroadcasts.length > 0) {
+      const b = activeBroadcasts[0];
       const timeStr = new Date(b.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       return {
         id: `drill-${b.receivedAt}`,
@@ -237,18 +239,38 @@ export default function CommandPage() {
   })();
 
   const handleAcknowledgeAlert = async () => {
+    // 1. Immediately terminate all voice announcements and sirens
+    stopSpeaking();
+
     if (!activeBannerThreat) return;
     const targetId = activeBannerThreat.id ?? activeAlertId;
     if (targetId) {
-      setDismissedAlertIds((prev) => new Set(prev).add(targetId));
-      showToast("✓ Alert acknowledged — logged to NDMA incident report");
+      // 2. Mark as acknowledged immediately in UI state
+      setAcknowledgedAlertIds((prev) => new Set(prev).add(targetId));
+      showToast("✓ Alert acknowledged — voice silenced immediately, logged to NDMA report");
+
+      // 3. Keep the alert / red button visible for some time (8s) before auto-clearing
+      setTimeout(() => {
+        setDismissedAlertIds((prev) => new Set(prev).add(targetId));
+        setActiveAlertId((current) => (current === targetId ? null : current));
+      }, 8000);
+
       try {
         await fetch(`${BACKEND_URL}/api/v1/alerts/${targetId}/acknowledge`, { method: "PATCH" });
       } catch {
         /* best-effort acknowledgement */
       }
     }
-    setActiveAlertId(null);
+  };
+
+  const handleDismissBanner = () => {
+    stopSpeaking();
+    if (!activeBannerThreat) return;
+    const targetId = activeBannerThreat.id ?? activeAlertId;
+    if (targetId) {
+      setDismissedAlertIds((prev) => new Set(prev).add(targetId));
+      setActiveAlertId((current) => (current === targetId ? null : current));
+    }
   };
 
   const handleTriggerProtocol = () => {
@@ -374,6 +396,8 @@ export default function CommandPage() {
           alert={activeBannerThreat}
           onAcknowledge={handleAcknowledgeAlert}
           onTriggerProtocol={handleTriggerProtocol}
+          onDismiss={handleDismissBanner}
+          isAcknowledged={activeBannerThreat?.id ? acknowledgedAlertIds.has(activeBannerThreat.id) : false}
         />
 
         {/* Sector Geolocation & Telemetry Control */}
@@ -467,6 +491,7 @@ export default function CommandPage() {
                   key={a.id}
                   className={`${styles.alertItem} ${styles[`alert-${liveAlertColor(a.severity)}`]} ${activeAlertId === a.id ? styles.alertItemActive : ""}`}
                   onClick={() => {
+                    stopSpeaking();
                     setActiveAlertId(a.id);
                     showToast(`Active hazard focus: [${a.source}] ${a.headline}`);
                   }}

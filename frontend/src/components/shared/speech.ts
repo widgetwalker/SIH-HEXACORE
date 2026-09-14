@@ -1,10 +1,11 @@
-import { playSirenBeep } from "@/lib/siren";
+import { playSirenBeep, stopSiren } from "@/lib/siren";
 
 let latestAlertId: string | number | null = null;
 const recentlyAnnounced = new Map<string, number>();
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let backendAudioInstance: HTMLAudioElement | null = null;
 let cachedVoices: SpeechSynthesisVoice[] = [];
+let currentSpeechToken = 0;
 
 /**
  * Pre-cache and refresh available browser synthesis voices.
@@ -97,8 +98,9 @@ export function selectClearFemaleVoice(
  * Play crystal-clear synthesized speech directly from the backend /api/v1/mitra/tts stream.
  * Employs Microsoft Neural TTS (en-IN-NeerjaNeural / en-US-JennyNeural) for studio-grade human female speech.
  */
-export async function playBackendAudio(text: string, lang = "en-in"): Promise<boolean> {
+export async function playBackendAudio(text: string, lang = "en-in", token = currentSpeechToken): Promise<boolean> {
   if (typeof window === "undefined" || !text) return false;
+  if (token !== currentSpeechToken) return false;
   try {
     const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
     const audioUrl = `${backendUrl}/api/v1/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
@@ -112,12 +114,24 @@ export async function playBackendAudio(text: string, lang = "en-in"): Promise<bo
     if (backendAudioInstance) {
       backendAudioInstance.pause();
       backendAudioInstance.currentTime = 0;
+      backendAudioInstance.src = "";
+      backendAudioInstance = null;
     }
+
+    if (token !== currentSpeechToken) return false;
 
     const audio = new Audio(audioUrl);
     backendAudioInstance = audio;
     audio.volume = 1.0;
     await audio.play();
+
+    // Check again in case stopSpeaking was clicked while audio was loading/buffering
+    if (token !== currentSpeechToken) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = "";
+      return false;
+    }
     return true;
   } catch (err) {
     console.warn("Backend neural TTS playback error:", err);
@@ -134,8 +148,11 @@ export async function playBackendAudio(text: string, lang = "en-in"): Promise<bo
 export function speak(text: string, forceBackend = false) {
   if (typeof window === "undefined" || !text) return;
 
+  currentSpeechToken++;
+  const token = currentSpeechToken;
+
   if (forceBackend) {
-    playBackendAudio(text);
+    playBackendAudio(text, "en-in", token);
     return;
   }
 
@@ -144,6 +161,8 @@ export function speak(text: string, forceBackend = false) {
       if (backendAudioInstance) {
         backendAudioInstance.pause();
         backendAudioInstance.currentTime = 0;
+        backendAudioInstance.src = "";
+        backendAudioInstance = null;
       }
 
       if (window.speechSynthesis.paused) {
@@ -157,7 +176,7 @@ export function speak(text: string, forceBackend = false) {
       // If the browser only has raspy or mechanical robot voices (e.g. Linux default espeak),
       // seamlessly stream the studio neural female voice from the backend instead.
       if (!isHighQuality || !selectedVoice) {
-        playBackendAudio(text);
+        playBackendAudio(text, "en-in", token);
         return;
       }
 
@@ -174,12 +193,19 @@ export function speak(text: string, forceBackend = false) {
       utter.volume = 1.0;
 
       utter.onend = () => {
-        activeUtterance = null;
+        if (activeUtterance === utter) {
+          activeUtterance = null;
+        }
       };
-      utter.onerror = () => {
-        activeUtterance = null;
-        // Automatic fallback to studio neural audio if browser speech synthesis fails
-        playBackendAudio(text);
+      utter.onerror = (e: SpeechSynthesisErrorEvent) => {
+        if (activeUtterance === utter) {
+          activeUtterance = null;
+        }
+        // If canceled or interrupted by user / stopSpeaking, DO NOT trigger fallback audio!
+        if (token !== currentSpeechToken || e.error === "canceled" || e.error === "interrupted") {
+          return;
+        }
+        playBackendAudio(text, "en-in", token);
       };
 
       window.speechSynthesis.speak(utter);
@@ -194,7 +220,7 @@ export function speak(text: string, forceBackend = false) {
   }
 
   // Fallback if browser does not support speechSynthesis
-  playBackendAudio(text);
+  playBackendAudio(text, "en-in", token);
 }
 
 export function announceMitraEmergency(headline: string, detail?: string, alertKey?: string) {
@@ -225,13 +251,29 @@ export function speakAlert(alertId: number | string, message: string) {
   announceMitraEmergency(message, undefined, String(alertId));
 }
 
+/**
+ * Immediately silences all voice, sound effects, siren beeps, and neural audio streams.
+ */
 export function stopSpeaking() {
+  currentSpeechToken++;
+  stopSiren();
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
-    window.speechSynthesis.cancel();
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      /* ignore */
+    }
+    activeUtterance = null;
   }
   if (backendAudioInstance) {
-    backendAudioInstance.pause();
-    backendAudioInstance.currentTime = 0;
+    try {
+      backendAudioInstance.pause();
+      backendAudioInstance.currentTime = 0;
+      backendAudioInstance.src = "";
+    } catch {
+      /* ignore */
+    }
+    backendAudioInstance = null;
   }
   latestAlertId = null;
 }

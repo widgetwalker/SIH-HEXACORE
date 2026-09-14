@@ -23,6 +23,14 @@ export const metadata: Metadata = {
       "AI-powered gamified disaster training for schools. Real simulations. Real safety.",
     type: "website",
   },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
