@@ -1,11 +1,11 @@
 # 08. Current Implementation Status
 
-> **Last updated:** September 12, 2026 v10 · Branch `main` · **PRs #30, #31, #32 Merged; Verbatim NDMA curriculum text, cross-device WebSocket incident synchronization, unified API telemetry, and zero-error verification complete**
+> **Last updated:** September 14, 2026 v11 · Branch `main` · **Map Expansion to 32x18, Spatial-Fair Spawn Routing, 3D Humanoid & Architectural Swinging Doors, Microsoft Neural Female TTS Engine & Dockerized Infrastructure Complete**
 >
 > This document tracks what is **actually built and working** versus what remains
 > spec-only. It complements docs 01-07 (the design blueprint) - nothing here changes
 > the blueprint; it reports progress against it.
-> **Sept 12 v10 delta:** Merged PR #30, PR #31, and PR #32. Completed verbatim NDMA manual text updates for Sentinels (Ages 14-17) and Wardens (Ages 18+) curriculum modules matching source PDFs (Issue 2.5 closed); integrated authenticated WebSocket incident broadcasting (`CAMPUS-01` room scoped) with multi-client LAN testing; unified telemetry persistence across `frontend/src/lib/telemetry.ts` with dual-write (`localStorage` fallback + PostgreSQL `/api/v1/telemetry/runs`); resolved `liveAlerts.ts` conflict with dual-path injection (`/api/v1/webhooks/inject-incident` primary with `/api/v1/incidents/inject` DB fallback); and verified 100% test pass rate across backend pytest (20/20) and Next.js production build.
+> **Sept 14 v11 delta:** Expanded evacuation scenario maps to a tactical 32x18 grid with fixed architectural stairwell exit points (Stairwell A, Stairwell B); implemented flood-fill room-constrained player spawn placement ensuring cadets never spawn in the same room or immediate view of an exit; transformed capsules into low-poly humanoid characters for player and NPC crowd with synchronized arm/leg walking kinematics, diversified skin/shirt palettes, and movement facing orientation; engineered realistic swinging fire doors mounted on hinge pivots with smooth 90° lerp animations, ceiling-level continuous wall headers, flush zero-gap door jambs, emergency crash push-bars, and safety vision slits; overhauled speech synthesis by normalizing Web Speech API pitch (1.0) and rate (0.96) prioritizing female personas, paired with automatic fallback to Microsoft Neural TTS (`edge-tts` `en-IN-NeerjaNeural` / `en-US-JennyNeural`) via backend `/api/v1/mitra/tts`; added containerized Docker Compose orchestration with PostgreSQL 16 (PostGIS), Redis 7, and FastAPI with built-in healthchecks; and resolved Turbopack parent directory search warnings.
 
 ---
 
@@ -16,12 +16,12 @@
 | Landing & navigation shell | Built | `LandingPage` HazardScrollScene slow 360-degree scroll collapse, video background with dark slate high-contrast typography, ImmersiveScene fallback, parallax/tilt/ripple, `Navbar` prefetch, mobile menu full-screen overlay (Task 1.1) |
 | Pillar I - Pedagogical Engine | Built | `LearnPage` with age-tiered curriculum, interactive sidebar nav, mobile quick bar and slide-over drawer, Settings/Profile/Leaderboard subviews, plus persisted cadet onboarding/edit flow (Task 1.1 / Issue 1.3). Complete: Verbatim NDMA curriculum ingestion for Sentinels & Wardens matching official NDMA manuals verbatim (Issue 2.5 complete via PR #32). |
 | User Identity & Profile | Built | Multi-user onboarding gate (`OnboardingGate.tsx`), age-to-tier mapping, persistent profile route (`/profile`), account switching, custom avatar selection/upload, and PostgreSQL user sync (`/api/v1/users`). (Issue 2.6) |
-| Pillar II - Simulation Engine | Built | Playable 3D evacuation drills, 4 JSON scenarios, fire/smoke/door/blockages, NPC crowd, synthesized WebAudio, full run telemetry, per-hazard overlays, ambient ConstellationField particle canvas. Dynamic A* rerouting benchmarked at sub-15ms. Mobile touch virtual joystick and buttons implemented. (Tasks 1.2, 5.1) |
+| Pillar II - Simulation Engine | Built (v11 Overhaul) | Playable 3D evacuation drills on expanded 32x18 maps. Architectural swinging fire doors on hinge pivots with zero-gap jambs and ceiling headers. Low-poly humanoid player & NPC models with arm/leg walking animations. Room-constrained fair spawn algorithm. Procedural fire/smoke/blockages, synthesized WebAudio, full run telemetry, per-hazard overlays, and touch joystick. (Tasks 1.2, 5.1) |
 | Pillar II - Admin Analytics | Built | `/admin` dashboard: Centralized telemetry via `src/lib/telemetry.ts` pulling KPIs from PostgreSQL backend (`/api/v1/telemetry/analytics`) with automatic offline `localStorage` fallback, canvas route & casualty heatmap, drill log table. (Tasks 3.1, 4.2, PR #30) |
 | Pillar III - Command Hub | Built | `/command` receives live telemetry through WebSocket/local drillEventBus, features 3D FloorStack isometric view with real Pondicherry University OSM campus polygon footprint, Live Threat Banner connected to `GET /api/v1/alerts/live` (USGS + Open-Meteo), and Incident Injection Deck wired to campus-scoped WebSocket broadcast with DB fallback. (Tasks 2.4, 3.3, 4.1, PR #31) |
 | Global FX Layer | Built | Custom cursor, RippleLink, parallax/tilt/reveal, framer-motion, ScenarioEffects, ConstellationField, Geist font |
-| "Mitra" Crisis Companion | Rule-based + GSAP + Voice | Contextual coaching in sim, Gemini 1.5 Flash API with offline rule-based fallback, Web Speech API voice alert verbalization for active emergency events. (Issue 4.3) |
-| Backend / persistence | Built | DynamicPathfinder (<15ms A*), FastAPI WebSocket hub, PostgreSQL telemetry persistence (`POST /runs`, `GET /analytics`), UserProfile & NDMAReport models, live disaster alerts feed (`GET /alerts/live`), incident injection webhooks, and background SACHET CAP feed poller with configurable `SACHET_FEED_URL`. (Tasks 3.1, 3.3, PR #28) |
+| "Mitra" Crisis Companion | Neural Voice + GSAP + AI | Contextual coaching in sim, Gemini 1.5 Flash API with offline rule-based fallback. Dual-tier voice engine: zero-latency Web Speech API with tuned natural pitch (1.0) and rate (0.96), with auto-fallback to Microsoft Neural Studio TTS (`edge-tts` `en-IN-NeerjaNeural` / `en-US-JennyNeural`). (Issue 4.3, v11) |
+| Backend / persistence | Built | DynamicPathfinder (<15ms A*), FastAPI WebSocket hub, PostgreSQL telemetry persistence (`POST /runs`, `GET /analytics`), UserProfile & NDMAReport models, live disaster alerts feed (`GET /alerts/live`), incident injection webhooks, background SACHET CAP poller, Neural TTS streaming endpoint (`GET/POST /api/v1/mitra/tts`), and Docker Compose orchestration with PostGIS & Redis healthchecks. (Tasks 3.1, 3.3, 3.4, PR #28, v11) |
 | Multiplayer drill battles | Not started | Spec-only (docs 01/02) |
 | Mobile / touch controls | Built | Virtual on-screen joystick (dx/dz) and touch buttons for crouch/box-breathe in `EvacuationGame.tsx`. |
 
@@ -31,33 +31,47 @@
 
 ### 2.1 Immersive Simulation Engine (`frontend/src/components/simulate/`)
 
-**Playable evacuation drill** (`game/EvacuationGame.tsx`, 856 lines, Three.js WebGL):
+**Playable evacuation drill** (`game/EvacuationGame.tsx`, 1200+ lines, Three.js WebGL):
 
-- Third-person follow camera with quake-shake intro; WASD/arrow movement
-- Procedural fire ignition + cell-to-cell spread; smoke layer that drains oxygen unless crawling (SHIFT); panic meter with cognitive freeze above 70; box-breathing recovery (B)
-- **Door-aware propagation:** amber door tiles (glyph `D`) block fire & smoke until the player pushes through them - doors act as player-controlled firebreaks; visually flatten to teal threshold when opened
-- **Multiple exits:** any green assembly beacon (glyph `E`) completes the run; beacons animate with pulsing rings
-- **Scripted mid-run blockages:** compound-disaster events collapse corridors mid-drill with rubble meshes, with a pre-warning banner (e.g., Quake+Fire scenario seals NE wing at T+40s after structural groaning warning at T+30s)
-- **NPC crowd (~18 agents):** BFS distance-field pathing toward nearest reachable exit, separation forces prevent stacking, slowed in smoke, become red casualties in fire, fade out upon evacuation
-- **Synthesized WebAudio (zero assets):** evacuation alarm beeps (760Hz square wave @2.2s), bandpass-filtered white noise fire crackle (proximity-driven loudness), panic-scaled heartbeat thuds (55-140 BPM)
-- **Panic vignette overlay:** screen-edge red vignette intensifies when panic > 60 -- now **GSAP-driven** (`gsap.to` 0.3s power2.inOut, `killTweensOf` on update, `useRef` target) instead of instant style jump
-- **Cinematic materials (Aug 26 v2, not blocks):** `MeshStandardMaterial` PBR walls (`0x1a2544` roughness 0.88), metal doors (emissive 0.45), concrete floor grid, player capsule emissive 0.65 + point light, beacons with `emissiveIntensity 1.15` + `PointLight`, NPC hue variance, rubble PBR -- feels like simulation not Lego
-- **Hyper-real fire/smoke:** flame `CanvasTexture` radial gradient (white→flame→glow→transparent) on 3-plane cross + core + additive `Points`, 4 pooled `PointLight`s flicker-moved to nearest fires each tick, smoke soft puff `CanvasTexture` with drift `y = 1.7+sin(t+drift)*0.12` and `opacity 0.36+0.08*sin`
-- **HUD spring meters:** oxygen/panic bars use **700ms `cubic-bezier(0.16,1,0.3,1)` width transition** (motion.dev spring preset) + 300ms background lerp -- avoids per-tick JS cost, stays 60fps
-- **Collision system:** player corner-sampled AABB against wall cells; NPCs use flow-field + walls
+- Third-person follow camera with quake-shake intro; WASD/arrow movement and mobile virtual joystick + touch crouch/breathe buttons.
+- **3D Low-Poly Humanoid Models & Kinematics (v11):** Replaced capsule meshes with multi-part articulated humanoid figures for both the player and NPC crowds:
+  - Humanoid hierarchy: Head sphere, torso box, dual swing arms (shoulder-pivoted), dual walk legs (hip-pivoted).
+  - Walk animation: Sinusoidal kinematic limb swinging synchronized with live player velocity (`dx`, `dz`) and NPC crowd movement.
+  - Crowd diversity: Randomized 6-tone skin palette, 8-tone shirt palette, dark utility trousers; NPCs smoothly orient to face their movement vector. Casualties turn emergency red on fire exposure; evacuated agents smoothly fade out.
+  - Natural crouch: Proportional figure scaling when crawling under smoke.
+- **Architectural Swinging Fire Doors (v11):** Replaced static obstructing block pillars with realistic architectural door assemblies:
+  - Pivot-group hinge mechanics: Door panel is offset on a side hinge and smoothly lerps open 90° (`-Math.PI / 2`) when pushed through.
+  - Ceiling wall header: Continuous 0.38m wall-material header box (`BoxGeometry(CELL, 0.38, CELL)`) bridges adjacent wall cubes at ceiling height (2.6m).
+  - Zero-gap flush framing: Heavy-duty metal door jambs sit flush against wall faces with zero air gaps (`x = ±CELL / 2`), accompanied by floor threshold strips and lintel casing.
+  - Commercial fire door details: Brushed-metal emergency panic push-bar with side brackets, safety vision glass slit with glowing status tint, heavy-duty metal hinge cylinders, and bottom stainless steel kickplate.
+  - Visual status feedback: Unlocking a door shifts its panel and vision window from standby amber to an emerald-green safe-passage glow (`#10b981`).
+- **Spatial-Fair Room-Constrained Spawn Placement (v11):**
+  - Scenario maps expanded to an authentic 32x18 architectural floorplan.
+  - Fixed exit points anchored to perimeter emergency stairwells (`Stairwell A`, `Stairwell B`).
+  - Flood-fill room-boundary partitioning ensures player spawn never occurs within the exit's immediate room or corridor; cadets are guaranteed an authentic multi-room evacuation route.
+- Procedural fire ignition + cell-to-cell spread; smoke layer that drains oxygen unless crawling (SHIFT); panic meter with cognitive freeze above 70; box-breathing recovery (B).
+- **Multiple exits:** green assembly beacons (glyph `E`) with animated pulsing rings and architectural stairwell geometry.
+- **Scripted mid-run blockages:** compound-disaster events collapse corridors mid-drill with rubble meshes, with a pre-warning banner (e.g., Quake+Fire scenario seals NE wing at T+40s after structural groaning warning at T+30s).
+- **NPC crowd (~18 agents):** BFS distance-field pathing toward nearest reachable exit, separation forces prevent stacking, slowed in smoke, become red casualties in fire, fade out upon evacuation.
+- **Synthesized WebAudio (zero assets):** evacuation alarm beeps (760Hz square wave @2.2s), bandpass-filtered white noise fire crackle (proximity-driven loudness), panic-scaled heartbeat thuds (55-140 BPM).
+- **Panic vignette overlay:** screen-edge red vignette intensifies when panic > 60 -- **GSAP-driven** (`gsap.to` 0.3s power2.inOut, `killTweensOf` on update, `useRef` target).
+- **Cinematic materials:** `MeshStandardMaterial` PBR walls (`0x1a2544` roughness 0.88), metal doors, concrete floor grid, beacons with `emissiveIntensity 1.15` + `PointLight`, NPC hue variance, rubble PBR.
+- **Hyper-real fire/smoke:** flame `CanvasTexture` radial gradient on 3-plane cross + core + additive `Points`, 4 pooled `PointLight`s flicker-moved to nearest fires each tick, smoke soft puff `CanvasTexture` with drift and opacity pulsing.
+- **HUD spring meters:** oxygen/panic bars use **700ms `cubic-bezier(0.16,1,0.3,1)` width transition** + 300ms background lerp -- avoids per-tick JS cost, stays 60fps.
+- **Collision system:** player corner-sampled AABB against wall cells; NPCs use flow-field + walls.
 
 ### 2.2 Data-Driven Scenarios (`frontend/src/data/scenarios.json`)
 
 Scenarios are fully data-driven - maps are ASCII grids (`#` wall, `.` floor, `P` spawn,
 `E` exit, `F` fire seed, `D` door) parsed by `game/floorplan.ts`, which pads ragged
-rows so malformed JSON cannot crash the sim. Four scenarios ship today:
+rows so malformed JSON cannot crash the sim. All scenarios ship on the expanded 32x18 format:
 
 | ID | Name | Hazard | Difficulty | Time Limit | Distinctive mechanics |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `lab-fire-east-wing` | Lab Fire | Fire | ●○○ | 120s | Original baseline map, standard orange fire |
-| `quake-compound` | Quake + Fire | Fire | ●●○ | 140s | Doors, 2 exits, mid-run aftershock blockage seals NE wing |
-| `chem-spill` | Chemical Spill | Toxic Gas | ●●● | 100s | Fast green gas spread (0.55 chance), 2 exits, storage-closet obstacles |
-| `blackout-fire` | Blackout Drill | Fire | ●●○ | 150s | Near-zero visibility (fog density 0.055), slow spread, long time limit |
+| `lab-fire-east-wing` | Lab Fire | Fire | ●○○ | 150s | 32x18 research wing map, standard flame propagation, Stairwells A & B |
+| `quake-compound` | Quake + Fire | Fire | ●●○ | 160s | 32x18 compound map, swinging doors, mid-run aftershock seals NE stairwell |
+| `chem-spill` | Chemical Spill | Toxic Gas | ●●● | 130s | Fast green gas spread (0.52 chance), storage obstacles, dual perimeter exits |
+| `blackout-fire` | Blackout Drill | Fire | ●●○ | 160s | Near-zero visibility (fog density 0.055), slow spread, memorized landmark routing |
 
 Each scenario defines: `id`, `name`, `badge`, `hazardLabel`, `difficulty`, `brief`, `timeLimit`, `spreadInterval`, `spreadChance`, `fogDensity`, `colors` (flame/glow/smoke hex), `map[]`, and optional `blockages[]` with `t`, `warnT`, `cells`, `warnMessage`, `message`.
 
@@ -200,8 +214,11 @@ separate shipped local behavior from the remaining route/backend work.
 - **Issue 3.3: Real-Time Disaster Ingestion & WebSocket Incident Injection:**
   - **Shipped:** `/command` Live Threat Banner and Incident Injection Deck with local seeded/simulated behavior.
   - **Remaining:** Automated Open-Meteo/USGS ingestion, critical-severity filtering, backend incident injection endpoint, and WebSocket mapping to `LiveThreatAlert`.
-- **Issue 4.3: Mitra AI Voice Crisis Alert Verbalization:**
-  - Automatic voice broadcast via Web Speech API (`window.speechSynthesis`) when an emergency alert or incident injection is active, guiding occupants on `/simulate` and `/command`.
+- **Issue 4.3: Mitra AI Neural Voice & Crisis Audio Architecture (v11 Shipped):**
+  - **Acoustic Normalization:** Replaced distorted pitch (1.25) with natural pitch (1.0) and measured cadence (0.96) in `frontend/src/components/shared/speech.ts`.
+  - **Natural Female Voice Selection:** Multi-tiered voice scoring prioritizing clear human female personas (Neerja, Jenny, Aria, Sonia, Samantha, Zira, Google UK/US female).
+  - **Mechanical Voice Bypass:** Auto-detects robotic/espeak Linux default voices and routes seamlessly to backend neural TTS.
+  - **Microsoft Neural Studio Voice Stream:** Upgraded `/api/v1/mitra/tts` to stream crystal-clear broadcast female voice (`edge-tts` `en-IN-NeerjaNeural` / `en-US-JennyNeural`) with softened local `f4` fallback and automated integration test coverage (`test_mitra_tts.py`).
 
 ---
 
@@ -311,6 +328,8 @@ frontend/src/
 5. **[x] User Profile & NDMA Report Persistence:** `user_profiles` and `ndma_reports` models, alembic migration, and `/users/profile` upsert API.
 6. **[x] Multi-User WebSocket Load Test (Task 3.2):** Validated 50 and 100 client concurrency tests with zero packet loss.
 7. **[x] Robust SACHET CAP Poller & Config (PR #28):** Configurable `SACHET_FEED_URL`, safe dev/CI bypass, dynamic settings resolution, automatic cache dir creation, and clean poller lifecycle management.
+8. **[x] Microsoft Neural Audio Synthesis Stream (Task 3.4, v11):** Upgraded `/api/v1/mitra/tts` to stream broadcast studio-quality neural female voices (`en-IN-NeerjaNeural` / `en-US-JennyNeural`) using `edge-tts` with softened local `f4` fallback and integration test coverage (`test_mitra_tts.py`).
+9. **[x] Containerized Docker Compose Orchestration (Task 3.5, v11):** Configured automated `docker-compose.yml` deploying PostgreSQL 16 (PostGIS 3.4), Redis 7, and FastAPI with healthcheck probes (`pg_isready`, `redis-cli ping`) and network URL overrides.
 
 ### Manha AK: AI & 3D Frontend
 1. **[x] Mitra AI Crisis Voice Alert Verbalization (Issue 4.3):** Web Speech API connected to verbalize emergency warning protocols with siren chime during active crisis drills and real hazards.
@@ -319,6 +338,9 @@ frontend/src/
 4. **[x] Interactive 3D Multi-Floor Stack (Task 4.1):** Isometric 3D stacked floor viewer (`FloorStack3D.tsx` / `MultiFloorVisualizer.tsx`) with interactive floor separation and live hazard/student markers.
 5. **[x] Backend Telemetry Dispatch (Task 4.2):** `saveRun()` in `telemetry.ts` and `SimulatePage` dispatches to `POST /api/v1/telemetry/runs` with offline `localStorage` fallback. Admin Dashboard reads real KPIs from `GET /api/v1/telemetry/analytics`.
 6. **[x] Pondicherry Campus Blueprint Ingestion & Visual Polish:** Ingested real OpenStreetMap geo-footprints (`pondi_uni.json`, `campusData.ts`) into 2D/3D visualizers, added `<ConstellationField />` ambient particle canvas, fixed certificate PDF printing, and polished video contrast.
+7. **[x] 3D Humanoid Kinematic Avatars & Crowd Polish (Task 4.4, v11):** Replaced capsule meshes with multi-part articulated humanoid models with velocity-synchronized arm and leg walking kinematics, diverse skin and shirt palettes, and movement facing orientation.
+8. **[x] Architectural Swinging Fire Doors & Zero-Gap Wall Integration (Task 4.5, v11):** Built 90° swinging doors on hinge pivots, continuous 0.38m ceiling wall headers bridging wall blocks, flush zero-gap jambs, emergency panic push-bars, safety vision slits, and emerald-green open indicator glow.
+9. **[x] 32x18 Map Expansion & Spatial-Fair Spawn Placement (Task 4.6, v11):** Expanded maps to 32x18 with dual perimeter emergency stairwell beacons, and integrated flood-fill room partitioning preventing spawn adjacent to exits.
 
 ### Trinayani D & Rahul Nayak: Pitch & Multi-Agency Orchestration
 1. **Live Pitch Multi-Device Script (Task 5.1):** Coordinate 3-device live demonstration (Mobile student `/learn`, Laptop 3D sim `/simulate`, Main Screen Command Hub `/command`).

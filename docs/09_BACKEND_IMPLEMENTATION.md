@@ -259,3 +259,33 @@ User identity is **not** in the payload — it comes from the JWT via `websocket
   msg: string
 }
 ```
+
+---
+
+## ✅ Task 3.4: Microsoft Neural Audio Synthesis Stream
+
+**Status:** Complete (v11)
+
+**Endpoints:**
+- `GET /api/v1/mitra/tts?text=...&lang=en-in`
+- `POST /api/v1/mitra/tts` `{ "text": "...", "lang": "en-in" }`
+
+**Architecture:**
+- **Primary Engine:** Microsoft Neural Text-to-Speech via `edge-tts` generating broadcast-grade studio female audio (`en-IN-NeerjaNeural` / `en-US-JennyNeural`). Audio is returned as `audio/mpeg` MP3 stream.
+- **Secondary Engine:** Local `espeak-ng` with smoothed `f4` female formant, pitch `50`, and speed `145` returning `audio/wav`.
+- **Fallback Engine:** Dual-tone harmonic audio chime.
+- **Automated Verification:** Verified with unit test in `backend/tests/test_mitra_tts.py`.
+
+---
+
+## ✅ Task 3.5: Docker Compose Infrastructure & PostGIS Initialization
+
+**Status:** Complete (v11)
+
+**File:** `docker-compose.yml` (repository root)
+
+**Services:**
+- **`postgres`:** `postgis/postgis:16-3.4` on port `5432:5432`. Automatically provisions PostGIS extensions and executes `database/schema.sql` on initial volume creation. Healthcheck: `pg_isready -U postgres -d sih_db`.
+- **`redis`:** `redis:7` on port `6379:6379`. Pub/Sub message broker and telemetry cache. Healthcheck: `redis-cli ping`.
+- **`backend`:** FastAPI container on port `8000:8000`. Overrides `DATABASE_URL` and `REDIS_URL` to point to container service names (`postgres:5432`, `redis:6379`). Mounts live source code `./backend/app:/app/app` for seamless developer workflow.
+

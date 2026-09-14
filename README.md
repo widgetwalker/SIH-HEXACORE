@@ -21,20 +21,35 @@ The frontend is fully self-contained for the local MVP: **no database, no backen
 
 ### 2. Clone and run
 
-**macOS / Linux / Git Bash:**
+**Option A: Local Development (Fastest, Hot-Reloading)**
+1. Start PostgreSQL (PostGIS) & Redis via Docker:
+   ```bash
+   docker compose up -d postgres redis
+   ```
+2. Start the FastAPI backend:
+   ```bash
+   cd backend && source venv/bin/activate && PYTHONPATH=. uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+3. Start the Next.js frontend (in another terminal):
+   ```bash
+   cd frontend && npm install && npm run dev
+   ```
+
+**Option B: Full Docker Stack**
+To bring up PostgreSQL, PostGIS, Redis, and the FastAPI backend all inside Docker:
 ```bash
-git clone https://github.com/widgetwalker/SIH-HEXACORE.git && cd SIH-HEXACORE/frontend && npm install && npm run dev
+docker compose up --build -d
+```
+Then start the frontend:
+```bash
+cd frontend && npm install && npm run dev
 ```
 
-**Windows PowerShell** (`&&` isn't a valid separator there — use `;`, or just run each line separately):
-```powershell
-git clone https://github.com/widgetwalker/SIH-HEXACORE.git; cd SIH-HEXACORE/frontend; npm install; npm run dev
-```
-
-Either way this installs every dependency and starts the dev server (Turbopack) at **`http://localhost:3000`**. If you already cloned it, just run the last two commands from inside `frontend/` — and make sure you're actually *inside* `frontend/` (where `package.json` lives) before running any `npm` command, not the repo root.
+Either way the dev server starts at **`http://localhost:3000`**.
 
 ### 3. Production Build & Verification
 ```bash
+cd frontend
 npm run build
 npm run start
 ```
@@ -45,12 +60,13 @@ npm run lint
 ```
 These all pass cleanly in the current workspace — `npm run build` compiles the full application (all 8 routes, static generation included) with zero errors. See [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md) for what's live.
 
-### 4. AI & Intelligent Systems (Optional Key, Zero-Crash Fallback)
+### 4. AI & Intelligent Systems (Zero-Crash Fallback)
 The platform operates fully offline or air-gapped out-of-the-box. When `GEMINI_API_KEY` is provided, advanced generative capabilities activate automatically:
-- **"Mitra" AI Crisis Companion** ([`backend/app/api/v1/mitra.py`](./backend/app/api/v1/mitra.py)): Uses **Gemini 1.5 Flash** for telemetry-grounded conversational coaching. Falls back to a local rule-based safety engine when no key is set.
-- **Dynamic Scenario Synthesizer** ([`backend/app/api/v1/scenarios.py`](./backend/app/api/v1/scenarios.py)): Uses **Gemini 3.6 Flash** to procedurally synthesize unique campus disaster maps and timed corridor collapse blockages. Falls back to an algorithmic pseudo-random generator (LCG) when offline.
+- **"Mitra" AI Crisis Companion & Neural Voice** ([`backend/app/api/v1/mitra.py`](./backend/app/api/v1/mitra.py)): Uses **Gemini 1.5 Flash** for telemetry-grounded conversational coaching. Integrated with **Microsoft Neural Text-to-Speech** (`edge-tts` `en-IN-NeerjaNeural` / `en-US-JennyNeural`) on `/api/v1/mitra/tts` delivering crystal-clear, broadcast studio-quality female emergency announcements with zero external API keys.
+- **Dynamic Scenario Synthesizer** ([`backend/app/api/v1/scenarios.py`](./backend/app/api/v1/scenarios.py)): Uses **Gemini 3.6 Flash** to procedurally synthesize unique campus disaster maps on 32x18 grids and timed corridor collapse blockages. Falls back to an algorithmic pseudo-random generator (LCG) when offline.
 - **Dynamic A\* Pathfinder** ([`backend/app/services/pathfinder.py`](./backend/app/services/pathfinder.py)): In-house multi-floor 3D graph pathfinder recalculating optimal escape routes around fires and smoke in **< 15ms**.
-- **Autonomous NPC Crowd Agents** ([`EvacuationGame.tsx`](./frontend/src/components/simulate/game/EvacuationGame.tsx)): Multi-agent simulation using BFS distance flow-fields and Boids separation forces.
+- **Autonomous Humanoid NPC Crowd Agents & Kinematics** ([`EvacuationGame.tsx`](./frontend/src/components/simulate/game/EvacuationGame.tsx)): Multi-agent simulation using BFS distance flow-fields, Boids separation forces, articulated limbs with walking animations, and dynamic skin/shirt palettes.
+- **Architectural Swinging Fire Doors & Fair Spawn**: Pivot-group fire doors with 90° opening kinematics, flush wall jambs, and flood-fill room partitioning preventing spawn adjacent to exits.
 
 To enable live Gemini generation, add your key to `frontend/.env.local` or `backend/.env`:
 ```bash

@@ -114,6 +114,14 @@ For the Smart India Hackathon (SIH) and nationwide school/college deployment, we
 - **ORM & Migrations:** `SQLAlchemy 2.0 (Async)` + `Alembic`.
 - **In-Memory Cache & Session Broker:** `Redis 7 (Cluster)`:
   - Caches live student telemetry, active drill states, and SACHET alert streams with sub-millisecond read latency.
+- **Audio & Speech Architecture (Dual-Tier):**
+  - *Client Layer:* W3C Web Speech API (`window.speechSynthesis`) with normalized natural pitch (1.0) and articulate pace (0.96) prioritizing female personas (`Neerja`, `Jenny`, `Aria`, `Sonia`, `Samantha`, `Google UK/US Female`).
+  - *Server Layer:* Microsoft Neural TTS via `edge-tts` on `/api/v1/mitra/tts` streaming broadcast studio-grade audio (`en-IN-NeerjaNeural` / `en-US-JennyNeural`).
+  - *Zero Cloud Subscription Cost:* Both layers operate with 0 external API keys and 0 paid service dependencies.
+- **Container Infrastructure:** `Docker Compose` (`docker-compose.yml`):
+  - Standardized local developer and judge deployment across Linux, macOS, and Windows.
+  - Provisions `postgis/postgis:16-3.4`, `redis:7`, and FastAPI backend with automated container healthcheck probes (`pg_isready`, `redis-cli ping`).
+  - Automatic schema bootstrapping via `database/schema.sql` on volume creation.
 
 ---
 

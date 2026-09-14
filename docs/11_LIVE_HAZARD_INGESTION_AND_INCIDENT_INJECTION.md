@@ -207,20 +207,23 @@ Converts safety protocol instructions and emergency broadcasts into a playable 1
                                       │
                ┌──────────────────────┴──────────────────────┐
                ▼                                             ▼
-     [Primary: Zero-Latency]                        [Fallback: 100% Guaranteed]
-  Browser Web Speech Synthesis                      Backend WAV Audio Stream
-   (window.speechSynthesis)                           (/api/v1/mitra/tts)
-               │                                             │
-               └──────────────────────┬──────────────────────┘
-                                      │
-                                      ▼
-                      🔊 Audible Voice Output Across
-                         All Devices and Platforms
+      [Primary: Zero-Latency]                        [Fallback / Neural Upgrade]
+   Browser Web Speech Synthesis                      Backend Neural Audio Stream
+    (window.speechSynthesis)                           (/api/v1/mitra/tts)
+     • Tuned pitch: 1.0 (natural)                      • Microsoft Neural TTS
+     • Measured rate: 0.96 (clear)                     • en-IN-NeerjaNeural (female)
+     • Prioritizes female personas                     • Studio broadcast quality
+                │                                             │
+                └──────────────────────┬──────────────────────┘
+                                       │
+                                       ▼
+                       🔊 Crystal-Clear Female Voice Output Across
+                          All Devices, Browsers & Operating Systems
 ```
 
-1. **Layer 1 (Zero-Latency Browser Speech):** By default, speech is executed in-browser via the W3C Web Speech API (`window.speechSynthesis`) using native Indian English voices (`en-IN`).
-2. **Layer 2 (Guaranteed Backend WAV Stream):** If the cadet's browser disables speech, blocks audio autoplay, or runs in a restricted mobile environment, the system automatically falls back to fetching and streaming the audio directly from `/api/v1/mitra/tts` via an HTML5 `Audio` element.
-3. **Zero External API Requirement:** Neither layer requires a Gemini API key or third-party cloud speech subscription.
+1. **Layer 1 (Tuned Zero-Latency Browser Speech):** By default, speech is executed in-browser via the W3C Web Speech API (`window.speechSynthesis`). Pitch is normalized to `1.0` (eliminating robotic raspy harmonic distortion) and speech rate is tuned to `0.96` (calm, sensible, articulate cadence). The engine ranks and selects natural female voices (`Neerja`, `Jenny`, `Aria`, `Sonia`, `Samantha`, `Zira`, `Google UK/US Female`), automatically filtering out male and mechanical engines.
+2. **Layer 2 (Microsoft Neural TTS Stream):** If the client runs on Linux with only mechanical `espeak` voices installed, or if browser speech fails, the platform automatically streams studio-grade neural female speech (`en-IN-NeerjaNeural` or `en-US-JennyNeural`) generated on `/api/v1/mitra/tts` via `edge-tts` directly into an HTML5 `Audio` element.
+3. **Zero Third-Party Cost or API Keys:** Both layers operate with zero cloud subscription cost and zero required API keys.
 
 ---
 
