@@ -195,44 +195,155 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         scene.add(w);
       }
     }
-    /* door meshes: thin panel on a hinge pivot — swings open 90° when the player pushes through */
-    const doorPivots = new Map<number, { pivot: THREE.Group; targetAngle: number; currentAngle: number }>();
-    const doorMatClosed = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.45, metalness: 0.22, emissive: 0x3a1f00, emissiveIntensity: 0.45 });
-    const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.55, metalness: 0.5 });
+    /* door meshes: realistic architectural fire door fixed to adjacent walls, swinging open 90° on hinges */
+    interface DoorPivotState {
+      pivot: THREE.Group;
+      targetAngle: number;
+      currentAngle: number;
+      panelMat?: THREE.MeshStandardMaterial;
+      glassMat?: THREE.MeshStandardMaterial;
+    }
+    const doorPivots = new Map<number, DoorPivotState>();
+    const doorMatClosed = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      roughness: 0.38,
+      metalness: 0.28,
+      emissive: 0x451a03,
+      emissiveIntensity: 0.45,
+    });
+    const doorFrameMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.5,
+      metalness: 0.65,
+    });
+    const metalTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.25,
+      metalness: 0.85,
+    });
+    const pushBarMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.2,
+      metalness: 0.9,
+    });
+    const glassClosedMat = new THREE.MeshStandardMaterial({
+      color: 0x064e3b,
+      roughness: 0.1,
+      metalness: 0.85,
+      emissive: 0x059669,
+      emissiveIntensity: 0.35,
+    });
+
     doors.forEach((idx) => {
       const c = idx % cols;
       const r = Math.floor(idx / cols);
-      const isHorizontal = fp.at(c, r - 1) === "#" || fp.at(c, r + 1) === "#";
 
-      // Door frame (thin posts on each side)
+      // Determine wall orientation by checking neighbouring cells
+      const hasWest = fp.at(c - 1, r) === "#";
+      const hasEast = fp.at(c + 1, r) === "#";
+      const hasNorth = fp.at(c, r - 1) === "#";
+      const hasSouth = fp.at(c, r + 1) === "#";
+      const ewScore = (hasWest ? 1 : 0) + (hasEast ? 1 : 0);
+      const nsScore = (hasNorth ? 1 : 0) + (hasSouth ? 1 : 0);
+      // If ewScore >= nsScore (and > 0), the wall runs East-West (along X).
+      // If nsScore > ewScore, the wall runs North-South (along Z).
+      const isWallAlongX = ewScore >= nsScore && ewScore > 0 ? true : nsScore > 0 ? false : true;
+
       const frameGroup = new THREE.Group();
-      const postGeo = new THREE.BoxGeometry(0.08, 2.5, 0.08);
-      const postL = new THREE.Mesh(postGeo, doorFrameMat);
-      postL.position.set(-CELL * 0.44, 1.25, 0);
-      frameGroup.add(postL);
-      const postR = new THREE.Mesh(postGeo, doorFrameMat);
-      postR.position.set(CELL * 0.44, 1.25, 0);
-      frameGroup.add(postR);
-      // Top lintel
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.96, 0.1, 0.08), doorFrameMat);
-      lintel.position.set(0, 2.5, 0);
-      frameGroup.add(lintel);
 
-      // Pivot — sits at the left hinge edge, so the door swings from that edge
+      // 1. Top Wall Header / Arch: seamless bridge matching wall geometry & material
+      // Wall height is 2.6. Door opening height is 2.22. Header fills 2.22 to 2.6 (0.38m tall).
+      const headerH = 0.38;
+      const wallHeader = new THREE.Mesh(
+        new THREE.BoxGeometry(CELL, headerH, CELL),
+        wallMat
+      );
+      wallHeader.position.set(0, 2.6 - headerH / 2, 0);
+      frameGroup.add(wallHeader);
+
+      // 2. Heavy-duty architectural metal door frame
+      const jambW = 0.10;
+      const jambH = 2.6 - headerH; // 2.22m
+      const jambD = 0.42; // sturdy casing in wall opening
+
+      // Left Jamb (touches left wall face at -CELL/2 with 0 gap)
+      const postL = new THREE.Mesh(new THREE.BoxGeometry(jambW, jambH, jambD), doorFrameMat);
+      postL.position.set(-CELL / 2 + jambW / 2, jambH / 2, 0);
+      frameGroup.add(postL);
+
+      // Right Jamb (touches right wall face at +CELL/2 with 0 gap)
+      const postR = new THREE.Mesh(new THREE.BoxGeometry(jambW, jambH, jambD), doorFrameMat);
+      postR.position.set(CELL / 2 - jambW / 2, jambH / 2, 0);
+      frameGroup.add(postR);
+
+      // Frame Lintel trim directly below wall header
+      const frameLintel = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.05, jambD + 0.02), doorFrameMat);
+      frameLintel.position.set(0, jambH - 0.025, 0);
+      frameGroup.add(frameLintel);
+
+      // Floor threshold strip
+      const threshold = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.02, jambD), metalTrimMat);
+      threshold.position.set(0, 0.01, 0);
+      frameGroup.add(threshold);
+
+      // 3. Swinging Door Panel on Hinge Pivot
+      const doorW = CELL - 2 * jambW; // 1.80m clear span
+      const doorH = jambH - 0.06; // 2.16m panel
+      const doorThick = 0.08;
+
       const pivot = new THREE.Group();
-      // Door panel: thin flat slab, offset so left edge is at pivot origin
-      const panelGeo = new THREE.BoxGeometry(CELL * 0.84, 2.3, 0.06);
-      const panel = new THREE.Mesh(panelGeo, doorMatClosed.clone());
-      panel.position.set(CELL * 0.42, 1.2, 0); // offset half-width so left edge is at x=0
+      // Pivot sits right at the inner edge of the left jamb
+      pivot.position.set(-CELL / 2 + jambW, 0, 0);
+
+      // Main door panel slab
+      const panelMat = doorMatClosed.clone();
+      const panelGeo = new THREE.BoxGeometry(doorW, doorH, doorThick);
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(doorW / 2, doorH / 2 + 0.02, 0);
       pivot.add(panel);
-      // Position pivot at the left post
-      pivot.position.set(-CELL * 0.42, 0, 0);
+
+      // Emergency vision window slit
+      const glassMat = glassClosedMat.clone();
+      const visionGlass = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.72, doorThick + 0.01), glassMat);
+      visionGlass.position.set(doorW * 0.62, 1.42, 0);
+      pivot.add(visionGlass);
+
+      // Vision window frame rim
+      const visionFrame = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.76, doorThick + 0.015), metalTrimMat);
+      visionFrame.position.set(doorW * 0.62, 1.42, 0);
+      pivot.add(visionFrame);
+
+      // Emergency crash/push bar on the door face
+      const pushBar = new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.7, 0.05, 0.04), pushBarMat);
+      pushBar.position.set(doorW * 0.52, 1.02, doorThick / 2 + 0.03);
+      pivot.add(pushBar);
+      const pushBarMount1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), metalTrimMat);
+      pushBarMount1.position.set(doorW * 0.18, 1.02, doorThick / 2 + 0.02);
+      pivot.add(pushBarMount1);
+      const pushBarMount2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), metalTrimMat);
+      pushBarMount2.position.set(doorW * 0.86, 1.02, doorThick / 2 + 0.02);
+      pivot.add(pushBarMount2);
+
+      // Protective kickplate at bottom
+      const kickplate = new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.96, 0.28, doorThick + 0.005), metalTrimMat);
+      kickplate.position.set(doorW / 2, 0.16, 0);
+      pivot.add(kickplate);
+
+      // Realistic hinge cylinders attached to the left post
+      for (const hy of [0.45, 1.85]) {
+        const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.09, 12), doorFrameMat);
+        hinge.position.set(0, hy, 0);
+        pivot.add(hinge);
+      }
+
       frameGroup.add(pivot);
 
+      // Position in world and rotate to align with wall
       frameGroup.position.copy(cellToWorld(c, r));
-      frameGroup.rotation.y = isHorizontal ? 0 : Math.PI / 2;
+      frameGroup.rotation.y = isWallAlongX ? 0 : Math.PI / 2;
       scene.add(frameGroup);
-      doorPivots.set(idx, { pivot, targetAngle: 0, currentAngle: 0 });
+
+      doorPivots.set(idx, { pivot, targetAngle: 0, currentAngle: 0, panelMat, glassMat });
     });
 
     /* ── exit beacons & architectural emergency stairwells ── */
@@ -1013,6 +1124,16 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           const dp = doorPivots.get(pIdx);
           if (dp) {
             dp.targetAngle = -Math.PI / 2; // swing 90° open
+            if (dp.panelMat) {
+              dp.panelMat.color.setHex(0x10b981);
+              dp.panelMat.emissive.setHex(0x047857);
+              dp.panelMat.emissiveIntensity = 0.5;
+            }
+            if (dp.glassMat) {
+              dp.glassMat.color.setHex(0x34d399);
+              dp.glassMat.emissive.setHex(0x10b981);
+              dp.glassMat.emissiveIntensity = 0.85;
+            }
           }
         }
 
