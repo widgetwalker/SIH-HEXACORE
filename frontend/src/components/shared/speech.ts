@@ -44,7 +44,11 @@ export function selectClearFemaleVoice(
     let score = 0;
 
     // Hard disqualifiers: male voices or harsh mechanical synthesizers
-    if (/male|david|mark|george|richard|guy|stefan|paul|frank|fred|bruce|ralph|albert|espeak-default/i.test(name)) {
+    if (
+      /male|david|mark|george|richard|guy|stefan|paul|frank|fred|bruce|ralph|albert|espeak|speech-dispatcher|mbrola|festival|dummy/i.test(
+        name
+      )
+    ) {
       continue;
     }
 
@@ -90,13 +94,13 @@ export function selectClearFemaleVoice(
   }
 
   // A score >= 25 indicates a genuine, clear female or natural voice is available
-  const isHighQuality = bestScore >= 25;
+  const isHighQuality = bestScore >= 25 && bestVoice !== null;
   return { voice: bestVoice, isHighQuality };
 }
 
 /**
- * Play crystal-clear synthesized speech directly from the backend /api/v1/mitra/tts stream.
- * Employs Microsoft Neural TTS (en-IN-NeerjaNeural / en-US-JennyNeural) for studio-grade human female speech.
+ * Play crystal-clear synthesized speech directly from the Microsoft Neural TTS stream (/api/mitra/tts).
+ * Employs Microsoft Neural TTS (en-IN-NeerjaNeural) for studio-grade human female speech.
  */
 export async function playBackendAudio(text: string, lang = "en-in", token = currentSpeechToken): Promise<boolean> {
   if (typeof window === "undefined" || !text) return false;
@@ -111,7 +115,7 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
       resolve(result);
     };
 
-    // Strict 2.5s network timeout: immediately fall back to local voice if backend stream doesn't start
+    // Strict 3.5s network timeout: immediately fall back if neural stream does not begin
     const timeoutTimer = setTimeout(() => {
       if (backendAudioInstance) {
         try {
@@ -122,31 +126,14 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
         }
       }
       finish(false);
-    }, 2500);
+    }, 3500);
 
     try {
-      const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
+      // Direct same-origin Next.js endpoint: synthesizes Microsoft Neural en-IN-NeerjaNeural
+      // Same-origin URL guarantees zero mixed-content errors on HTTPS and zero localhost connection issues
+      const audioUrl = `/api/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
 
-      const isPublicHost =
-        typeof window !== "undefined" &&
-        window.location.hostname !== "localhost" &&
-        window.location.hostname !== "127.0.0.1";
-
-      // On deployed public hosts (like Netlify), if backend URL points to localhost or insecure HTTP,
-      // skip attempting backend fetch to avoid ERR_CONNECTION_TIMED_OUT or mixed-content blocking.
-      if (
-        isPublicHost &&
-        (backendUrl.includes("localhost") ||
-          backendUrl.includes("127.0.0.1") ||
-          (window.location.protocol === "https:" && backendUrl.startsWith("http://")))
-      ) {
-        finish(false);
-        return;
-      }
-
-      const audioUrl = `${backendUrl}/api/v1/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
-
-      // Cancel any active browser speech synthesis before playing backend audio
+      // Cancel any active browser speech synthesis before playing neural audio
       if ("speechSynthesis" in window) {
         try {
           window.speechSynthesis.cancel();
@@ -205,9 +192,9 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
 
 /**
  * Main speech dispatch:
- * Strictly uses the decided Microsoft Neural Indian English female voice (en-IN-NeerjaNeural).
+ * Strictly locked to the decided Microsoft Neural Indian English female voice (en-IN-NeerjaNeural).
  * Immediately terminates any active speech before speaking so voices never collide or overlap.
- * Automatically falls back to browser synthesis within 2.5s if backend is unreachable.
+ * Completely prohibits raspy robotic synthesizers (espeak).
  */
 export function speak(text: string) {
   if (typeof window === "undefined" || !text) return;
@@ -227,17 +214,19 @@ export function speak(text: string) {
       if (voices.length === 0 && "speechSynthesis" in window) {
         voices = window.speechSynthesis.getVoices();
       }
-      const { voice: femaleVoice } = selectClearFemaleVoice(voices);
-      const chosenVoice = femaleVoice || (voices.length > 0 ? voices[0] : null);
+      const { voice: femaleVoice, isHighQuality } = selectClearFemaleVoice(voices);
+
+      // STRICT USER REQUIREMENT:
+      // Absolutely NEVER fall back to raspy robotic synthesizers (espeak) or male voices.
+      // If no natural high-quality female voice is installed on this device, suppress voice rather than sound robotic.
+      if (!femaleVoice || !isHighQuality) {
+        return;
+      }
 
       try {
         const utter = new SpeechSynthesisUtterance(text);
-        if (chosenVoice) {
-          utter.voice = chosenVoice;
-          utter.lang = chosenVoice.lang || "en-IN";
-        } else {
-          utter.lang = "en-IN";
-        }
+        utter.voice = femaleVoice;
+        utter.lang = femaleVoice.lang || "en-IN";
         utter.pitch = 1.05;
         utter.rate = 0.96;
         activeUtterance = utter;
