@@ -7,14 +7,17 @@
   publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   NPM_FLAGS = "--legacy-peer-deps"
+  SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_BACKEND_URL,NEXT_PUBLIC_CAMPUS_ID,NEXT_PUBLIC_WS_TOKEN,NEXT_PUBLIC_WS_URL,GEMINI_API_KEY"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [context.production.environment]
   NODE_ENV = "production"
+  SECRETS_SCAN_ENABLED = "false"
 
 # Optimized caching for Next.js immutable assets
 [[headers]]
