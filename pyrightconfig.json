@@ -2,6 +2,7 @@
   "venvPath": "/home/widget/REQUIREMENTS/sih/SIH-HEXACORE/backend",
   "venv": "venv",
   "extraPaths": [
-    "/home/widget/REQUIREMENTS/sih/SIH-HEXACORE/backend"
+    "/home/widget/REQUIREMENTS/sih/SIH-HEXACORE/backend",
+    "/home/widget/REQUIREMENTS/sih/SIH-HEXACORE/backend/venv/lib/python3.12/site-packages"
   ]
 }

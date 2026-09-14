@@ -30,7 +30,7 @@ router = APIRouter()
 #
 # Note: em-dashes (U+2014) in the brief text have been kept as-is since
 # the original scenarios.json already uses them.
-SCENARIOS_DB: List[Scenario] = [
+_RAW_SCENARIOS = [
     {
         "id": "lab-fire-east-wing",
         "name": "Lab Fire",
@@ -168,6 +168,8 @@ SCENARIOS_DB: List[Scenario] = [
         "blockages": [],
     },
 ]
+
+SCENARIOS_DB: List[Scenario] = [Scenario.model_validate(s) for s in _RAW_SCENARIOS]
 
 
 @router.get(

@@ -59,6 +59,7 @@ class Scenario(BaseModel):
     fogDensity: float = Field(..., ge=0, le=1, description="Fog obscuration factor")
     colors: ScenarioColors
     map: List[str] = Field(default_factory=list, description="ASCII floor plan, one row per string")
+    floors: Optional[List[List[str]]] = Field(default=None, description="Multi-floor ASCII maps")
     blockages: List[BlockageEvent] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
