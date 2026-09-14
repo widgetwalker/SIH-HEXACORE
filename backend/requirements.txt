@@ -29,3 +29,6 @@ websockets==12.0
 
 # JWT for WebSocket authentication
 pyjwt==2.9.0
+
+# Neural text-to-speech for crystal-clear female emergency voice
+edge-tts>=7.2.8

@@ -4,16 +4,110 @@ let latestAlertId: string | number | null = null;
 const recentlyAnnounced = new Map<string, number>();
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let backendAudioInstance: HTMLAudioElement | null = null;
+let cachedVoices: SpeechSynthesisVoice[] = [];
 
 /**
- * Play synthesized speech directly from the backend /api/v1/mitra/tts WAV stream.
- * Guaranteed fallback across all devices/browsers even without Gemini API or browser speech support.
+ * Pre-cache and refresh available browser synthesis voices.
+ */
+function getAvailableVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return [];
+  const voices = window.speechSynthesis.getVoices();
+  if (voices && voices.length > 0) {
+    cachedVoices = voices;
+  }
+  return cachedVoices.length > 0 ? cachedVoices : voices;
+}
+
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  getAvailableVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    getAvailableVoices();
+  };
+}
+
+/**
+ * Select the highest-clarity natural female voice available.
+ * Returns the selected voice and a boolean indicating whether it is a high-grade natural voice.
+ */
+export function selectClearFemaleVoice(
+  voices: SpeechSynthesisVoice[]
+): { voice: SpeechSynthesisVoice | null; isHighQuality: boolean } {
+  if (!voices || voices.length === 0) return { voice: null, isHighQuality: false };
+
+  let bestVoice: SpeechSynthesisVoice | null = null;
+  let bestScore = -999;
+
+  for (const v of voices) {
+    const name = v.name.toLowerCase();
+    const lang = v.lang.toLowerCase();
+    let score = 0;
+
+    // Hard disqualifiers: male voices or harsh mechanical synthesizers
+    if (/male|david|mark|george|richard|guy|stefan|paul|frank|fred|bruce|ralph|albert|espeak-default/i.test(name)) {
+      continue;
+    }
+
+    // Tier 1: Natural / Neural / Studio cloud voices (highest clarity)
+    if (/(natural|neural|online|wavenet|studio|journey)/i.test(name)) {
+      score += 60;
+    }
+
+    // Tier 2: Renowned high-clarity natural female personas
+    if (/(neerja|jenny|aria|sonia|samantha|victoria|karen|serena|ava|steffi|fiona|veena|zira|tessa|moira|alice|allison)/i.test(name)) {
+      score += 50;
+    }
+
+    // Google High-Fidelity browser voices
+    if (/google/i.test(name)) {
+      score += 35;
+      if (/uk english female|female|us english/i.test(name)) score += 25;
+    }
+
+    // Explicit female descriptor in voice name or URI
+    if (/female|woman/i.test(name) || /female/i.test(v.voiceURI)) {
+      score += 35;
+    }
+
+    // Language priority: Indian English (Mitra persona), then British / US English
+    if (lang.startsWith("en-in")) {
+      score += 25;
+    } else if (lang.startsWith("en-gb") || lang.startsWith("en-us") || lang.startsWith("en")) {
+      score += 15;
+    } else {
+      score -= 40; // Non-English penalty
+    }
+
+    // Heavy penalty for mechanical / raspy Linux fallback engines
+    if (/espeak|speech-dispatcher|mbrola|dummy/i.test(name)) {
+      score -= 80;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestVoice = v;
+    }
+  }
+
+  // A score >= 25 indicates a genuine, clear female or natural voice is available
+  const isHighQuality = bestScore >= 25;
+  return { voice: bestVoice, isHighQuality };
+}
+
+/**
+ * Play crystal-clear synthesized speech directly from the backend /api/v1/mitra/tts stream.
+ * Employs Microsoft Neural TTS (en-IN-NeerjaNeural / en-US-JennyNeural) for studio-grade human female speech.
  */
 export async function playBackendAudio(text: string, lang = "en-in"): Promise<boolean> {
   if (typeof window === "undefined" || !text) return false;
   try {
     const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
     const audioUrl = `${backendUrl}/api/v1/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
+
+    // Cancel any active browser speech synthesis before playing backend audio
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      activeUtterance = null;
+    }
 
     if (backendAudioInstance) {
       backendAudioInstance.pause();
@@ -26,11 +120,17 @@ export async function playBackendAudio(text: string, lang = "en-in"): Promise<bo
     await audio.play();
     return true;
   } catch (err) {
-    console.warn("Backend TTS playback error:", err);
+    console.warn("Backend neural TTS playback error:", err);
     return false;
   }
 }
 
+/**
+ * Main speech dispatch:
+ * 1. Checks available browser voices.
+ * 2. If a high-clarity natural female voice is available, speaks immediately with tuned natural pitch (1.0) and articulate pace (0.96).
+ * 3. If only raspy/robotic/espeak voices are installed (common on Linux desktop), automatically uses backend studio neural TTS.
+ */
 export function speak(text: string, forceBackend = false) {
   if (typeof window === "undefined" || !text) return;
 
@@ -39,38 +139,46 @@ export function speak(text: string, forceBackend = false) {
     return;
   }
 
-  // Attempt browser speech synthesis first (zero latency)
   if ("speechSynthesis" in window) {
     try {
+      if (backendAudioInstance) {
+        backendAudioInstance.pause();
+        backendAudioInstance.currentTime = 0;
+      }
+
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
       window.speechSynthesis.cancel();
 
+      const voices = getAvailableVoices();
+      const { voice: selectedVoice, isHighQuality } = selectClearFemaleVoice(voices);
+
+      // If the browser only has raspy or mechanical robot voices (e.g. Linux default espeak),
+      // seamlessly stream the studio neural female voice from the backend instead.
+      if (!isHighQuality || !selectedVoice) {
+        playBackendAudio(text);
+        return;
+      }
+
       const utter = new SpeechSynthesisUtterance(text);
       activeUtterance = utter;
-      utter.lang = "en-IN";
-      utter.rate = 1.04;
-      utter.pitch = 1.25; // Crisp elevated pitch eliminates low-frequency raspy robot buzz
-      utter.volume = 1.0;
+      utter.voice = selectedVoice;
+      utter.lang = selectedVoice.lang || "en-IN";
 
-      const voices = window.speechSynthesis.getVoices();
-      // Prioritize natural female voices (Google, Natural, Samantha, Zira, Neerja, Victoria, Karen)
-      const preferred =
-        voices.find((v) => /female|zira|samantha|victoria|neerja|karen|serena|ava|jenny|google.*(female|uk|in)/i.test(v.name)) ||
-        voices.find((v) => v.lang === "en-IN" && /female|natural/i.test(v.name)) ||
-        voices.find((v) => v.lang === "en-IN") ||
-        voices.find((v) => /natural|google/i.test(v.name) && v.lang.startsWith("en")) ||
-        voices.find((v) => v.lang.startsWith("en") && !/male|david|mark|george|espeak-default/i.test(v.name)) ||
-        voices.find((v) => v.lang.startsWith("en"));
-      if (preferred) utter.voice = preferred;
+      // Tuned parameters for maximum clarity and sensible, warm female cadence:
+      // Pitch 1.0 preserves natural human vocal resonance without tinny or raspy distortion
+      utter.pitch = 1.0;
+      // Rate 0.96 provides deliberate, articulate pronunciation essential for safety messages
+      utter.rate = 0.96;
+      utter.volume = 1.0;
 
       utter.onend = () => {
         activeUtterance = null;
       };
       utter.onerror = () => {
         activeUtterance = null;
-        // Automatic fallback to backend audio if browser speech synthesis fails
+        // Automatic fallback to studio neural audio if browser speech synthesis fails
         playBackendAudio(text);
       };
 
@@ -81,7 +189,7 @@ export function speak(text: string, forceBackend = false) {
       }
       return;
     } catch {
-      // Fallback
+      // Fallback to backend audio on any unexpected browser synthesis error
     }
   }
 
@@ -121,10 +229,15 @@ export function stopSpeaking() {
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
     window.speechSynthesis.cancel();
   }
+  if (backendAudioInstance) {
+    backendAudioInstance.pause();
+    backendAudioInstance.currentTime = 0;
+  }
   latestAlertId = null;
 }
 
 export function isSpeechSupported(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
+  return typeof window !== "undefined" && ("speechSynthesis" in window || true);
 }
+
 
