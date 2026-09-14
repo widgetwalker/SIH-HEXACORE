@@ -176,7 +176,21 @@ export function speak(text: string, forceBackend = false) {
       // If the browser only has raspy or mechanical robot voices (e.g. Linux default espeak),
       // seamlessly stream the studio neural female voice from the backend instead.
       if (!isHighQuality || !selectedVoice) {
-        playBackendAudio(text, "en-in", token);
+        playBackendAudio(text, "en-in", token).then((success) => {
+          if (!success && typeof window !== "undefined" && "speechSynthesis" in window) {
+            try {
+              const allVoices = getAvailableVoices();
+              const v = selectedVoice || allVoices.find((x) => x.lang.startsWith("en")) || allVoices[0];
+              const fallbackUtter = new SpeechSynthesisUtterance(text);
+              if (v) fallbackUtter.voice = v;
+              fallbackUtter.pitch = 1.0;
+              fallbackUtter.rate = 0.96;
+              window.speechSynthesis.speak(fallbackUtter);
+            } catch (synthErr) {
+              console.warn("Browser synthesis fallback error:", synthErr);
+            }
+          }
+        });
         return;
       }
 

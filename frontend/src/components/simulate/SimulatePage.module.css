@@ -430,6 +430,54 @@
   background: var(--accent-teal-dim);
   box-shadow: var(--glow-teal-sm);
 }
+.mitraMuteBtn {
+  background: rgba(0, 32, 27, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mitraMuteBtn:hover {
+  border-color: var(--border-teal);
+  color: var(--text-primary);
+}
+.mitraMsgRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  max-width: 90%;
+}
+.mitraMsgUserRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+  max-width: 90%;
+}
+.mitraReplayBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.mitraReplayBtn:hover {
+  opacity: 1;
+  color: var(--accent-teal);
+  transform: scale(1.15);
+}
 .mitraTranscript {
   font-family: var(--font-mono);
   font-size: 0.75rem;

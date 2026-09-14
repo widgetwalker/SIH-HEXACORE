@@ -280,8 +280,9 @@ async def _generate_tts_wav(text: str, lang: str = "en-in") -> bytes:
     return bytes_out
 
 
-@router.get(
+@router.api_route(
     "/mitra/tts",
+    methods=["GET", "HEAD"],
     summary="Mitra TTS audio synthesis (Stream)",
     tags=["mitra"],
 )

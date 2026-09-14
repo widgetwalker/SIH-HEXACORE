@@ -95,6 +95,8 @@ export default function SimulatePage() {
   const [mitraLoading, setMitraLoading] = useState(false);
   const [mitraBubble, setMitraBubble] = useState<MitraBubble | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
   const mitraLogRef = useRef<HTMLDivElement>(null);
@@ -106,37 +108,117 @@ export default function SimulatePage() {
   const goodLineIdxRef = useRef(0);
   const scenario = learnScenario ?? SCENARIOS[selIdx];
 
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  };
+
+  const startListening = async () => {
+    setMicError(null);
+    const SpeechRec = typeof window !== "undefined" &&
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+    if (!SpeechRec) {
+      setMitraInput("⚠️ Speech recognition is not supported in this browser. Please use Chrome/Edge or type.");
+      return;
+    }
+
+    // Explicitly prompt for mic permission
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (permErr: any) {
+      console.warn("Microphone access denied:", permErr);
+      setMicError("Microphone permission was denied.");
+      setMitraInput("⚠️ Microphone access denied. Please allow microphone in browser address bar.");
+      return;
+    }
+
+    try {
+      stopListening();
+
+      const rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = "en-IN";
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setMitraInput("");
+      };
+
+      rec.onresult = (e: any) => {
+        let interim = "";
+        let final = "";
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          const result = e.results[i];
+          if (result.isFinal) {
+            final += result[0].transcript;
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+        const text = final || interim;
+        if (text) {
+          setMitraInput(text);
+        }
+        if (final && final.trim()) {
+          rec.stop();
+          sendMitra(final.trim());
+        }
+      };
+
+      rec.onerror = (e: any) => {
+        console.warn("Speech recognition error:", e.error);
+        setIsListening(false);
+        if (e.error === "not-allowed" || e.error === "permission-denied") {
+          setMicError("Mic blocked");
+          setMitraInput("⚠️ Mic permission blocked. Please allow mic in browser settings.");
+        } else if (e.error === "network") {
+          setMitraInput("⚠️ Speech network service error. Please try again or type.");
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (startErr) {
+      console.warn("Failed to start speech recognition:", startErr);
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const speakMitra = (text: string) => {
+    if (isMuted) return;
+    speak(text);
+  };
+
   useEffect(() => {
     return () => {
       if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+      stopSpeaking();
+      stopListening();
     };
   }, []);
-
-  useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition && !recognitionRef.current) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "en-IN";
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-      recognitionRef.current = recognition;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = (e: any) => {
-        const transcript = e.results[0][0].transcript;
-        if (transcript) {
-          setMitraInput(transcript);
-          sendMitra(transcript);
-        }
-      };
-    }
-  }, [mitraMessages, gs, phase, scenario, mitraLoading]);
 
   useEffect(() => {
     if (!mitraPanelRef.current) return;
@@ -160,23 +242,16 @@ export default function SimulatePage() {
       if (next) {
         setMitraBubble(null);
         if (mitraMessages.length === 0) {
-          setMitraMessages([{ role: "mitra", text: getMitraTip(gs) }]);
+          const initialTip = getMitraTip(gs);
+          setMitraMessages([{ role: "mitra", text: initialTip }]);
+          speakMitra(initialTip);
         }
+      } else {
+        stopSpeaking();
+        stopListening();
       }
       return next;
     });
-  };
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      recognitionRef.current?.start();
-    }
-  };
-
-  const speakMitra = (text: string) => {
-    speak(text);
   };
 
   // When a campus emergency is injected/broadcast, Mitra verbalizes the
@@ -189,12 +264,6 @@ export default function SimulatePage() {
     setMitraMessages((m) => [...m, { role: "mitra", text: `🚨 ${latest.msg}` }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcasts.length]);
-
-  useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
-  }, []);
 
   const sendMitra = async (raw: string) => {
     const text = raw.trim();
@@ -243,6 +312,7 @@ export default function SimulatePage() {
 
   const showBubble = (text: string, tone: MitraBubble["tone"]) => {
     setMitraBubble({ text, tone });
+    speakMitra(text);
     if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
     bubbleTimerRef.current = setTimeout(() => setMitraBubble(null), 4500);
   };
@@ -478,12 +548,37 @@ export default function SimulatePage() {
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
-            <span className="hud-label">Mitra · Crisis Companion</span>
+            <div className={styles.mitraHeader}>
+              <span className="hud-label">Mitra · Crisis Companion</span>
+              <button
+                type="button"
+                className={styles.mitraMuteBtn}
+                onClick={() => {
+                  if (!isMuted) stopSpeaking();
+                  setIsMuted(!isMuted);
+                }}
+                title={isMuted ? "Unmute Mitra voice" : "Mute Mitra voice"}
+              >
+                {isMuted ? "🔇 Muted" : "🔊 Voice On"}
+              </button>
+            </div>
             <div ref={mitraLogRef} className={styles.mitraLog}>
               {mitraMessages.map((m, i) => (
-                <p key={i} className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
-                  {m.text}
-                </p>
+                <div key={i} className={m.role === "user" ? styles.mitraMsgUserRow : styles.mitraMsgRow}>
+                  <p className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
+                    {m.text}
+                  </p>
+                  {m.role === "mitra" && (
+                    <button
+                      type="button"
+                      className={styles.mitraReplayBtn}
+                      onClick={() => speakMitra(m.text)}
+                      title="Hear Mitra speak again"
+                    >
+                      🔊
+                    </button>
+                  )}
+                </div>
               ))}
               {mitraLoading && (
                 <div className={styles.typing}><span /><span /><span /></div>
@@ -500,15 +595,16 @@ export default function SimulatePage() {
                 type="button"
                 className={`${styles.mitraMic} ${isListening ? styles.listeningPulse : ""}`}
                 onClick={toggleListening}
-                title="Use voice"
+                title={isListening ? "Listening... click to stop" : "Click to speak with Mitra"}
+                aria-label={isListening ? "Stop listening" : "Start microphone"}
               >
-                🎤
+                {isListening ? "🔴" : "🎤"}
               </button>
               <input
                 className={styles.mitraInput}
                 value={mitraInput}
                 onChange={(e) => setMitraInput(e.target.value)}
-                placeholder="Ask Mitra..."
+                placeholder={isListening ? "🎙️ Listening... speak now..." : "Ask Mitra... (or click 🎤 to speak)"}
                 disabled={mitraLoading}
                 data-cursor
               />
