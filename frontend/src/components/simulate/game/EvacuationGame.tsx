@@ -208,19 +208,126 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       doorMeshes.set(idx, d);
     });
 
-    /* ── exit beacons (multiple supported) — cinematic emissive pillars ── */
+    /* ── exit beacons & architectural emergency stairwells ── */
     const exitWorlds = exits.map((e) => cellToWorld(e.c, e.r));
-    for (const ew of exitWorlds) {
+    const stairMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.88,
+      metalness: 0.15,
+    });
+    const nosingMat = new THREE.MeshStandardMaterial({
+      color: 0x10b981,
+      emissive: 0x059669,
+      emissiveIntensity: 0.7,
+      roughness: 0.4,
+    });
+    const railMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.35,
+      metalness: 0.8,
+    });
+
+    const createExitSignTexture = (text: string) => {
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 64;
+      const ctx = c.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#064e3b"; // dark emerald base
+        ctx.fillRect(0, 0, 256, 64);
+        ctx.strokeStyle = "#34d399";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(3, 3, 250, 58);
+
+        // Emergency exit text + arrow symbol
+        ctx.fillStyle = "#ecfdf5";
+        ctx.font = "bold 20px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, 128, 32);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
+    };
+
+    for (let i = 0; i < exits.length; i++) {
+      const ex = exits[i];
+      const ew = exitWorlds[i];
+
+      // Architectural Stairwell Group
+      const stairwellGroup = new THREE.Group();
+      stairwellGroup.position.copy(ew);
+
+      // 3 tiered stairs descending
+      for (let s = 0; s < 3; s++) {
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(CELL * 0.76, 0.14, 0.44),
+          stairMat
+        );
+        step.position.set(0, 0.07 + s * 0.10, -0.55 + s * 0.42);
+        stairwellGroup.add(step);
+
+        // High-visibility green emergency nosing strip on step lip
+        const nosing = new THREE.Mesh(
+          new THREE.BoxGeometry(CELL * 0.76, 0.03, 0.08),
+          nosingMat
+        );
+        nosing.position.set(0, 0.14 + s * 0.10, -0.34 + s * 0.42);
+        stairwellGroup.add(nosing);
+      }
+
+      // Steel safety handrails
+      for (const side of [-CELL * 0.38, CELL * 0.38]) {
+        const rail = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.025, 1.25, 8),
+          railMat
+        );
+        rail.position.set(side, 0.55, -0.15);
+        rail.rotation.x = Math.PI / 9;
+        stairwellGroup.add(rail);
+
+        const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.55, 8), railMat);
+        post1.position.set(side, 0.28, -0.55);
+        stairwellGroup.add(post1);
+
+        const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.75, 8), railMat);
+        post2.position.set(side, 0.45, 0.28);
+        stairwellGroup.add(post2);
+      }
+
+      // Illuminated Emergency Stairwell Sign overhead
+      const signLabel = ex.label ?? (i === 0 ? "STAIRWELL A" : `STAIRWELL ${i + 1}`);
+      const signTex = createExitSignTexture(`EXIT · ${signLabel}`);
+      const signMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.6, 0.42),
+        new THREE.MeshBasicMaterial({ map: signTex, transparent: true, side: THREE.DoubleSide })
+      );
+      signMesh.position.set(0, 2.35, 0);
+      stairwellGroup.add(signMesh);
+
+      scene.add(stairwellGroup);
+
+      // Beacon column & light
       const beacon = new THREE.Mesh(
         new THREE.CylinderGeometry(0.55, 0.55, 6, 24, 1, true),
-        new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 1.15, transparent: true, opacity: 0.42, side: THREE.DoubleSide })
+        new THREE.MeshStandardMaterial({
+          color: 0x10b981,
+          emissive: 0x10b981,
+          emissiveIntensity: 1.15,
+          transparent: true,
+          opacity: 0.42,
+          side: THREE.DoubleSide,
+        })
       );
       beacon.position.copy(ew).setY(3);
       scene.add(beacon);
+
       // soft point light at beacon — cheap, 1 per exit
       const bl = new THREE.PointLight(0x10b981, 2.2, 10);
       bl.position.copy(ew).setY(1.2);
       scene.add(bl);
+
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.7, 0.95, 32),
         new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
@@ -708,17 +815,18 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       const pr = Math.floor(player.position.z / CELL + rows / 2);
       const pIdx = idxOf(pc, pr);
       const nearExit = exitWorlds.some((w) => player.position.distanceTo(w) < CELL * 4);
+      const exitNames = exits.map((e) => e.label ?? "STAIRWELL").join(" or ");
       let message = exits.length > 1
-        ? `Reach any green ASSEMBLY beacon (${exits.length} active)`
-        : "Reach the green ASSEMBLY beacon";
+        ? `Evacuate via ${exitNames} (${exits.length} active)`
+        : `Evacuate via ${exits[0]?.label ?? "emergency exit"}`;
       if (time < bannerUntil) message = bannerMsg;
-      else if (status === "won") message = "Evacuated to assembly point ✓";
+      else if (status === "won") message = "Evacuated to safety via emergency stairwell ✓";
       else if (status === "lost") message = oxygen <= 0 ? `${scen.hazardLabel} exposure fatal - casualty` : "Time expired - drill failed";
       else if (fireSet.has(pIdx)) message = `YOU ARE IN ${scen.hazardLabel} - GET OUT!`;
       else if (breathing) message = "Box-breathing… 4s in, 4s hold, 4s out";
       else if (panic > 70) message = "PANIC HIGH - hold B to box-breathe";
       else if (smokeSet.has(pIdx) && !crouching) message = `${scen.hazardLabel === "TOXIC GAS" ? "Gas!" : "Smoke!"} Hold SHIFT to crawl low`;
-      else if (nearExit) message = "Assembly point ahead!";
+      else if (nearExit) message = "Emergency stairwell ahead!";
 
       /* live routing hint — reuses the same BFS flow-field the NPCs follow */
       const distToExit = distField[pIdx] ?? -1;
