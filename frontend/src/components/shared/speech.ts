@@ -273,7 +273,7 @@ export function announceMitraEmergency(headline: string, detail?: string, alertK
   if (typeof window === "undefined") return;
 
   const now = Date.now();
-  const key = alertKey ?? headline;
+  const key = alertKey ?? `${headline}-${detail ?? ""}`;
   const lastSpoken = recentlyAnnounced.get(key);
   // Do not repeat the exact same alert within 45 seconds
   if (lastSpoken && now - lastSpoken < 45_000) return;
@@ -282,11 +282,25 @@ export function announceMitraEmergency(headline: string, detail?: string, alertK
   // Play urgent siren chime before voice
   playSirenBeep();
 
+  const cleanHeadline = headline ? headline.replace(/·/g, ",").trim() : "";
   const cleanDetail = detail ? detail.replace(/·/g, ",").trim() : "";
-  // If a specific tactical NDMA message is provided, broadcast it directly
-  const speechText = cleanDetail
-    ? `Emergency alert! ${cleanDetail}`
-    : `Emergency alert! Attention all personnel: ${headline}. Initiate campus emergency safety protocols immediately and proceed to safety.`;
+
+  // Combine headline and specific tactical NDMA instruction
+  let speechText = "";
+  if (cleanHeadline && cleanDetail) {
+    // If detail already contains the headline, don't repeat
+    if (cleanDetail.toLowerCase().includes(cleanHeadline.toLowerCase())) {
+      speechText = `Emergency alert! ${cleanDetail}`;
+    } else {
+      speechText = `Emergency alert! ${cleanHeadline}. ${cleanDetail}`;
+    }
+  } else if (cleanDetail) {
+    speechText = `Emergency alert! ${cleanDetail}`;
+  } else if (cleanHeadline) {
+    speechText = `Emergency alert! Attention all personnel: ${cleanHeadline}. Initiate campus emergency safety protocols immediately and proceed to safety.`;
+  } else {
+    speechText = "Emergency alert! Campus emergency safety protocol activated. Proceed to designated safety zones immediately.";
+  }
 
   speak(speechText);
 }
@@ -315,8 +329,6 @@ export function stopSpeaking() {
     try {
       backendAudioInstance.pause();
       backendAudioInstance.currentTime = 0;
-      backendAudioInstance.removeAttribute("src");
-      backendAudioInstance.load();
     } catch {
       /* ignore */
     }

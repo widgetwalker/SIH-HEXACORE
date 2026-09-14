@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
@@ -74,6 +74,7 @@ export default function CommandPage() {
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
   const [acknowledgedAlertIds, setAcknowledgedAlertIds] = useState<Set<string>>(new Set());
+  const lastInjectedTimeRef = useRef<number>(0);
 
   // Geolocation & Sector coordinates (Defaults to Puducherry / Pondicherry)
   const [selectedPreset, setSelectedPreset] = useState<string>("puducherry");
@@ -199,7 +200,54 @@ export default function CommandPage() {
   // STRICT RULE: Only active if there is a real CRITICAL or WARNING threat, or an injected drill.
   // Calm baseline telemetry will NEVER display an emergency threat banner.
   const activeBannerThreat: LiveThreatAlert | null = (() => {
-    // 1. Check active broadcasts that haven't been completely dismissed
+    // 1. If operator clicked or injected a specific drill/alert, prioritize it immediately
+    if (activeAlertId && !dismissedAlertIds.has(activeAlertId)) {
+      if (activeAlertId.startsWith("cap-")) {
+        const capNum = Number(activeAlertId.replace("cap-", ""));
+        const capItem = ALERTS.find((a) => a.id === capNum);
+        if (capItem) {
+          const isCrit = capItem.severity.toLowerCase().includes("extreme") || capItem.severity.toLowerCase().includes("critical");
+          const isWarn = capItem.severity.toLowerCase().includes("warn") || capItem.severity.toLowerCase().includes("alert");
+          return {
+            id: activeAlertId,
+            source: capItem.source,
+            severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
+            title: `${capItem.source} Alert: ${capItem.severity}`,
+            detail: capItem.msg,
+            timestamp: capItem.time,
+          };
+        }
+      }
+
+      const specific = liveAlerts.find((a) => a.id === activeAlertId);
+      if (specific) {
+        const isCrit = specific.severity.toLowerCase().includes("extreme") || specific.severity.toLowerCase().includes("critical");
+        const isWarn = specific.severity.toLowerCase().includes("warn") || specific.severity.toLowerCase().includes("severe");
+        return {
+          id: specific.id,
+          source: specific.source,
+          severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
+          title: specific.headline,
+          detail: specific.detail,
+          timestamp: new Date(specific.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        };
+      }
+
+      const broadcastMatch = broadcasts.find((b) => `drill-${b.receivedAt}` === activeAlertId);
+      if (broadcastMatch) {
+        const timeStr = new Date(broadcastMatch.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        return {
+          id: `drill-${broadcastMatch.receivedAt}`,
+          source: "Campus-IoT",
+          severity: "CRITICAL",
+          title: "Campus Emergency Drill: " + broadcastMatch.msg,
+          detail: `Dispatched across campus network at ${timeStr}. Drill protocol active.`,
+          timestamp: timeStr,
+        };
+      }
+    }
+
+    // 2. Check active broadcasts that haven't been completely dismissed
     const activeBroadcasts = broadcasts.filter((b) => !dismissedAlertIds.has(`drill-${b.receivedAt}`));
     if (activeBroadcasts.length > 0) {
       const b = activeBroadcasts[0];
@@ -214,10 +262,8 @@ export default function CommandPage() {
       };
     }
 
+    // 3. Fallback to severe threats in liveAlerts
     const available = liveAlerts.filter((a) => !dismissedAlertIds.has(a.id));
-    if (available.length === 0) return null;
-
-    // Filter strictly to severe threats
     const critical = available.find((a) => {
       const s = a.severity.toLowerCase();
       return s.includes("extreme") || s.includes("critical");
@@ -227,30 +273,21 @@ export default function CommandPage() {
       return s.includes("warn") || s.includes("severe");
     });
 
-    let target: LiveAlert | undefined = undefined;
-    // 1. If operator clicked or injected a specific drill/alert, prioritize it immediately
-    if (activeAlertId && !dismissedAlertIds.has(activeAlertId)) {
-      target = available.find((a) => a.id === activeAlertId);
+    const target = critical || warning;
+    if (target) {
+      const isCrit = target.severity.toLowerCase().includes("extreme") || target.severity.toLowerCase().includes("critical");
+      const isWarn = target.severity.toLowerCase().includes("warn") || target.severity.toLowerCase().includes("severe");
+      return {
+        id: target.id,
+        source: target.source,
+        severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
+        title: target.headline,
+        detail: target.detail,
+        timestamp: new Date(target.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      };
     }
-    // 2. Otherwise default to highest severity critical or warning
-    if (!target) {
-      target = critical || warning;
-    }
 
-    // If no critical or warning threats exist, do NOT show an emergency threat banner
-    if (!target) return null;
-
-    const isCrit = target.severity.toLowerCase().includes("extreme") || target.severity.toLowerCase().includes("critical");
-    const isWarn = target.severity.toLowerCase().includes("warn") || target.severity.toLowerCase().includes("severe");
-
-    return {
-      id: target.id,
-      source: target.source,
-      severity: isCrit ? "CRITICAL" : isWarn ? "WARNING" : "ADVISORY",
-      title: target.headline,
-      detail: target.detail,
-      timestamp: new Date(target.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    };
+    return null;
   })();
 
   const handleAcknowledgeAlert = async () => {
@@ -289,12 +326,12 @@ export default function CommandPage() {
   };
 
   const handleTriggerProtocol = () => {
-    const title = activeBannerThreat?.title ?? "Campus Emergency";
-    showToast(`⚡ Emergency Protocol Activated: [${title}] — All buildings notified`);
+    if (!activeBannerThreat) return;
+    showToast(`⚡ Emergency Protocol Activated: [${activeBannerThreat.title}] — All buildings notified`);
     announceMitraEmergency(
-      `Campus Emergency Protocol Activated for ${title}`,
-      "All sectors proceed to designated assembly zones immediately.",
-      `trigger-${Date.now()}`
+      activeBannerThreat.title,
+      activeBannerThreat.detail || "All sectors proceed to designated assembly zones immediately.",
+      `trigger-${activeBannerThreat.id}-${Date.now()}`
     );
   };
 
@@ -321,7 +358,10 @@ export default function CommandPage() {
     setLiveAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== drillId)]);
     setActiveAlertId(drillId);
 
-    // Play urgent chime & vocal announcement
+    // Record injection time to suppress WebSocket broadcast echo voice interruption
+    lastInjectedTimeRef.current = Date.now();
+
+    // Play urgent chime & vocal announcement with specific hazard guidance
     playSirenBeep();
     announceMitraEmergency(
       preset.label,
@@ -412,6 +452,13 @@ export default function CommandPage() {
     if (broadcasts.length === 0) return;
     const latest = broadcasts[0];
     showToast(`🚨 ${latest.msg}`);
+
+    // If an incident was just injected locally within the last 6 seconds,
+    // do NOT interrupt its hazard-specific voice announcement with this generic echo!
+    if (Date.now() - lastInjectedTimeRef.current < 6000) {
+      return;
+    }
+
     announceMitraEmergency(
       `Campus Emergency Drill: ${latest.msg}`,
       "All personnel initiate emergency safety protocols immediately and proceed to safety.",
@@ -552,9 +599,13 @@ export default function CommandPage() {
                   key={a.id}
                   className={`${styles.alertItem} ${styles[`alert-${liveAlertColor(a.severity)}`]} ${activeAlertId === a.id ? styles.alertItemActive : ""}`}
                   onClick={() => {
-                    stopSpeaking();
                     setActiveAlertId(a.id);
-                    showToast(`Active hazard focus: [${a.source}] ${a.headline}`);
+                    showToast(`🚨 Active hazard focus: [${a.source}] ${a.headline}`);
+                    announceMitraEmergency(
+                      a.headline,
+                      a.detail || "Initiate emergency safety protocols immediately and proceed to safety.",
+                      `live-${a.id}-${Date.now()}`
+                    );
                   }}
                   role="button"
                   tabIndex={0}
@@ -703,8 +754,17 @@ export default function CommandPage() {
                 {ALERTS.map((a) => (
                   <div
                     key={a.id}
-                    className={`${styles.alertItem} ${styles[`alert-${a.color}`]}`}
-                    onClick={() => showToast(`[${a.source}] ${a.msg}`)}
+                    className={`${styles.alertItem} ${styles[`alert-${a.color}`]} ${activeAlertId === `cap-${a.id}` ? styles.alertItemActive : ""}`}
+                    onClick={() => {
+                      const alertId = `cap-${a.id}`;
+                      setActiveAlertId(alertId);
+                      showToast(`🚨 [${a.source}] ${a.msg}`);
+                      announceMitraEmergency(
+                        `${a.source}: ${a.severity} Alert`,
+                        a.msg,
+                        `cap-${a.id}-${Date.now()}`
+                      );
+                    }}
                     role="button"
                     tabIndex={0}
                     style={{ cursor: "pointer" }}

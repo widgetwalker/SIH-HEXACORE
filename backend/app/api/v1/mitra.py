@@ -249,28 +249,9 @@ async def _generate_tts_audio(text: str, lang: str = "en-in") -> tuple[bytes, st
         if len(audio_data) > 1024:
             return bytes(audio_data), "audio/mpeg", "mitra_speech.mp3"
     except Exception as exc:
-        logger.info("edge_tts neural synthesis unavailable (%s); falling back to local synthesizer", exc)
+        logger.info("edge_tts neural synthesis unavailable (%s); returning fallback chime", exc)
 
-    # 2. Secondary: Local synthesizer with tuned smooth female settings
-    tts_bin = shutil.which("espeak-ng") or shutil.which("espeak")
-    if tts_bin:
-        try:
-            # f4 voice formant is smoother and eliminates raspy buzzy distortion;
-            # pitch 50 is natural neutral pitch; speed 145 gives clear deliberate cadence
-            voice = "en-in+f4" if "in" in lang.lower() else "en-us+f4"
-            cmd = [tts_bin, "--stdout", "-v", voice, "-s", "145", "-p", "50", "-a", "90", "-k", "20", safe_text]
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5.0)
-            if proc.returncode == 0 and len(stdout) > 44:
-                return stdout, "audio/wav", "mitra_speech.wav"
-        except Exception as exc:
-            logger.warning("Local TTS generation error: %s; using fallback chime", exc)
-
-    # 3. Fallback: Clean audio chime
+    # 2. Fallback: Clean harmonic safety chime (Strict rule: NEVER use robotic espeak)
     return _synthesize_fallback_chime(), "audio/wav", "mitra_speech.wav"
 
 
