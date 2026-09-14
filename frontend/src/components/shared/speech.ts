@@ -162,7 +162,7 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
     try {
       // Direct same-origin Next.js endpoint: synthesizes Microsoft Neural en-IN-NeerjaNeural
       // Same-origin URL guarantees zero mixed-content errors on HTTPS and zero localhost connection issues
-      const audioUrl = `/api/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
+      const audioUrl = `/api/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}&t=${Date.now()}`;
 
       // Cancel any active browser speech synthesis before playing neural audio
       if ("speechSynthesis" in window) {
@@ -175,14 +175,18 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
       }
 
       if (backendAudioInstance) {
-        backendAudioInstance.pause();
-        backendAudioInstance.currentTime = 0;
-        backendAudioInstance.src = "";
+        try {
+          backendAudioInstance.pause();
+          backendAudioInstance.removeAttribute("src");
+          backendAudioInstance.load();
+        } catch {
+          /* ignore */
+        }
         backendAudioInstance = null;
       }
 
-      // Reuse pre-unlocked HTMLAudioElement if available to guarantee autoplay compliance
-      const audio = sharedAudio || new Audio();
+      // Create a fresh audio instance for every utterance to prevent buffer bleeding/replaying old speech
+      const audio = new Audio();
       backendAudioInstance = audio;
       audio.volume = 1.0;
 
@@ -328,7 +332,8 @@ export function stopSpeaking() {
   if (backendAudioInstance) {
     try {
       backendAudioInstance.pause();
-      backendAudioInstance.currentTime = 0;
+      backendAudioInstance.removeAttribute("src");
+      backendAudioInstance.load();
     } catch {
       /* ignore */
     }
