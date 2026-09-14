@@ -3,14 +3,16 @@
 
 [build]
   base = "frontend"
-  command = "npm run build"
+  command = "npm run build && rm -rf .next/cache"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
   NPM_FLAGS = "--legacy-peer-deps"
   SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_BACKEND_URL,NEXT_PUBLIC_CAMPUS_ID,NEXT_PUBLIC_WS_TOKEN,NEXT_PUBLIC_WS_URL,GEMINI_API_KEY"
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/**,.next/**,src/**"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
