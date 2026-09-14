@@ -1,6 +1,6 @@
 BACKEND DEV: FastAPI Server, WebSockets & NDMA SACHET Ingestion
 
-> **📋 Last updated:** September 6, 2026 · Branch `feature/backend-websocket`
+> **📋 Last updated:** September 14, 2026 v13 · Branch `main`
 >
 > This is the running playbook for the backend workstream. Sections marked
 > ✅ are complete; ⚠️ are partially done; ❌ are still planned. The high-level
@@ -39,19 +39,26 @@ backend/
 │   │   ├── websocket.py       # JoinCampusMessage, DrillTelemetryMessage
 │   │   ├── drill.py           # RunTelemetryRequest/Response, ViolationSchema
 │   │   ├── institution.py
-│   │   ├── scenarios.py
+│   │   ├── scenarios.py       # Scenario, Blockage, ColorScheme, Floor
+│   │   ├── users.py
 │   │   └── analytics.py
 │   ├── api/v1/                # Routers
-│   │   ├── health.py
-│   │   ├── buildings.py
-│   │   ├── scenarios.py
+│   │   ├── health.py          # Liveness & Readiness
+│   │   ├── buildings.py       # Campus & Floor layout queries
+│   │   ├── scenarios.py       # Built-in scenarios & Gemini 3.6 Flash GenAI generator
+│   │   ├── telemetry.py       # Run persistence & /admin aggregation
+│   │   ├── users.py           # Cadet profile sync & global leaderboards
+│   │   ├── alerts.py          # Live hazard feed & Acknowledgment
+│   │   ├── webhooks.py        # Campus incident drill injector
+│   │   ├── mitra.py           # Gemini 3.6 Flash crisis Q&A & Neural TTS stream
 │   │   └── websockets.py      # WS /ws endpoint
 │   ├── services/
 │   │   ├── websocket_manager.py  # JWT auth + Redis Pub/Sub + DB persistence
-│   │   └── cap_ingestion.py     # ⚠️ stub for Sprint 3
+│   │   ├── pathfinder.py         # Sub-15ms Dynamic A* route optimizer
+│   │   └── cap_ingestion.py      # SACHET CAP v1.2 poller
 │   └── scripts/               # gen_floor_grids.py, seed_floor_grids.py
 ├── alembic/                   # Migrations (baseline + floor_grid)
-├── tests/                     # conftest, test_websockets, load_test_client
+├── tests/                     # conftest, test_websockets, load_test_client, test_mitra_tts
 └── requirements.txt
 ```
 
@@ -97,7 +104,10 @@ rarely changes; this also lets the frontend keep its existing TypeScript
 | GET | `/api/v1/alerts/live` | ✅ | Multi-hazard live feeds (Open-Meteo + USGS + Drills). See [11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md](./11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md). |
 | POST | `/api/v1/webhooks/inject-incident` | ✅ | Multi-hazard incident drill injector & WebSocket broadcast. |
 | PATCH | `/api/v1/alerts/{alert_id}/acknowledge` | ✅ | Operator acknowledgment & alert deactivation. |
-| POST | `/api/v1/mitra/chat` | ✅ | Mitra crisis AI with Gemini LLM + local rule-based safety fallback. |
+| POST | `/api/v1/mitra/chat` | ✅ | Mitra crisis AI with Gemini 3.6 Flash LLM (thought-token filtering) + local rule-based safety fallback. |
+| GET, HEAD | `/api/v1/mitra/tts` | ✅ | Microsoft Neural TTS streaming with HTTP HEAD / CORS preflight support (`en-IN-NeerjaNeural`). |
+| POST | `/api/v1/mitra/tts` | ✅ | Microsoft Neural TTS streaming via JSON request body (`en-IN-NeerjaNeural`). |
+| POST | `/api/v1/scenarios/generate` | ✅ | Procedural disaster scenario synthesizer with Gemini 3.6 Flash + LCG offline fallback. |
 
 ### Detailed Alert Ingestion & Safety Documentation
 Complete specifications regarding API safety, data privacy, parameter schemas, and physical hazard filtering algorithms are documented in [11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md](./11_LIVE_HAZARD_INGESTION_AND_INCIDENT_INJECTION.md).
@@ -264,28 +274,43 @@ User identity is **not** in the payload — it comes from the JWT via `websocket
 
 ## ✅ Task 3.4: Microsoft Neural Audio Synthesis Stream
 
-**Status:** Complete (v11)
+**Status:** Complete (v11–v13)
 
 **Endpoints:**
-- `GET /api/v1/mitra/tts?text=...&lang=en-in`
+- `GET /api/v1/mitra/tts?text=...&lang=en-in` (with HTTP `HEAD` preflight support)
 - `POST /api/v1/mitra/tts` `{ "text": "...", "lang": "en-in" }`
 
 **Architecture:**
-- **Primary Engine:** Microsoft Neural Text-to-Speech via `edge-tts` generating broadcast-grade studio female audio (`en-IN-NeerjaNeural` / `en-US-JennyNeural`). Audio is returned as `audio/mpeg` MP3 stream.
+- **Primary Engine:** Microsoft Neural Text-to-Speech via `edge-tts` generating broadcast-grade studio female audio strictly locked to `en-IN-NeerjaNeural` (Indian English). Audio is returned as `audio/mpeg` MP3 stream.
+- **HTTP HEAD & CORS Stream Support:** Dedicated `HEAD` route support and CORS methods to handle modern browser HTML5 `<audio>` preflight range/content-type checks without 405 errors.
 - **Secondary Engine:** Local `espeak-ng` with smoothed `f4` female formant, pitch `50`, and speed `145` returning `audio/wav`.
 - **Fallback Engine:** Dual-tone harmonic audio chime.
 - **Automated Verification:** Verified with unit test in `backend/tests/test_mitra_tts.py`.
 
 ---
 
-## ✅ Task 3.5: Docker Compose Infrastructure & PostGIS Initialization
+## ✅ Task 3.5: 4-Tier Docker Compose Orchestration
 
-**Status:** Complete (v11)
+**Status:** Complete (v11–v13)
 
 **File:** `docker-compose.yml` (repository root)
 
 **Services:**
 - **`postgres`:** `postgis/postgis:16-3.4` on port `5432:5432`. Automatically provisions PostGIS extensions and executes `database/schema.sql` on initial volume creation. Healthcheck: `pg_isready -U postgres -d sih_db`.
 - **`redis`:** `redis:7` on port `6379:6379`. Pub/Sub message broker and telemetry cache. Healthcheck: `redis-cli ping`.
-- **`backend`:** FastAPI container on port `8000:8000`. Overrides `DATABASE_URL` and `REDIS_URL` to point to container service names (`postgres:5432`, `redis:6379`). Mounts live source code `./backend/app:/app/app` for seamless developer workflow.
+- **`backend`:** FastAPI container on port `8000:8000`. Overrides `DATABASE_URL` and `REDIS_URL` to point to container service names (`postgres:5432`, `redis:6379`). Mounts live source code `./backend/app:/app/app` for hot-reload developer workflow.
+- **`frontend`:** Next.js 16 container on port `3000:3000`. Connects to containerized backend at `http://backend:8000/api/v1` with hot code reloading mounted from `./frontend/src:/app/src`.
+
+---
+
+## ✅ Task 3.6: Dynamic Scenario Generation (Gemini 3.6 Flash) & Static Typing
+
+**Status:** Complete (v13)
+
+**Endpoint:** `POST /api/v1/scenarios/generate`
+
+**Capabilities:**
+- Procedural disaster scenario generation for 32x18 campus floorplans with timed corridor collapses, smoke vectors, and fire propagation seeds.
+- Direct integration with Google Gemini 3.6 Flash structured JSON generation, with fallback to an offline Linear Congruential Generator (LCG).
+- Type-clean Pydantic schema validation (`app/schemas/scenarios.py`) guaranteeing 0 Pyright errors and strict conformance to the frontend `Scenario` TypeScript model.
 

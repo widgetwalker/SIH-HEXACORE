@@ -114,14 +114,16 @@ For the Smart India Hackathon (SIH) and nationwide school/college deployment, we
 - **ORM & Migrations:** `SQLAlchemy 2.0 (Async)` + `Alembic`.
 - **In-Memory Cache & Session Broker:** `Redis 7 (Cluster)`:
   - Caches live student telemetry, active drill states, and SACHET alert streams with sub-millisecond read latency.
-- **Audio & Speech Architecture (Dual-Tier):**
-  - *Client Layer:* W3C Web Speech API (`window.speechSynthesis`) with normalized natural pitch (1.0) and articulate pace (0.96) prioritizing female personas (`Neerja`, `Jenny`, `Aria`, `Sonia`, `Samantha`, `Google UK/US Female`).
-  - *Server Layer:* Microsoft Neural TTS via `edge-tts` on `/api/v1/mitra/tts` streaming broadcast studio-grade audio (`en-IN-NeerjaNeural` / `en-US-JennyNeural`).
-  - *Zero Cloud Subscription Cost:* Both layers operate with 0 external API keys and 0 paid service dependencies.
-- **Container Infrastructure:** `Docker Compose` (`docker-compose.yml`):
-  - Standardized local developer and judge deployment across Linux, macOS, and Windows.
-  - Provisions `postgis/postgis:16-3.4`, `redis:7`, and FastAPI backend with automated container healthcheck probes (`pg_isready`, `redis-cli ping`).
-  - Automatic schema bootstrapping via `database/schema.sql` on volume creation.
+- **Audio & Speech Architecture:**
+  - *Locked Studio Voice:* Microsoft Neural TTS via `edge-tts` on `/api/v1/mitra/tts` (supporting HTTP `GET`, `HEAD`, and `POST` with CORS preflight) streaming broadcast studio-grade audio strictly locked to `en-IN-NeerjaNeural` (Indian English female persona).
+  - *Audio Preemption & Silence:* Calling `stopSpeaking()` on alert acknowledgment or new interaction instantly terminates active `<audio>` elements and browser speech tokens, preventing voice collisions.
+  - *Direct Microphone Voice Input:* Interactive cadet speech via Web Speech API (`webkitSpeechRecognition` / `SpeechRecognition`) with proactive `getUserMedia` permission requests and real-time live transcription.
+  - *Client Layer Fallback:* W3C Web Speech API (`window.speechSynthesis`) with normalized natural pitch (1.0) and articulate pace (0.96) prioritizing female personas when offline.
+  - *Zero Cloud Subscription Cost:* Full speech stack operates with 0 external API keys and 0 paid service dependencies.
+- **4-Tier Container Infrastructure:** `Docker Compose` (`docker-compose.yml`):
+  - Standardized local developer and judge deployment across Linux, macOS, and Windows (`docker compose up -d`).
+  - Provisions `postgis/postgis:16-3.4` (port 5432), `redis:7` (port 6379), FastAPI backend (port 8000), and Next.js frontend (port 3000) with automated container healthcheck probes (`pg_isready`, `redis-cli ping`).
+  - Automatic schema bootstrapping via `database/schema.sql` on volume creation, with live code-reload mounts for rapid development.
 
 ---
 

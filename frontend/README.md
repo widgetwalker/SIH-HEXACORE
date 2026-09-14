@@ -14,11 +14,15 @@ On PowerShell, `&&` isn't a valid separator between commands — run each line a
 
 Requires Node 18.17+ / 20+ · Next.js 16.3.2 (App Router, Turbopack) · React 19 · Three.js r149
 
-No `.env` file, database, or backend is required for the local MVP. Profile data
-and drill telemetry use localStorage, and the Command Hub has simulated alert
-and incident fallbacks. The only optional piece is `GEMINI_API_KEY` in
-`.env.local`, which powers Mitra's chat replies in `/simulate`; without it
-Mitra just shows "offline" instead of breaking anything.
+No `.env` file, database, or backend is required for the local MVP: profile
+data and drill telemetry use browser `localStorage`, and the Command Hub and
+Mitra safety engine have local intelligent fallbacks. When `GEMINI_API_KEY` is
+provided in `frontend/.env.local` or `backend/.env`, Mitra activates **Google
+Gemini 3.6 Flash** (with thought-token filtering). Spoken voice is strictly locked
+to the broadcast-grade Microsoft Neural Indian English female voice (`en-IN-NeerjaNeural`),
+with instant preemption (`stopSpeaking()`), interactive Web Speech mic input with
+real-time transcription, and in-panel Mute/Replay controls. Netlify deployment
+is preconfigured via `netlify.toml`.
 
 ## Routes
 | Route | File | What lives there |
