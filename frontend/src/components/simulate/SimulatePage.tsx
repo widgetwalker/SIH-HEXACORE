@@ -101,6 +101,7 @@ export default function SimulatePage() {
   const recognitionRef = useRef<any>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
   const mitraLogRef = useRef<HTMLDivElement>(null);
+  const mitraInputRef = useRef<HTMLInputElement>(null);
   const lastDistRef = useRef<number | null>(null);
   const nextBubbleAtRef = useRef(0);
   const lastUrgentAtRef = useRef(0);
@@ -237,23 +238,32 @@ export default function SimulatePage() {
     }
   }, [mitraMessages, mitraLoading]);
 
+  useEffect(() => {
+    if (mitraOpen) {
+      setTimeout(() => {
+        mitraInputRef.current?.focus();
+      }, 50);
+    }
+  }, [mitraOpen]);
+
   const openMitra = () => {
     unlockAudioPlayer();
-    setMitraOpen((open) => {
-      const next = !open;
-      if (next) {
-        setMitraBubble(null);
-        if (mitraMessages.length === 0) {
+    if (!mitraOpen) {
+      setMitraBubble(null);
+      setMitraOpen(true);
+      setMitraMessages((prev) => {
+        if (prev.length === 0) {
           const initialTip = getMitraTip(gs);
-          setMitraMessages([{ role: "mitra", text: initialTip }]);
           speakMitra(initialTip);
+          return [{ role: "mitra", text: initialTip }];
         }
-      } else {
-        stopSpeaking();
-        stopListening();
-      }
-      return next;
-    });
+        return prev;
+      });
+    } else {
+      setMitraOpen(false);
+      stopSpeaking();
+      stopListening();
+    }
   };
 
   // When a campus emergency is injected/broadcast, Mitra verbalizes the
@@ -271,10 +281,15 @@ export default function SimulatePage() {
     unlockAudioPlayer();
     const text = raw.trim();
     if (!text || mitraLoading) return;
-    const history = [...mitraMessages, { role: "user" as const, text }];
-    setMitraMessages(history);
+
+    let snapshotHistory: MitraTurn[] = [];
+    setMitraMessages((prev) => {
+      snapshotHistory = [...prev, { role: "user" as const, text }];
+      return snapshotHistory;
+    });
     setMitraInput("");
     setMitraLoading(true);
+
     const contextData = {
       phase,
       scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
@@ -303,7 +318,7 @@ export default function SimulatePage() {
         signal: controller.signal,
         body: JSON.stringify({
           message: text,
-          history: history.slice(0, -1),
+          history: snapshotHistory.slice(0, -1),
           context: contextData,
         }),
       });
@@ -311,7 +326,7 @@ export default function SimulatePage() {
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data.text === "string" && data.text.trim()) {
-          setMitraMessages((m) => [...m, { role: "mitra", text: data.text }]);
+          setMitraMessages((prev) => [...prev, { role: "mitra", text: data.text }]);
           speakMitra(data.text);
           return;
         }
@@ -321,7 +336,7 @@ export default function SimulatePage() {
       clearTimeout(timer);
       // Automatic deterministic NDMA/NFPA crisis safety fallback (instant response)
       const fallbackReply = localMitraReply(text, contextData);
-      setMitraMessages((m) => [...m, { role: "mitra", text: fallbackReply }]);
+      setMitraMessages((prev) => [...prev, { role: "mitra", text: fallbackReply }]);
       speakMitra(fallbackReply);
     } finally {
       setMitraLoading(false);
@@ -563,24 +578,44 @@ export default function SimulatePage() {
             {mitraBubble.text}
           </div>
         )}
-        <button className={styles.mitraBtn} onClick={openMitra} data-cursor>
-          🎙 Mitra
+        <button
+          type="button"
+          className={`${styles.mitraBtn} ${mitraOpen ? styles.mitraBtnOpen : ""}`}
+          onClick={openMitra}
+          data-cursor
+        >
+          {mitraOpen ? "✕ Close Mitra" : "🎙 Mitra"}
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
             <div className={styles.mitraHeader}>
               <span className="hud-label">Mitra · Crisis Companion</span>
-              <button
-                type="button"
-                className={styles.mitraMuteBtn}
-                onClick={() => {
-                  if (!isMuted) stopSpeaking();
-                  setIsMuted(!isMuted);
-                }}
-                title={isMuted ? "Unmute Mitra voice" : "Mute Mitra voice"}
-              >
-                {isMuted ? "🔇 Muted" : "🔊 Voice On"}
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  type="button"
+                  className={styles.mitraMuteBtn}
+                  onClick={() => {
+                    if (!isMuted) stopSpeaking();
+                    setIsMuted(!isMuted);
+                  }}
+                  title={isMuted ? "Unmute Mitra voice" : "Mute Mitra voice"}
+                >
+                  {isMuted ? "🔇 Muted" : "🔊 Voice On"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.mitraCloseBtn}
+                  onClick={() => {
+                    setMitraOpen(false);
+                    stopSpeaking();
+                    stopListening();
+                  }}
+                  title="Close Mitra panel"
+                  aria-label="Close Mitra"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div ref={mitraLogRef} className={styles.mitraLog}>
               {mitraMessages.map((m, i) => (
@@ -621,9 +656,18 @@ export default function SimulatePage() {
                 {isListening ? "🔴" : "🎤"}
               </button>
               <input
+                ref={mitraInputRef}
+                autoFocus
                 className={styles.mitraInput}
                 value={mitraInput}
                 onChange={(e) => setMitraInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    sendMitra(mitraInput);
+                  }
+                }}
                 placeholder={isListening ? "🎙️ Listening... speak now..." : "Ask Mitra... (or click 🎤 to speak)"}
                 disabled={mitraLoading}
                 data-cursor

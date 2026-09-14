@@ -244,6 +244,35 @@
 .mitraBtn:active {
   transform: scale(0.94);
 }
+.mitraBtnOpen {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--text-secondary);
+  background: rgba(20, 10, 15, 0.85);
+  box-shadow: none;
+}
+.mitraBtnOpen:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
+}
+.mitraCloseBtn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: all 0.15s ease;
+}
+.mitraCloseBtn:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+}
 .mitraPanel {
   position: absolute;
   bottom: 84px;

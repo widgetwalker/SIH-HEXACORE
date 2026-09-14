@@ -157,11 +157,17 @@ export async function POST(req: NextRequest) {
   const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
   const contextBlock = formatContext(body.context);
 
+  const rawTurns = history.map((turn) => ({
+    role: turn.role === "user" ? "user" : "model",
+    parts: [{ text: turn.text }],
+  }));
+
+  // Ensure first turn in contents is always from 'user' role for Gemini API compliance
   const contents = [
-    ...history.map((turn) => ({
-      role: turn.role === "user" ? "user" : "model",
-      parts: [{ text: turn.text }],
-    })),
+    ...(rawTurns.length > 0 && rawTurns[0].role === "model"
+      ? [{ role: "user", parts: [{ text: "Hello Mitra, evacuation drill starting." }] }]
+      : []),
+    ...rawTurns,
     { role: "user", parts: [{ text: `${contextBlock}\n\nStudent: ${message}` }] },
   ];
 

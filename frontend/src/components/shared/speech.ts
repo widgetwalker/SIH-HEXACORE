@@ -181,41 +181,36 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
         backendAudioInstance = null;
       }
 
-      if (token !== currentSpeechToken) {
-        finish(false);
-        return;
-      }
-
       // Reuse pre-unlocked HTMLAudioElement if available to guarantee autoplay compliance
       const audio = sharedAudio || new Audio();
       backendAudioInstance = audio;
       audio.volume = 1.0;
-      audio.src = audioUrl;
 
-      audio.addEventListener(
-        "playing",
-        () => {
-          if (token === currentSpeechToken) {
-            finish(true);
-          } else {
-            audio.pause();
-            audio.src = "";
-            finish(false);
-          }
-        },
-        { once: true }
-      );
-
-      audio.addEventListener(
-        "error",
-        () => {
+      const onPlaying = () => {
+        audio.removeEventListener("playing", onPlaying);
+        audio.removeEventListener("error", onError);
+        if (token === currentSpeechToken) {
+          finish(true);
+        } else {
+          audio.pause();
+          audio.removeAttribute("src");
           finish(false);
-        },
-        { once: true }
-      );
+        }
+      };
+
+      const onError = () => {
+        audio.removeEventListener("playing", onPlaying);
+        audio.removeEventListener("error", onError);
+        finish(false);
+      };
+
+      audio.addEventListener("playing", onPlaying);
+      audio.addEventListener("error", onError);
+      audio.src = audioUrl;
+      audio.load();
 
       audio.play().catch(() => {
-        finish(false);
+        onError();
       });
     } catch {
       finish(false);
@@ -320,7 +315,8 @@ export function stopSpeaking() {
     try {
       backendAudioInstance.pause();
       backendAudioInstance.currentTime = 0;
-      backendAudioInstance.src = "";
+      backendAudioInstance.removeAttribute("src");
+      backendAudioInstance.load();
     } catch {
       /* ignore */
     }
