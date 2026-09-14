@@ -310,9 +310,11 @@ export default function SimulatePage() {
     }
   };
 
-  const showBubble = (text: string, tone: MitraBubble["tone"]) => {
+  const showBubble = (text: string, tone: MitraBubble["tone"], voice = true) => {
     setMitraBubble({ text, tone });
-    speakMitra(text);
+    if (voice) {
+      speakMitra(text);
+    }
     if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
     bubbleTimerRef.current = setTimeout(() => setMitraBubble(null), 4500);
   };
@@ -321,14 +323,14 @@ export default function SimulatePage() {
   const updateBubble = (s: GameState) => {
     const now = Date.now();
 
-    if (s.panic > 75 && !s.breathing && now - lastUrgentAtRef.current > 6000) {
+    if (s.panic > 75 && !s.breathing && now - lastUrgentAtRef.current > 7000) {
       lastUrgentAtRef.current = now;
-      showBubble("Panic spiking — hold B to box-breathe!", "warn");
+      showBubble("Panic spiking — hold B to box-breathe!", "warn", true);
       return;
     }
-    if (s.oxygen < 25 && !s.crouching && now - lastUrgentAtRef.current > 6000) {
+    if (s.oxygen < 25 && !s.crouching && now - lastUrgentAtRef.current > 7000) {
       lastUrgentAtRef.current = now;
-      showBubble("Oxygen critical — crawl (SHIFT) to the beacon!", "warn");
+      showBubble("Oxygen critical — crawl (SHIFT) to the beacon!", "warn", true);
       return;
     }
 
@@ -339,11 +341,11 @@ export default function SimulatePage() {
     if (prevDist == null || s.distToExit < 0) return;
 
     if (s.distToExit > prevDist) {
-      nextBubbleAtRef.current = now + 3500;
-      showBubble(`Wrong way — head ${dirText(s.guideDir)}.`, "warn");
+      nextBubbleAtRef.current = now + 6000;
+      showBubble(`Wrong way — head ${dirText(s.guideDir)}.`, "warn", true);
     } else if (s.distToExit < prevDist) {
-      nextBubbleAtRef.current = now + 4000;
-      showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good");
+      nextBubbleAtRef.current = now + 6000;
+      showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good", false);
     }
   };
 

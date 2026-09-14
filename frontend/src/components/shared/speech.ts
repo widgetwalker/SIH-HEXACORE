@@ -141,100 +141,39 @@ export async function playBackendAudio(text: string, lang = "en-in", token = cur
 
 /**
  * Main speech dispatch:
- * 1. Checks available browser voices.
- * 2. If a high-clarity natural female voice is available, speaks immediately with tuned natural pitch (1.0) and articulate pace (0.96).
- * 3. If only raspy/robotic/espeak voices are installed (common on Linux desktop), automatically uses backend studio neural TTS.
+ * Strictly uses the decided Microsoft Neural Indian English female voice (en-IN-NeerjaNeural).
+ * Immediately terminates any active speech before speaking so voices never collide or overlap.
  */
-export function speak(text: string, forceBackend = false) {
+export function speak(text: string) {
   if (typeof window === "undefined" || !text) return;
+
+  // Immediately cancel any ongoing speech so no two voices or lines ever overlap
+  stopSpeaking();
 
   currentSpeechToken++;
   const token = currentSpeechToken;
 
-  if (forceBackend) {
-    playBackendAudio(text, "en-in", token);
-    return;
-  }
-
-  if ("speechSynthesis" in window) {
-    try {
-      if (backendAudioInstance) {
-        backendAudioInstance.pause();
-        backendAudioInstance.currentTime = 0;
-        backendAudioInstance.src = "";
-        backendAudioInstance = null;
-      }
-
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-      window.speechSynthesis.cancel();
-
+  // Primary: Always stream the decided studio neural female voice (en-IN-NeerjaNeural)
+  playBackendAudio(text, "en-in", token).then((success) => {
+    if (!success && typeof window !== "undefined" && "speechSynthesis" in window) {
+      // Offline fallback: Only speak if a high-clarity natural female voice exists
       const voices = getAvailableVoices();
-      const { voice: selectedVoice, isHighQuality } = selectClearFemaleVoice(voices);
-
-      // If the browser only has raspy or mechanical robot voices (e.g. Linux default espeak),
-      // seamlessly stream the studio neural female voice from the backend instead.
-      if (!isHighQuality || !selectedVoice) {
-        playBackendAudio(text, "en-in", token).then((success) => {
-          if (!success && typeof window !== "undefined" && "speechSynthesis" in window) {
-            try {
-              const allVoices = getAvailableVoices();
-              const v = selectedVoice || allVoices.find((x) => x.lang.startsWith("en")) || allVoices[0];
-              const fallbackUtter = new SpeechSynthesisUtterance(text);
-              if (v) fallbackUtter.voice = v;
-              fallbackUtter.pitch = 1.0;
-              fallbackUtter.rate = 0.96;
-              window.speechSynthesis.speak(fallbackUtter);
-            } catch (synthErr) {
-              console.warn("Browser synthesis fallback error:", synthErr);
-            }
-          }
-        });
-        return;
+      const { voice: femaleVoice, isHighQuality } = selectClearFemaleVoice(voices);
+      if (femaleVoice && isHighQuality && token === currentSpeechToken) {
+        try {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.voice = femaleVoice;
+          utter.lang = femaleVoice.lang || "en-IN";
+          utter.pitch = 1.0;
+          utter.rate = 0.96;
+          activeUtterance = utter;
+          window.speechSynthesis.speak(utter);
+        } catch {
+          /* ignore */
+        }
       }
-
-      const utter = new SpeechSynthesisUtterance(text);
-      activeUtterance = utter;
-      utter.voice = selectedVoice;
-      utter.lang = selectedVoice.lang || "en-IN";
-
-      // Tuned parameters for maximum clarity and sensible, warm female cadence:
-      // Pitch 1.0 preserves natural human vocal resonance without tinny or raspy distortion
-      utter.pitch = 1.0;
-      // Rate 0.96 provides deliberate, articulate pronunciation essential for safety messages
-      utter.rate = 0.96;
-      utter.volume = 1.0;
-
-      utter.onend = () => {
-        if (activeUtterance === utter) {
-          activeUtterance = null;
-        }
-      };
-      utter.onerror = (e: SpeechSynthesisErrorEvent) => {
-        if (activeUtterance === utter) {
-          activeUtterance = null;
-        }
-        // If canceled or interrupted by user / stopSpeaking, DO NOT trigger fallback audio!
-        if (token !== currentSpeechToken || e.error === "canceled" || e.error === "interrupted") {
-          return;
-        }
-        playBackendAudio(text, "en-in", token);
-      };
-
-      window.speechSynthesis.speak(utter);
-
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-      return;
-    } catch {
-      // Fallback to backend audio on any unexpected browser synthesis error
     }
-  }
-
-  // Fallback if browser does not support speechSynthesis
-  playBackendAudio(text, "en-in", token);
+  });
 }
 
 export function announceMitraEmergency(headline: string, detail?: string, alertKey?: string) {
