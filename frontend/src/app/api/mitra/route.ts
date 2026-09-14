@@ -184,9 +184,10 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.error("Mitra/Gemini error:", res.status, errText);
-      return NextResponse.json({ error: "Mitra is temporarily unreachable." }, { status: 502 });
+      const errText = await res.text().catch(() => "");
+      console.warn("Mitra/Gemini API error, falling back to NDMA rules engine:", res.status, errText);
+      const reply = localMitraReply(message, body.context);
+      return NextResponse.json({ text: reply });
     }
 
     const data = await res.json();
@@ -197,12 +198,14 @@ export async function POST(req: NextRequest) {
       .trim();
 
     if (!text) {
-      return NextResponse.json({ error: "Mitra couldn't form a response — try again." }, { status: 502 });
+      const reply = localMitraReply(message, body.context);
+      return NextResponse.json({ text: reply });
     }
 
     return NextResponse.json({ text });
   } catch (err) {
-    console.error("Mitra route error:", err);
-    return NextResponse.json({ error: "Mitra is temporarily unreachable." }, { status: 502 });
+    console.warn("Mitra route exception, falling back to NDMA rules engine:", err);
+    const reply = localMitraReply(message, body.context);
+    return NextResponse.json({ text: reply });
   }
 }

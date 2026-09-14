@@ -101,48 +101,113 @@ export function selectClearFemaleVoice(
 export async function playBackendAudio(text: string, lang = "en-in", token = currentSpeechToken): Promise<boolean> {
   if (typeof window === "undefined" || !text) return false;
   if (token !== currentSpeechToken) return false;
-  try {
-    const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
-    const audioUrl = `${backendUrl}/api/v1/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
 
-    // Cancel any active browser speech synthesis before playing backend audio
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      activeUtterance = null;
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutTimer);
+      resolve(result);
+    };
+
+    // Strict 2.5s network timeout: immediately fall back to local voice if backend stream doesn't start
+    const timeoutTimer = setTimeout(() => {
+      if (backendAudioInstance) {
+        try {
+          backendAudioInstance.pause();
+          backendAudioInstance.src = "";
+        } catch {
+          /* ignore */
+        }
+      }
+      finish(false);
+    }, 2500);
+
+    try {
+      const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
+
+      const isPublicHost =
+        typeof window !== "undefined" &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1";
+
+      // On deployed public hosts (like Netlify), if backend URL points to localhost or insecure HTTP,
+      // skip attempting backend fetch to avoid ERR_CONNECTION_TIMED_OUT or mixed-content blocking.
+      if (
+        isPublicHost &&
+        (backendUrl.includes("localhost") ||
+          backendUrl.includes("127.0.0.1") ||
+          (window.location.protocol === "https:" && backendUrl.startsWith("http://")))
+      ) {
+        finish(false);
+        return;
+      }
+
+      const audioUrl = `${backendUrl}/api/v1/mitra/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(lang)}`;
+
+      // Cancel any active browser speech synthesis before playing backend audio
+      if ("speechSynthesis" in window) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          /* ignore */
+        }
+        activeUtterance = null;
+      }
+
+      if (backendAudioInstance) {
+        backendAudioInstance.pause();
+        backendAudioInstance.currentTime = 0;
+        backendAudioInstance.src = "";
+        backendAudioInstance = null;
+      }
+
+      if (token !== currentSpeechToken) {
+        finish(false);
+        return;
+      }
+
+      const audio = new Audio(audioUrl);
+      backendAudioInstance = audio;
+      audio.volume = 1.0;
+
+      audio.addEventListener(
+        "playing",
+        () => {
+          if (token === currentSpeechToken) {
+            finish(true);
+          } else {
+            audio.pause();
+            audio.src = "";
+            finish(false);
+          }
+        },
+        { once: true }
+      );
+
+      audio.addEventListener(
+        "error",
+        () => {
+          finish(false);
+        },
+        { once: true }
+      );
+
+      audio.play().catch(() => {
+        finish(false);
+      });
+    } catch {
+      finish(false);
     }
-
-    if (backendAudioInstance) {
-      backendAudioInstance.pause();
-      backendAudioInstance.currentTime = 0;
-      backendAudioInstance.src = "";
-      backendAudioInstance = null;
-    }
-
-    if (token !== currentSpeechToken) return false;
-
-    const audio = new Audio(audioUrl);
-    backendAudioInstance = audio;
-    audio.volume = 1.0;
-    await audio.play();
-
-    // Check again in case stopSpeaking was clicked while audio was loading/buffering
-    if (token !== currentSpeechToken) {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.src = "";
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.warn("Backend neural TTS playback error:", err);
-    return false;
-  }
+  });
 }
 
 /**
  * Main speech dispatch:
  * Strictly uses the decided Microsoft Neural Indian English female voice (en-IN-NeerjaNeural).
  * Immediately terminates any active speech before speaking so voices never collide or overlap.
+ * Automatically falls back to browser synthesis within 2.5s if backend is unreachable.
  */
 export function speak(text: string) {
   if (typeof window === "undefined" || !text) return;
@@ -156,21 +221,32 @@ export function speak(text: string) {
   // Primary: Always stream the decided studio neural female voice (en-IN-NeerjaNeural)
   playBackendAudio(text, "en-in", token).then((success) => {
     if (!success && typeof window !== "undefined" && "speechSynthesis" in window) {
-      // Offline fallback: Only speak if a high-clarity natural female voice exists
-      const voices = getAvailableVoices();
-      const { voice: femaleVoice, isHighQuality } = selectClearFemaleVoice(voices);
-      if (femaleVoice && isHighQuality && token === currentSpeechToken) {
-        try {
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.voice = femaleVoice;
-          utter.lang = femaleVoice.lang || "en-IN";
-          utter.pitch = 1.0;
-          utter.rate = 0.96;
-          activeUtterance = utter;
-          window.speechSynthesis.speak(utter);
-        } catch {
-          /* ignore */
+      if (token !== currentSpeechToken) return;
+
+      let voices = getAvailableVoices();
+      if (voices.length === 0 && "speechSynthesis" in window) {
+        voices = window.speechSynthesis.getVoices();
+      }
+      const { voice: femaleVoice } = selectClearFemaleVoice(voices);
+      const chosenVoice = femaleVoice || (voices.length > 0 ? voices[0] : null);
+
+      try {
+        const utter = new SpeechSynthesisUtterance(text);
+        if (chosenVoice) {
+          utter.voice = chosenVoice;
+          utter.lang = chosenVoice.lang || "en-IN";
+        } else {
+          utter.lang = "en-IN";
         }
+        utter.pitch = 1.05;
+        utter.rate = 0.96;
+        activeUtterance = utter;
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.speak(utter);
+      } catch {
+        /* ignore */
       }
     }
   });

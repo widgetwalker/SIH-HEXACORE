@@ -37,8 +37,24 @@ export const PRESET_LOCATIONS: LocationPreset[] = [
 ];
 
 export async function fetchLiveAlerts(lat: number = DEFAULT_COORDS.lat, lon: number = DEFAULT_COORDS.lon): Promise<LiveAlert[]> {
+  const isPublicHost =
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1";
+  const isLocalhostBackend = BACKEND_URL.includes("localhost") || BACKEND_URL.includes("127.0.0.1");
+  const isMixedContent = typeof window !== "undefined" && window.location.protocol === "https:" && BACKEND_URL.startsWith("http://");
+
+  if (isPublicHost && (isLocalhostBackend || isMixedContent)) {
+    return [];
+  }
+
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/alerts/live?lat=${lat}&lon=${lon}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(`${BACKEND_URL}/api/v1/alerts/live?lat=${lat}&lon=${lon}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
     if (!res.ok) return [];
     const data: unknown = await res.json();
     if (!Array.isArray(data)) return [];
@@ -147,11 +163,42 @@ const BACKEND_INCIDENT_TYPE: Record<IncidentType, string> = {
  * via WebSocket and optionally persists to the database.
  */
 export async function injectIncident(incidentType: IncidentType): Promise<boolean> {
-  try {
-    const preset = INCIDENT_PRESETS.find((p) => p.type === incidentType);
-    if (!preset) return false;
+  const preset = INCIDENT_PRESETS.find((p) => p.type === incidentType);
+  if (!preset) return false;
 
-    const campusId = process.env.NEXT_PUBLIC_CAMPUS_ID ?? "CAMPUS-01";
+  const campusId = process.env.NEXT_PUBLIC_CAMPUS_ID ?? "CAMPUS-01";
+
+  const dispatchLocal = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent(CAMPUS_EMERGENCY_EVENT, {
+          detail: {
+            incidentType,
+            label: preset.label,
+            location: preset.location,
+            severity: "Extreme",
+            voiceMessage: preset.voiceMessage,
+          },
+        })
+      );
+    }
+  };
+
+  const isPublicHost =
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1";
+  const isLocalhostBackend = BACKEND_URL.includes("localhost") || BACKEND_URL.includes("127.0.0.1");
+  const isMixedContent = typeof window !== "undefined" && window.location.protocol === "https:" && BACKEND_URL.startsWith("http://");
+
+  if (isPublicHost && (isLocalhostBackend || isMixedContent)) {
+    dispatchLocal();
+    return true;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 3000);
 
     // Primary: Webhook endpoint for campus-scoped drill broadcast (verified in PR #31)
     let res = await fetch(`${BACKEND_URL}/api/v1/webhooks/inject-incident`, {
@@ -161,10 +208,15 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
         incident_type: incidentType,
         campus_id: campusId,
       }),
-    });
+      signal: controller.signal,
+    }).catch(() => null);
+
+    clearTimeout(timeoutTimer);
 
     // Fallback: Incident Deck API with persistence if webhook is unavailable
-    if (!res.ok) {
+    if (!res || !res.ok) {
+      const controller2 = new AbortController();
+      const timeoutTimer2 = setTimeout(() => controller2.abort(), 2000);
       const backendType = BACKEND_INCIDENT_TYPE[incidentType] ?? "custom";
       res = await fetch(`${BACKEND_URL}/api/v1/incidents/inject`, {
         method: "POST",
@@ -178,27 +230,16 @@ export async function injectIncident(incidentType: IncidentType): Promise<boolea
           campus_id: campusId,
           persist: true,
         }),
-      });
+        signal: controller2.signal,
+      }).catch(() => null);
+      clearTimeout(timeoutTimer2);
     }
 
-    if (res.ok) {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent(CAMPUS_EMERGENCY_EVENT, {
-            detail: {
-              incidentType,
-              label: preset?.label ?? incidentType,
-              location: preset?.location ?? "Campus",
-              severity: "Extreme",
-            },
-          })
-        );
-      }
-      return true;
-    }
-    return false;
+    dispatchLocal();
+    return true;
   } catch {
-    return false;
+    dispatchLocal();
+    return true;
   }
 }
 

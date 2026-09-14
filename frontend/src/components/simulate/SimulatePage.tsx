@@ -12,7 +12,8 @@ import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { loadCadetSettings } from "@/lib/cadetSettings";
-import { speak, playBackendAudio, stopSpeaking } from "@/components/shared/speech";
+import { speak, stopSpeaking } from "@/components/shared/speech";
+import { localMitraReply } from "@/lib/mitraFallback";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -272,39 +273,54 @@ export default function SimulatePage() {
     setMitraMessages(history);
     setMitraInput("");
     setMitraLoading(true);
+    const contextData = {
+      phase,
+      scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
+      gameState: gs
+        ? {
+            status: gs.status,
+            time: Math.round(gs.time),
+            oxygen: Math.round(gs.oxygen),
+            panic: Math.round(gs.panic),
+            crouching: gs.crouching,
+            breathing: gs.breathing,
+            score: gs.score,
+          }
+        : null,
+    };
+
+    // 3.5-second strict timeout before triggering instant offline safety fallback
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-      const res = await fetch(`${backendUrl}/api/v1/mitra/chat`, {
+      // First attempt Next.js API route or backend
+      const res = await fetch("/api/mitra", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: text,
           history: history.slice(0, -1),
-          context: {
-            phase,
-            scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
-            gameState: gs
-              ? {
-                  status: gs.status,
-                  time: Math.round(gs.time),
-                  oxygen: Math.round(gs.oxygen),
-                  panic: Math.round(gs.panic),
-                  crouching: gs.crouching,
-                  breathing: gs.breathing,
-                  score: gs.score,
-                }
-              : null,
-          },
+          context: contextData,
         }),
       });
-      const data = await res.json();
-      const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
-      speakMitra(replyText);
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data.text === "string" && data.text.trim()) {
+          setMitraMessages((m) => [...m, { role: "mitra", text: data.text }]);
+          speakMitra(data.text);
+          return;
+        }
+      }
+      throw new Error("Fallback required");
     } catch {
-      const errText = "Connection lost — try again once you're back online.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: errText }]);
-      speakMitra(errText);
+      clearTimeout(timer);
+      // Automatic deterministic NDMA/NFPA crisis safety fallback (instant response)
+      const fallbackReply = localMitraReply(text, contextData);
+      setMitraMessages((m) => [...m, { role: "mitra", text: fallbackReply }]);
+      speakMitra(fallbackReply);
     } finally {
       setMitraLoading(false);
     }

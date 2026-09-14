@@ -11,6 +11,7 @@ import {
   INCIDENT_PRESETS,
   PRESET_LOCATIONS,
   DEFAULT_COORDS,
+  CAMPUS_EMERGENCY_EVENT,
   type LiveAlert,
   type IncidentType,
 } from "@/lib/liveAlerts";
@@ -117,9 +118,23 @@ export default function CommandPage() {
 
   const handleEmergencyBroadcast = async () => {
     playSirenBeep();
+    const drillId = `broadcast-${Date.now()}`;
+    const newAlert: LiveAlert = {
+      id: drillId,
+      source: "CAMPUS-COMMANDER",
+      category: "evacuation",
+      severity: "CRITICAL",
+      headline: "🚨 Campus Evacuation Order Activated",
+      detail: "Commander has issued an immediate campus-wide evacuation. All personnel proceed to nearest exterior exit.",
+      occurred_at: new Date().toISOString(),
+    };
+    setLiveAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== drillId)]);
+    setActiveAlertId(drillId);
+
     announceMitraEmergency(
       "Campus Evacuation Order Activated",
-      "Commander has issued an immediate campus-wide evacuation. All personnel proceed to nearest exterior exit."
+      "Commander has issued an immediate campus-wide evacuation. All personnel proceed to nearest exterior exit.",
+      drillId
     );
     await injectIncident("earthquake-drill");
     showToast("📢 Emergency CAP v1.2 Broadcast Dispatched to 239 Connected Nodes!");
@@ -286,15 +301,47 @@ export default function CommandPage() {
   const handleInject = async (type: IncidentType) => {
     setInjecting(type);
     const preset = INCIDENT_PRESETS.find((p) => p.type === type);
-    if (preset) {
-      announceMitraEmergency(
-        preset.label,
-        preset.voiceMessage,
-        `drill-${type}-${Date.now()}`
-      );
+    if (!preset) {
+      setInjecting(null);
+      return;
     }
-    const ok = await injectIncident(type);
-    showToast(ok ? "📡 Incident injected — broadcasting to all clients" : "⚠️ Injection failed — is the backend running?");
+
+    const drillId = `drill-${type}-${Date.now()}`;
+    const newAlert: LiveAlert = {
+      id: drillId,
+      source: "CAMPUS-DRILL-DECK",
+      category: type,
+      severity: "CRITICAL",
+      headline: `${preset.icon} ${preset.label}`,
+      detail: `${preset.voiceMessage} (Simulated emergency protocol active for ${preset.location})`,
+      occurred_at: new Date().toISOString(),
+    };
+
+    // Prepend to liveAlerts state immediately so LiveThreatBanner, Matrix, and Floor layout react without delay
+    setLiveAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== drillId)]);
+    setActiveAlertId(drillId);
+
+    // Play urgent chime & vocal announcement
+    playSirenBeep();
+    announceMitraEmergency(
+      preset.label,
+      preset.voiceMessage,
+      drillId
+    );
+
+    // Target the most relevant floor
+    if (type === "chemical-spill") {
+      setSelectedFloor("2F");
+    } else if (type === "electrical-fire") {
+      setSelectedFloor("GF");
+    } else if (type === "gas-leak") {
+      setSelectedFloor("1F");
+    } else if (type === "earthquake-drill") {
+      setSelectedFloor("4F");
+    }
+
+    await injectIncident(type);
+    showToast(`🚨 Incident Injected: [${preset.label}] — Live Threat Protocol Active`);
     setInjecting(null);
   };
 
@@ -308,13 +355,47 @@ export default function CommandPage() {
 
   useEffect(() => createMockTelemetryStream(setTelemetry), []);
 
+  // Listen for instant manual incident injection events across the client
+  useEffect(() => {
+    const onEmergency = (e: Event) => {
+      const custom = e as CustomEvent<{
+        incidentType?: IncidentType;
+        label?: string;
+        location?: string;
+        severity?: string;
+        voiceMessage?: string;
+      }>;
+      if (!custom.detail?.label) return;
+      const drillId = `drill-${custom.detail.incidentType || "alert"}-${Date.now()}`;
+      const newAlert: LiveAlert = {
+        id: drillId,
+        source: "CAMPUS-DRILL-DECK",
+        category: custom.detail.incidentType || "hazard",
+        severity: "CRITICAL",
+        headline: `🚨 ${custom.detail.label}`,
+        detail: custom.detail.voiceMessage || `Simulated emergency protocol active for ${custom.detail.location || "Campus"}.`,
+        occurred_at: new Date().toISOString(),
+      };
+      setLiveAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== drillId)]);
+      setActiveAlertId(drillId);
+    };
+    window.addEventListener(CAMPUS_EMERGENCY_EVENT, onEmergency);
+    return () => window.removeEventListener(CAMPUS_EMERGENCY_EVENT, onEmergency);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     setLiveAlertsLoading(true);
     const poll = async () => {
       const alerts = await fetchLiveAlerts(coords.lat, coords.lon);
       if (!cancelled) {
-        setLiveAlerts(alerts);
+        setLiveAlerts((prev) => {
+          // Preserve any active local drill alerts
+          const localDrills = prev.filter(
+            (a) => a.source.startsWith("CAMPUS-DRILL") || a.source.startsWith("CAMPUS-COMMANDER")
+          );
+          return [...localDrills, ...alerts];
+        });
         setLiveAlertsLoading(false);
       }
     };
