@@ -44,6 +44,13 @@ class WebSocketManager:
     message.  The Redis relay is stubbed here and activated in Sprint 2.
     """
 
+    @staticmethod
+    def _validate_role(role: Any) -> str:
+        try:
+            return UserRole(role).value
+        except (ValueError, TypeError):
+            return UserRole.STUDENT.value
+
     def __init__(self) -> None:
         # campus_id -> set of (websocket, user_id, role)
         self._rooms: dict[str, set[tuple[WebSocket, str, str]]] = {}
@@ -84,13 +91,6 @@ class WebSocketManager:
         await websocket.accept()
         return True
 
-    @staticmethod
-    def _validate_role(role: Any) -> str:
-        try:
-            return UserRole(role).value
-        except (ValueError, TypeError):
-            return UserRole.STUDENT.value
-
     async def join_campus(self, websocket: WebSocket, payload: dict[str, Any]) -> None:
         """
         Parse a JOIN_CAMPUS message and register the socket in the
@@ -98,10 +98,13 @@ class WebSocketManager:
         """
         msg = JoinCampusMessage(**payload)
         async with self._lock:
-            room = self._rooms.setdefault(msg.campus_id, set())
             state = websocket.scope.get("state", {})
-            room.add((websocket, state.get("user_id", "anonymous"), state.get("role", "STUDENT")))
-        logger.info("WebSocket joined campus=%s", msg.campus_id)
+            user_id = state.get("user_id", payload.get("user_id", "anonymous"))
+            role = state.get("role", self._validate_role(msg.role))
+            room = self._rooms.setdefault(msg.campus_id, set())
+            room.add((websocket, user_id, role))
+        logger.info("WebSocket joined campus=%s role=%s", msg.campus_id, role)
+
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove the socket from whatever room it was in."""

@@ -109,7 +109,7 @@ export interface LeaderboardUser {
 
 export async function fetchLeaderboard(): Promise<LeaderboardUser[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/users/leaderboard`);
+    const res = await fetch(`${BACKEND_URL}/api/v1/users/leaderboard`, { credentials: "include" });
     if (res.ok) {
       return (await res.json()) as LeaderboardUser[];
     }
@@ -180,6 +180,7 @@ export async function saveCadetProfile(input: {
       await fetch(`${BACKEND_URL}/api/v1/users/${existing.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
     } else {
@@ -187,6 +188,7 @@ export async function saveCadetProfile(input: {
       const res = await fetch(`${BACKEND_URL}/api/v1/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
       if (res.ok) {
@@ -292,6 +294,7 @@ export async function saveUserTierScores(userId: string, scores: Record<number, 
       await fetch(`${BACKEND_URL}/api/v1/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ tier_scores: scores }),
       });
     }
