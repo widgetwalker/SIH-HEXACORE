@@ -33,8 +33,8 @@ To lead in technical innovation during the Smart India Hackathon (SIH) evaluatio
 | :--- | :--- | :--- | :--- | :--- |
 | **Procedural Scenario Generation** | Simulation Backend | **Google Gemini 3.6 Flash** + Structured JSON Schema | ✅ **Live** | [`backend/app/api/v1/scenarios.py`](../backend/app/api/v1/scenarios.py) |
 | **Dynamic Evacuation Routing** | Routing Engine | **Modified A\* with Hazard Penalties** | ✅ **Live (<15ms)** | [`backend/app/services/pathfinder.py`](../backend/app/services/pathfinder.py) |
-| **Conversational Crisis Triage** | Mitra Companion | **Gemini 1.5 Flash** + Local Rule Engine | ✅ **Live** | [`backend/app/api/v1/mitra.py`](../backend/app/api/v1/mitra.py) |
-| **Tactical Voice Alert Dispatch** | Audio FX Layer | **Web Speech API** + Synthesized WebAudio | ✅ **Live** | [`frontend/src/components/shared/speech.ts`](../frontend/src/components/shared/speech.ts) |
+| **Conversational Crisis Triage** | Mitra Companion | **Google Gemini 3.6 Flash** + Local Rule Engine | ✅ **Live** | [`backend/app/api/v1/mitra.py`](../backend/app/api/v1/mitra.py) |
+| **Tactical Voice Alert & Speech Stream** | Audio FX Layer | **Microsoft Neural TTS (`en-IN-NeerjaNeural`) + Web Speech** | ✅ **Live** | [`frontend/src/components/shared/speech.ts`](../frontend/src/components/shared/speech.ts) |
 | **Autonomous NPC Crowd Dynamics** | Simulation Engine | **BFS Flow-Field + Boids Separation** | ✅ **Live** | [`frontend/src/components/simulate/game/EvacuationGame.tsx`](../frontend/src/components/simulate/game/EvacuationGame.tsx) |
 | **Cellular Automata Hazards** | Physics Engine | **2D Grid Cellular Automata** with Door Firebreaks | ✅ **Live** | [`frontend/src/components/simulate/game/EvacuationGame.tsx`](../frontend/src/components/simulate/game/EvacuationGame.tsx) |
 | **Diagnostic Debrief Engine** | Telemetry / Analytics | **Rule-based Diagnostic Classifier** | ✅ **Live** | [`frontend/src/components/simulate/game/telemetry.ts`](../frontend/src/components/simulate/game/telemetry.ts) |
@@ -160,12 +160,16 @@ When students are isolated or trapped during a drill or real disaster, panic ind
 
 ### 4.2 Live Implementation Details
 - **File:** [`backend/app/api/v1/mitra.py`](../backend/app/api/v1/mitra.py) (`POST /api/v1/mitra/chat`).
-- **Model:** **Gemini 1.5 Flash** with strict anti-hallucination system prompt:
+- **Model:** **Google Gemini 3.6 Flash** with strict anti-hallucination system prompt:
   - Ingests live telemetry context (oxygen %, panic %, elapsed time, crouching state, box-breathing state).
+  - Filters internal thought tokens (`[p.text for p in parts if not getattr(p, "thought", False)]`) ensuring pristine conversational output without reasoning leakage.
   - Constrained strictly to NDMA/NFPA/NDRF protocols.
   - Length-bounded (1-2 sentences maximum) to minimize cognitive burden on panicked students.
   - **Zero-Dependency Fallback:** When `GEMINI_API_KEY` is not set, a local rule-based safety expert system automatically steps in with zero latency.
-- **Voice Verbalization:** Web Speech API synthesis provides spoken coaching in an authoritative, calm dispatcher cadence.
+- **Single Locked Neural Female Voice:** Strictly locked 100% of spoken verbalization to the broadcast-grade Microsoft Neural Indian English female persona (`en-IN-NeerjaNeural`) streamed via `/api/v1/mitra/tts` (with HTTP `HEAD` and CORS preflight support), eliminating generic browser or male synthetic voices.
+- **Audio Preemption & Silence on Acknowledge:** Calling `stopSpeaking()` on new voice prompts or alert acknowledgments immediately increments speech tokens and halts active audio elements, preventing speech overlap or cacophony.
+- **Interactive Microphone Voice Input:** Direct cadet voice questioning via Web Speech API (`webkitSpeechRecognition` / `SpeechRecognition`) with proactive `navigator.mediaDevices.getUserMedia({ audio: true })` permission acquisition, real-time live transcription (`interimResults`), and visual status indicators (`🔴 Listening...`).
+- **Audio UI Controls:** In-panel Mute/Unmute toggle (`🔊 Voice On` / `🔇 Muted`), per-response replay buttons (`🔊`), and intelligent in-game coaching vocalization.
 
 ---
 

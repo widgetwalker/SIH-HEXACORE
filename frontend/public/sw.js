@@ -13,7 +13,7 @@
  * not fetched at runtime, so it's already covered by the static-asset cache.
  */
 
-const CACHE_VERSION = "safezone-v1";
+const CACHE_VERSION = "safezone-v2";
 const APP_SHELL = ["/", "/learn", "/simulate", "/command", "/admin", "/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -53,6 +53,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  // Never cache or intercept dynamic API routes (/api/mitra/tts, /api/v1/alerts, etc.)
+  if (url.pathname.startsWith("/api/")) return;
 
   if (req.mode === "navigate") {
     event.respondWith(

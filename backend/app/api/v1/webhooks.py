@@ -45,8 +45,6 @@ async def inject_incident(payload: IncidentInjectRequest) -> dict:
         "is_active": True,
     }
 
-    # Broadcast to every connected socket regardless of room
-    await ws_manager.broadcast_emergency_all(preset["severity"], message)
+    await ws_manager.broadcast_emergency(payload.campus_id, preset["severity"], message)
 
     return {"status": "broadcast", "incident_type": payload.incident_type, "message": message, "alert_id": alert_id}
-

@@ -9,6 +9,7 @@ calibrated for Indian coastal & urban campuses (defaulting to Puducherry / Pondi
 - USGS real-time earthquake GeoJSON feed: Regional seismic activity monitoring.
 """
 
+import asyncio
 from datetime import datetime, timezone
 from math import atan2, cos, radians, sin, sqrt
 
@@ -28,7 +29,7 @@ WIND_ADVISORY_KMH = 30.0
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 USGS_FEED_URL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
 
-_HTTP_TIMEOUT = httpx.Timeout(8.0)
+_HTTP_TIMEOUT = httpx.Timeout(2.0)
 
 
 async def fetch_weather_alerts(lat: float, lon: float) -> list[LiveAlert]:
@@ -269,6 +270,17 @@ async def fetch_earthquake_alerts(lat: float, lon: float) -> list[LiveAlert]:
 
 
 async def get_live_alerts(lat: float = DEFAULT_LAT, lon: float = DEFAULT_LON) -> list[LiveAlert]:
-    weather = await fetch_weather_alerts(lat, lon)
-    quakes = await fetch_earthquake_alerts(lat, lon)
-    return weather + quakes
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(
+                fetch_weather_alerts(lat, lon),
+                fetch_earthquake_alerts(lat, lon),
+                return_exceptions=True,
+            ),
+            timeout=2.5,
+        )
+        weather = results[0] if isinstance(results[0], list) else []
+        quakes = results[1] if isinstance(results[1], list) else []
+        return weather + quakes
+    except Exception:
+        return []

@@ -197,30 +197,35 @@ Converts safety protocol instructions and emergency broadcasts into a playable 1
                ┌──────────────────────┴──────────────────────┐
                ▼                                             ▼
        [GEMINI_API_KEY set]                        [GEMINI_API_KEY empty]
-        Gemini 1.5 Flash API                    Local Rule-Based Safety Engine
+        Gemini 3.6 Flash API                    Local Rule-Based Safety Engine
     (Complex conversational Q&A)            (Instant sub-5ms NDMA Protocol Answers)
+    (Internal thoughts filtered out)
                │                                             │
                └──────────────────────┬──────────────────────┘
                                       │ (Protocol Text)
                                       ▼
-                    [Frontend Vocalization Decision]
+                    [Audio Vocalization & Preemption]
                                       │
                ┌──────────────────────┴──────────────────────┐
                ▼                                             ▼
-     [Primary: Zero-Latency]                        [Fallback: 100% Guaranteed]
-  Browser Web Speech Synthesis                      Backend WAV Audio Stream
-   (window.speechSynthesis)                           (/api/v1/mitra/tts)
+      [Primary: Studio-Grade]                         [Offline Fallback]
+    Backend Neural Audio Stream                  Browser Web Speech Synthesis
+    (/api/v1/mitra/tts - GET/HEAD/POST)             (window.speechSynthesis)
+     • Microsoft Neural TTS                           • Tuned pitch & rate
+     • en-IN-NeerjaNeural (Female)                    • Instant preemption
+     • Streamed directly via HTML5 Audio              • Pure zero-latency
                │                                             │
                └──────────────────────┬──────────────────────┘
                                       │
                                       ▼
-                      🔊 Audible Voice Output Across
-                         All Devices and Platforms
+                       🔊 Crystal-Clear Female Voice Output Across
+                          All Devices, Browsers & Operating Systems
 ```
 
-1. **Layer 1 (Zero-Latency Browser Speech):** By default, speech is executed in-browser via the W3C Web Speech API (`window.speechSynthesis`) using native Indian English voices (`en-IN`).
-2. **Layer 2 (Guaranteed Backend WAV Stream):** If the cadet's browser disables speech, blocks audio autoplay, or runs in a restricted mobile environment, the system automatically falls back to fetching and streaming the audio directly from `/api/v1/mitra/tts` via an HTML5 `Audio` element.
-3. **Zero External API Requirement:** Neither layer requires a Gemini API key or third-party cloud speech subscription.
+1. **Layer 1 (Microsoft Neural Studio TTS Stream - Locked Female Persona):** All voice announcements and coaching tips are strictly locked to the studio-grade Microsoft Neural Indian English female voice persona (`en-IN-NeerjaNeural`), streamed from `/api/v1/mitra/tts` (with full HTTP `HEAD` and CORS preflight support) directly into an HTML5 `Audio` element. This guarantees single-voice brand consistency across all platforms and operating systems without generic browser or robotic voices.
+2. **Layer 2 (Zero-Latency Browser Speech Fallback):** When the backend is offline, the frontend seamlessly falls back to the browser's W3C Web Speech API (`window.speechSynthesis`) selecting calibrated female voices (`Neerja`, `Jenny`, `Aria`, `Sonia`) with normalized pitch (`1.0`) and articulation rate (`0.96`).
+3. **Instant Audio Preemption (`stopSpeaking()`):** Calling `stopSpeaking()` on alert acknowledgment or subsequent questions immediately halts active `<audio>` elements and browser utterances, guaranteeing zero audio collisions or overlapping speech.
+4. **Zero Third-Party Cost or API Keys:** The voice synthesis stream operates with zero cloud subscription cost and zero required external voice API keys.
 
 ---
 

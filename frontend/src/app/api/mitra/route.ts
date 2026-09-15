@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 const SYSTEM_PROMPT = `You are "Mitra" (Hindi for "friend"), an AI crisis companion embedded in a disaster-preparedness training simulator used by Indian school and college students. You are grounded in NDMA, NFPA, and NDRF safety protocols.
 
@@ -157,11 +157,17 @@ export async function POST(req: NextRequest) {
   const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
   const contextBlock = formatContext(body.context);
 
+  const rawTurns = history.map((turn) => ({
+    role: turn.role === "user" ? "user" : "model",
+    parts: [{ text: turn.text }],
+  }));
+
+  // Ensure first turn in contents is always from 'user' role for Gemini API compliance
   const contents = [
-    ...history.map((turn) => ({
-      role: turn.role === "user" ? "user" : "model",
-      parts: [{ text: turn.text }],
-    })),
+    ...(rawTurns.length > 0 && rawTurns[0].role === "model"
+      ? [{ role: "user", parts: [{ text: "Hello Mitra, evacuation drill starting." }] }]
+      : []),
+    ...rawTurns,
     { role: "user", parts: [{ text: `${contextBlock}\n\nStudent: ${message}` }] },
   ];
 
@@ -184,24 +190,28 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.error("Mitra/Gemini error:", res.status, errText);
-      return NextResponse.json({ error: "Mitra is temporarily unreachable." }, { status: 502 });
+      const errText = await res.text().catch(() => "");
+      console.warn("Mitra/Gemini API error, falling back to NDMA rules engine:", res.status, errText);
+      const reply = localMitraReply(message, body.context);
+      return NextResponse.json({ text: reply });
     }
 
     const data = await res.json();
     const text: string | undefined = data?.candidates?.[0]?.content?.parts
+      ?.filter((p: { thought?: boolean; text?: string }) => !p.thought)
       ?.map((p: { text?: string }) => p.text ?? "")
       .join("")
       .trim();
 
     if (!text) {
-      return NextResponse.json({ error: "Mitra couldn't form a response — try again." }, { status: 502 });
+      const reply = localMitraReply(message, body.context);
+      return NextResponse.json({ text: reply });
     }
 
     return NextResponse.json({ text });
   } catch (err) {
-    console.error("Mitra route error:", err);
-    return NextResponse.json({ error: "Mitra is temporarily unreachable." }, { status: 502 });
+    console.warn("Mitra route exception, falling back to NDMA rules engine:", err);
+    const reply = localMitraReply(message, body.context);
+    return NextResponse.json({ text: reply });
   }
 }

@@ -47,13 +47,39 @@ export interface DebriefLine {
   text: string;
 }
 
-// ── API-based persistence ─────────────────────────────────────────────
+// ── Persistence (localStorage + Backend API) ─────────────────────────
+
+const STORAGE_KEY = "safezone_drill_runs_v1";
+const MAX_RUNS = 500;
 
 /**
- * Save a drill run to the backend API.
- * Replaces localStorage persistence with server-side storage.
+ * Load drill runs from localStorage.
+ */
+export function loadRuns(): RunTelemetry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as RunTelemetry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save a drill run to localStorage and fire-and-forget POST to backend API.
  */
 export async function saveRun(run: RunTelemetry): Promise<boolean> {
+  if (typeof window !== "undefined") {
+    try {
+      const runs = loadRuns();
+      runs.push(run);
+      while (runs.length > MAX_RUNS) runs.shift();
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+    } catch {
+      /* storage full or unavailable - telemetry loss is non-fatal */
+    }
+  }
+
   try {
     const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/runs`, {
       method: "POST",
@@ -68,41 +94,16 @@ export async function saveRun(run: RunTelemetry): Promise<boolean> {
 
 /**
  * Load drill runs from the backend API.
- * Fills in default telemetry data when the backend is unreachable.
  */
-/**
- * Load drill runs from the backend API.
- */
-export async function loadRunsFromAPI(): Promise<RunTelemetry[]> {
+export async function loadRunsFromAPI(): Promise<RunTelemetry[] | null> {
   try {
     const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/runs`);
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
-    return Array.isArray(data) ? (data as RunTelemetry[]) : [];
+    return Array.isArray(data) ? (data as RunTelemetry[]) : null;
   } catch {
-    return [];
+    return null;
   }
-}
-
-/**
- * Load drill runs from the backend API, falling back to localStorage if unavailable.
- */
-export async function loadRuns(): Promise<RunTelemetry[]> {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/telemetry/runs`);
-    if (!res.ok) return getFallbackRuns();
-    const data = await res.json();
-    return Array.isArray(data) ? (data as RunTelemetry[]) : getFallbackRuns();
-  } catch {
-    return getFallbackRuns();
-  }
-}
-
-/**
- * Get fallback runs for development/offline mode.
- */
-export function getFallbackRuns(): RunTelemetry[] {
-  return [];
 }
 
 /**

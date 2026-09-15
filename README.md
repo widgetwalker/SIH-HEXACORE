@@ -21,36 +21,57 @@ The frontend is fully self-contained for the local MVP: **no database, no backen
 
 ### 2. Clone and run
 
-**macOS / Linux / Git Bash:**
+**Option A: Local Development (Fastest, Hot-Reloading)**
+1. Start PostgreSQL (PostGIS) & Redis via Docker:
+   ```bash
+   docker compose up -d postgres redis
+   ```
+2. Start the FastAPI backend:
+   ```bash
+   cd backend && source venv/bin/activate && PYTHONPATH=. uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+3. Start the Next.js frontend (in another terminal):
+   ```bash
+   cd frontend && npm install && npm run dev
+   ```
+
+**Option B: Full Docker Stack (Single Command)**
+To bring up PostgreSQL (PostGIS), Redis, FastAPI backend, and Next.js frontend all inside Docker:
 ```bash
-git clone https://github.com/widgetwalker/SIH-HEXACORE.git && cd SIH-HEXACORE/frontend && npm install && npm run dev
+docker compose up -d
 ```
+All four services start automatically:
+- **Frontend (Next.js):** `http://localhost:3000`
+- **Backend (FastAPI):** `http://localhost:8000/docs`
+- **PostgreSQL (PostGIS 16):** `localhost:5432`
+- **Redis 7:** `localhost:6379`
 
-**Windows PowerShell** (`&&` isn't a valid separator there — use `;`, or just run each line separately):
-```powershell
-git clone https://github.com/widgetwalker/SIH-HEXACORE.git; cd SIH-HEXACORE/frontend; npm install; npm run dev
-```
+### 3. Netlify Cloud Deployment
+The repository includes production-ready Netlify configuration (`netlify.toml` and `@netlify/plugin-nextjs`):
+1. Import `SIH-HEXACORE` into [Netlify](https://app.netlify.com).
+2. Netlify will automatically detect `netlify.toml`:
+   - **Base directory:** `frontend`
+   - **Build command:** `npm run build`
+   - **Publish directory:** `.next`
+   - **Plugin:** `@netlify/plugin-nextjs`
+3. Set optional environment variable:
+   - `NEXT_PUBLIC_BACKEND_URL`: URL of your deployed FastAPI backend.
+4. Deploy! Live site will be provisioned with edge caching and full Next.js App Router support.
 
-Either way this installs every dependency and starts the dev server (Turbopack) at **`http://localhost:3000`**. If you already cloned it, just run the last two commands from inside `frontend/` — and make sure you're actually *inside* `frontend/` (where `package.json` lives) before running any `npm` command, not the repo root.
-
-### 3. Production Build & Verification
+### 4. Production Build & Local Verification
 ```bash
 npm run build
 npm run start
 ```
-Use the following checks before handoff:
-```bash
-./node_modules/.bin/tsc --noEmit --pretty false
-npm run lint
-```
 These all pass cleanly in the current workspace — `npm run build` compiles the full application (all 8 routes, static generation included) with zero errors. See [current implementation status](./docs/08_CURRENT_IMPLEMENTATION_STATUS.md) for what's live.
 
-### 4. AI & Intelligent Systems (Optional Key, Zero-Crash Fallback)
+### 5. AI & Intelligent Systems (Zero-Crash Fallback)
 The platform operates fully offline or air-gapped out-of-the-box. When `GEMINI_API_KEY` is provided, advanced generative capabilities activate automatically:
-- **"Mitra" AI Crisis Companion** ([`backend/app/api/v1/mitra.py`](./backend/app/api/v1/mitra.py)): Uses **Gemini 1.5 Flash** for telemetry-grounded conversational coaching. Falls back to a local rule-based safety engine when no key is set.
-- **Dynamic Scenario Synthesizer** ([`backend/app/api/v1/scenarios.py`](./backend/app/api/v1/scenarios.py)): Uses **Gemini 3.6 Flash** to procedurally synthesize unique campus disaster maps and timed corridor collapse blockages. Falls back to an algorithmic pseudo-random generator (LCG) when offline.
+- **"Mitra" AI Crisis Companion & Neural Voice** ([`backend/app/api/v1/mitra.py`](./backend/app/api/v1/mitra.py)): Uses **Google Gemini 3.6 Flash** (with thought-token filtering) for telemetry-grounded conversational coaching. Strictly locked to **Microsoft Neural Text-to-Speech** (`edge-tts` `en-IN-NeerjaNeural`) on `/api/v1/mitra/tts` (with HTTP `HEAD` and CORS preflight support) delivering crystal-clear, broadcast studio-quality female emergency announcements with zero external voice keys. Features interactive direct microphone voice input (Web Speech API with proactive `getUserMedia` permission prompts and real-time live transcription), token-guarded instant audio preemption (`stopSpeaking()`), in-panel Mute toggle (`🔊 Voice On` / `🔇 Muted`), and per-message Replay buttons (`🔊`). Automatically falls back to an intelligent local rule-based safety engine when offline.
+- **Dynamic Scenario Synthesizer** ([`backend/app/api/v1/scenarios.py`](./backend/app/api/v1/scenarios.py)): Uses **Gemini 3.6 Flash** to procedurally synthesize unique campus disaster maps on 32x18 grids and timed corridor collapse blockages. Falls back to an algorithmic pseudo-random generator (LCG) when offline.
 - **Dynamic A\* Pathfinder** ([`backend/app/services/pathfinder.py`](./backend/app/services/pathfinder.py)): In-house multi-floor 3D graph pathfinder recalculating optimal escape routes around fires and smoke in **< 15ms**.
-- **Autonomous NPC Crowd Agents** ([`EvacuationGame.tsx`](./frontend/src/components/simulate/game/EvacuationGame.tsx)): Multi-agent simulation using BFS distance flow-fields and Boids separation forces.
+- **Autonomous Humanoid NPC Crowd Agents & Kinematics** ([`EvacuationGame.tsx`](./frontend/src/components/simulate/game/EvacuationGame.tsx)): Multi-agent simulation using BFS distance flow-fields, Boids separation forces, articulated limbs with walking animations, and dynamic skin/shirt palettes.
+- **Architectural Swinging Fire Doors & Fair Spawn**: Pivot-group fire doors with 90° opening kinematics, flush wall jambs, and flood-fill room partitioning preventing spawn adjacent to exits.
 
 To enable live Gemini generation, add your key to `frontend/.env.local` or `backend/.env`:
 ```bash

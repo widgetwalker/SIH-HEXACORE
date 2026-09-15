@@ -12,7 +12,8 @@ import type { GameState } from "./game/EvacuationGame";
 import { LEARN_SCENARIOS } from "@/components/learn/tiergame/content/simScenarios";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
 import { loadCadetSettings } from "@/lib/cadetSettings";
-import { speak, playBackendAudio } from "@/components/shared/speech";
+import { speak, stopSpeaking, unlockAudioPlayer } from "@/components/shared/speech";
+import { localMitraReply } from "@/lib/mitraFallback";
 
 const ScenarioEffects = dynamic(
   () => import("./game/ScenarioEffects"),
@@ -95,9 +96,12 @@ export default function SimulatePage() {
   const [mitraLoading, setMitraLoading] = useState(false);
   const [mitraBubble, setMitraBubble] = useState<MitraBubble | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const mitraPanelRef = useRef<HTMLDivElement>(null);
   const mitraLogRef = useRef<HTMLDivElement>(null);
+  const mitraInputRef = useRef<HTMLInputElement>(null);
   const lastDistRef = useRef<number | null>(null);
   const nextBubbleAtRef = useRef(0);
   const lastUrgentAtRef = useRef(0);
@@ -106,37 +110,117 @@ export default function SimulatePage() {
   const goodLineIdxRef = useRef(0);
   const scenario = learnScenario ?? SCENARIOS[selIdx];
 
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  };
+
+  const startListening = async () => {
+    setMicError(null);
+    const SpeechRec = typeof window !== "undefined" &&
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+    if (!SpeechRec) {
+      setMitraInput("⚠️ Speech recognition is not supported in this browser. Please use Chrome/Edge or type.");
+      return;
+    }
+
+    // Explicitly prompt for mic permission
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (permErr: any) {
+      console.warn("Microphone access denied:", permErr);
+      setMicError("Microphone permission was denied.");
+      setMitraInput("⚠️ Microphone access denied. Please allow microphone in browser address bar.");
+      return;
+    }
+
+    try {
+      stopListening();
+
+      const rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = "en-IN";
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setMitraInput("");
+      };
+
+      rec.onresult = (e: any) => {
+        let interim = "";
+        let final = "";
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          const result = e.results[i];
+          if (result.isFinal) {
+            final += result[0].transcript;
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+        const text = final || interim;
+        if (text) {
+          setMitraInput(text);
+        }
+        if (final && final.trim()) {
+          rec.stop();
+          sendMitra(final.trim());
+        }
+      };
+
+      rec.onerror = (e: any) => {
+        console.warn("Speech recognition error:", e.error);
+        setIsListening(false);
+        if (e.error === "not-allowed" || e.error === "permission-denied") {
+          setMicError("Mic blocked");
+          setMitraInput("⚠️ Mic permission blocked. Please allow mic in browser settings.");
+        } else if (e.error === "network") {
+          setMitraInput("⚠️ Speech network service error. Please try again or type.");
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (startErr) {
+      console.warn("Failed to start speech recognition:", startErr);
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const speakMitra = (text: string) => {
+    if (isMuted) return;
+    speak(text);
+  };
+
   useEffect(() => {
     return () => {
       if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+      stopSpeaking();
+      stopListening();
     };
   }, []);
-
-  useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition && !recognitionRef.current) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "en-IN";
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-      recognitionRef.current = recognition;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = (e: any) => {
-        const transcript = e.results[0][0].transcript;
-        if (transcript) {
-          setMitraInput(transcript);
-          sendMitra(transcript);
-        }
-      };
-    }
-  }, [mitraMessages, gs, phase, scenario, mitraLoading]);
 
   useEffect(() => {
     if (!mitraPanelRef.current) return;
@@ -154,29 +238,32 @@ export default function SimulatePage() {
     }
   }, [mitraMessages, mitraLoading]);
 
-  const openMitra = () => {
-    setMitraOpen((open) => {
-      const next = !open;
-      if (next) {
-        setMitraBubble(null);
-        if (mitraMessages.length === 0) {
-          setMitraMessages([{ role: "mitra", text: getMitraTip(gs) }]);
-        }
-      }
-      return next;
-    });
-  };
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      recognitionRef.current?.start();
+  useEffect(() => {
+    if (mitraOpen) {
+      setTimeout(() => {
+        mitraInputRef.current?.focus();
+      }, 50);
     }
-  };
+  }, [mitraOpen]);
 
-  const speakMitra = (text: string) => {
-    speak(text);
+  const openMitra = () => {
+    unlockAudioPlayer();
+    if (!mitraOpen) {
+      setMitraBubble(null);
+      setMitraOpen(true);
+      setMitraMessages((prev) => {
+        if (prev.length === 0) {
+          const initialTip = getMitraTip(gs);
+          speakMitra(initialTip);
+          return [{ role: "mitra", text: initialTip }];
+        }
+        return prev;
+      });
+    } else {
+      setMitraOpen(false);
+      stopSpeaking();
+      stopListening();
+    }
   };
 
   // When a campus emergency is injected/broadcast, Mitra verbalizes the
@@ -191,52 +278,76 @@ export default function SimulatePage() {
   }, [broadcasts.length]);
 
   const sendMitra = async (raw: string) => {
+    unlockAudioPlayer();
     const text = raw.trim();
     if (!text || mitraLoading) return;
-    const history = [...mitraMessages, { role: "user" as const, text }];
-    setMitraMessages(history);
+
+    let snapshotHistory: MitraTurn[] = [];
+    setMitraMessages((prev) => {
+      snapshotHistory = [...prev, { role: "user" as const, text }];
+      return snapshotHistory;
+    });
     setMitraInput("");
     setMitraLoading(true);
+
+    const contextData = {
+      phase,
+      scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
+      gameState: gs
+        ? {
+            status: gs.status,
+            time: Math.round(gs.time),
+            oxygen: Math.round(gs.oxygen),
+            panic: Math.round(gs.panic),
+            crouching: gs.crouching,
+            breathing: gs.breathing,
+            score: gs.score,
+          }
+        : null,
+    };
+
+    // 3.5-second strict timeout before triggering instant offline safety fallback
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-      const res = await fetch(`${backendUrl}/api/v1/mitra/chat`, {
+      // First attempt Next.js API route or backend
+      const res = await fetch("/api/mitra", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: text,
-          history: history.slice(0, -1),
-          context: {
-            phase,
-            scenario: { name: scenario.name, hazardLabel: scenario.hazardLabel, brief: scenario.brief },
-            gameState: gs
-              ? {
-                  status: gs.status,
-                  time: Math.round(gs.time),
-                  oxygen: Math.round(gs.oxygen),
-                  panic: Math.round(gs.panic),
-                  crouching: gs.crouching,
-                  breathing: gs.breathing,
-                  score: gs.score,
-                }
-              : null,
-          },
+          history: snapshotHistory.slice(0, -1),
+          context: contextData,
         }),
       });
-      const data = await res.json();
-      const replyText: string = res.ok ? data.text : data.error ?? "Mitra is offline right now.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: replyText }]);
-      speakMitra(replyText);
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data.text === "string" && data.text.trim()) {
+          setMitraMessages((prev) => [...prev, { role: "mitra", text: data.text }]);
+          speakMitra(data.text);
+          return;
+        }
+      }
+      throw new Error("Fallback required");
     } catch {
-      const errText = "Connection lost — try again once you're back online.";
-      setMitraMessages((m) => [...m, { role: "mitra", text: errText }]);
-      speakMitra(errText);
+      clearTimeout(timer);
+      // Automatic deterministic NDMA/NFPA crisis safety fallback (instant response)
+      const fallbackReply = localMitraReply(text, contextData);
+      setMitraMessages((prev) => [...prev, { role: "mitra", text: fallbackReply }]);
+      speakMitra(fallbackReply);
     } finally {
       setMitraLoading(false);
     }
   };
 
-  const showBubble = (text: string, tone: MitraBubble["tone"]) => {
+  const showBubble = (text: string, tone: MitraBubble["tone"], voice = true) => {
     setMitraBubble({ text, tone });
+    if (voice) {
+      speakMitra(text);
+    }
     if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
     bubbleTimerRef.current = setTimeout(() => setMitraBubble(null), 4500);
   };
@@ -245,14 +356,14 @@ export default function SimulatePage() {
   const updateBubble = (s: GameState) => {
     const now = Date.now();
 
-    if (s.panic > 75 && !s.breathing && now - lastUrgentAtRef.current > 6000) {
+    if (s.panic > 75 && !s.breathing && now - lastUrgentAtRef.current > 7000) {
       lastUrgentAtRef.current = now;
-      showBubble("Panic spiking — hold B to box-breathe!", "warn");
+      showBubble("Panic spiking — hold B to box-breathe!", "warn", true);
       return;
     }
-    if (s.oxygen < 25 && !s.crouching && now - lastUrgentAtRef.current > 6000) {
+    if (s.oxygen < 25 && !s.crouching && now - lastUrgentAtRef.current > 7000) {
       lastUrgentAtRef.current = now;
-      showBubble("Oxygen critical — crawl (SHIFT) to the beacon!", "warn");
+      showBubble("Oxygen critical — crawl (SHIFT) to the beacon!", "warn", true);
       return;
     }
 
@@ -263,11 +374,11 @@ export default function SimulatePage() {
     if (prevDist == null || s.distToExit < 0) return;
 
     if (s.distToExit > prevDist) {
-      nextBubbleAtRef.current = now + 3500;
-      showBubble(`Wrong way — head ${dirText(s.guideDir)}.`, "warn");
+      nextBubbleAtRef.current = now + 6000;
+      showBubble(`Wrong way — head ${dirText(s.guideDir)}.`, "warn", true);
     } else if (s.distToExit < prevDist) {
-      nextBubbleAtRef.current = now + 4000;
-      showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good");
+      nextBubbleAtRef.current = now + 6000;
+      showBubble(GOOD_LINES[goodLineIdxRef.current++ % GOOD_LINES.length], "good", false);
     }
   };
 
@@ -467,17 +578,62 @@ export default function SimulatePage() {
             {mitraBubble.text}
           </div>
         )}
-        <button className={styles.mitraBtn} onClick={openMitra} data-cursor>
-          🎙 Mitra
+        <button
+          type="button"
+          className={`${styles.mitraBtn} ${mitraOpen ? styles.mitraBtnOpen : ""}`}
+          onClick={openMitra}
+          data-cursor
+        >
+          {mitraOpen ? "✕ Close Mitra" : "🎙 Mitra"}
         </button>
         {mitraOpen && (
           <div ref={mitraPanelRef} className={`hud-panel ${styles.mitraPanel}`}>
-            <span className="hud-label">Mitra · Crisis Companion</span>
+            <div className={styles.mitraHeader}>
+              <span className="hud-label">Mitra · Crisis Companion</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  type="button"
+                  className={styles.mitraMuteBtn}
+                  onClick={() => {
+                    if (!isMuted) stopSpeaking();
+                    setIsMuted(!isMuted);
+                  }}
+                  title={isMuted ? "Unmute Mitra voice" : "Mute Mitra voice"}
+                >
+                  {isMuted ? "🔇 Muted" : "🔊 Voice On"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.mitraCloseBtn}
+                  onClick={() => {
+                    setMitraOpen(false);
+                    stopSpeaking();
+                    stopListening();
+                  }}
+                  title="Close Mitra panel"
+                  aria-label="Close Mitra"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
             <div ref={mitraLogRef} className={styles.mitraLog}>
               {mitraMessages.map((m, i) => (
-                <p key={i} className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
-                  {m.text}
-                </p>
+                <div key={i} className={m.role === "user" ? styles.mitraMsgUserRow : styles.mitraMsgRow}>
+                  <p className={m.role === "user" ? styles.mitraMsgUser : styles.mitraMsg}>
+                    {m.text}
+                  </p>
+                  {m.role === "mitra" && (
+                    <button
+                      type="button"
+                      className={styles.mitraReplayBtn}
+                      onClick={() => speakMitra(m.text)}
+                      title="Hear Mitra speak again"
+                    >
+                      🔊
+                    </button>
+                  )}
+                </div>
               ))}
               {mitraLoading && (
                 <div className={styles.typing}><span /><span /><span /></div>
@@ -494,15 +650,25 @@ export default function SimulatePage() {
                 type="button"
                 className={`${styles.mitraMic} ${isListening ? styles.listeningPulse : ""}`}
                 onClick={toggleListening}
-                title="Use voice"
+                title={isListening ? "Listening... click to stop" : "Click to speak with Mitra"}
+                aria-label={isListening ? "Stop listening" : "Start microphone"}
               >
-                🎤
+                {isListening ? "🔴" : "🎤"}
               </button>
               <input
+                ref={mitraInputRef}
+                autoFocus
                 className={styles.mitraInput}
                 value={mitraInput}
                 onChange={(e) => setMitraInput(e.target.value)}
-                placeholder="Ask Mitra..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    sendMitra(mitraInput);
+                  }
+                }}
+                placeholder={isListening ? "🎙️ Listening... speak now..." : "Ask Mitra... (or click 🎤 to speak)"}
                 disabled={mitraLoading}
                 data-cursor
               />

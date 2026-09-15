@@ -24,5 +24,4 @@ export {
   fmtTime,
   topViolation,
   VIOLATION_LABELS,
-  type RunTelemetry,
 } from "@/lib/telemetry";

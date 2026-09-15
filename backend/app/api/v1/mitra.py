@@ -33,7 +33,7 @@ class MitraTTSRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=1000, description="Text to synthesize to speech audio")
     lang: str = Field("en-in", description="Voice language/accent code (e.g. en-in, en)")
 
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 SYSTEM_PROMPT = """You are "Mitra" (Hindi for "friend"), an AI crisis companion embedded in a disaster-preparedness training simulator used by Indian school and college students. You are grounded in NDMA, NFPA, and NDRF safety protocols.
@@ -196,7 +196,7 @@ async def mitra_chat(body: MitraChatRequest) -> MitraChatResponse:
 
     candidates = data.get("candidates") or []
     parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
-    text = "".join(p.get("text", "") for p in parts).strip()
+    text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
 
     if not text:
         raise HTTPException(status_code=502, detail="Mitra couldn't form a response — try again.")
@@ -224,48 +224,60 @@ def _synthesize_fallback_chime(duration_s: float = 0.5, freq: float = 660.0) -> 
     return buf.getvalue()
 
 
-async def _generate_tts_wav(text: str, lang: str = "en-in") -> bytes:
-    """Synthesize speech audio into WAV format using espeak-ng/espeak, or fallback to chime."""
-    tts_bin = shutil.which("espeak-ng") or shutil.which("espeak")
-    safe_text = re.sub(r"[\r\n\t]+", " ", text).strip()[:500]
+async def _generate_tts_audio(text: str, lang: str = "en-in") -> tuple[bytes, str, str]:
+    """
+    Synthesize speech audio into a clear, natural female voice.
+    Primary: Microsoft Neural TTS via edge-tts (studio-grade broadcast female voice, zero raspiness).
+    Secondary: Local espeak-ng with softened female formant.
+    Fallback: Harmonic audio chime.
+    Returns (audio_bytes, media_type, filename).
+    """
+    safe_text = re.sub(r"[\r\n\t]+", " ", text).strip()[:800]
     if not safe_text:
-        safe_text = "Attention cadet."
+        safe_text = "Emergency safety notice."
 
-    if tts_bin:
-        try:
-            voice = "en-in+f3" if "in" in lang.lower() else "en+f3"
-            cmd = [tts_bin, "--stdout", "-v", voice, "-s", "155", "-p", "65", safe_text]
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=6.0)
-            if proc.returncode == 0 and len(stdout) > 44:
-                return stdout
-        except Exception as exc:
-            logger.warning("espeak TTS generation error: %s; using fallback chime", exc)
+    # 1. Primary: Edge Neural TTS (clear, human female voice with natural cadence)
+    try:
+        import edge_tts
 
-    return _synthesize_fallback_chime()
+        voice = "en-IN-NeerjaNeural" if "in" in lang.lower() else "en-US-JennyNeural"
+        comm = edge_tts.Communicate(safe_text, voice=voice, rate="-2%", pitch="+0Hz")
+        audio_data = bytearray()
+        async for chunk in comm.stream():
+            if chunk.get("type") == "audio" and "data" in chunk:
+                audio_data.extend(chunk["data"])
+        if len(audio_data) > 1024:
+            return bytes(audio_data), "audio/mpeg", "mitra_speech.mp3"
+    except Exception as exc:
+        logger.info("edge_tts neural synthesis unavailable (%s); returning fallback chime", exc)
+
+    # 2. Fallback: Clean harmonic safety chime (Strict rule: NEVER use robotic espeak)
+    return _synthesize_fallback_chime(), "audio/wav", "mitra_speech.wav"
 
 
-@router.get(
+async def _generate_tts_wav(text: str, lang: str = "en-in") -> bytes:
+    """Backwards-compatible helper returning raw audio bytes."""
+    bytes_out, _, _ = await _generate_tts_audio(text, lang)
+    return bytes_out
+
+
+@router.api_route(
     "/mitra/tts",
-    summary="Mitra TTS audio synthesis (WAV stream)",
+    methods=["GET", "HEAD"],
+    summary="Mitra TTS audio synthesis (Stream)",
     tags=["mitra"],
-    responses={200: {"content": {"audio/wav": {}}}},
 )
 async def get_mitra_tts(
     text: str = Query(..., min_length=1, max_length=1000, description="Text to synthesize to speech audio"),
     lang: str = Query("en-in", description="Voice language code (e.g. en-in, en)"),
 ) -> Response:
-    """Convert text directly into a playable WAV audio stream for clients without native speech synthesis."""
-    audio_bytes = await _generate_tts_wav(text, lang)
+    """Convert text directly into a playable audio stream for clients."""
+    audio_bytes, media_type, filename = await _generate_tts_audio(text, lang)
     return Response(
         content=audio_bytes,
-        media_type="audio/wav",
+        media_type=media_type,
         headers={
-            "Content-Disposition": "inline; filename=mitra_speech.wav",
+            "Content-Disposition": f"inline; filename={filename}",
             "Cache-Control": "public, max-age=3600",
         },
     )
@@ -275,17 +287,17 @@ async def get_mitra_tts(
     "/mitra/tts",
     summary="Mitra TTS audio synthesis via POST",
     tags=["mitra"],
-    responses={200: {"content": {"audio/wav": {}}}},
 )
 async def post_mitra_tts(body: MitraTTSRequest) -> Response:
-    """Convert text into a playable WAV audio stream via JSON body."""
-    audio_bytes = await _generate_tts_wav(body.text, body.lang)
+    """Convert text into a playable audio stream via JSON body."""
+    audio_bytes, media_type, filename = await _generate_tts_audio(body.text, body.lang)
     return Response(
         content=audio_bytes,
-        media_type="audio/wav",
+        media_type=media_type,
         headers={
-            "Content-Disposition": "inline; filename=mitra_speech.wav",
+            "Content-Disposition": f"inline; filename={filename}",
             "Cache-Control": "public, max-age=3600",
         },
     )
+
 

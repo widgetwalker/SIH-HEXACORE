@@ -17,8 +17,8 @@ export const SENTINELS_MODULE_1: TierModuleContent = {
       title: "The Physics of Why You Don't Run",
       estMinutes: 3,
       body: [
-        "During shaking, floors move unpredictably and objects fall without warning. Running increases your chance of being struck or falling down stairs that are themselves moving.",
-        "Drop, Cover, Hold On isn't just a rule for younger kids — it's the response with the best statistical outcome for everyone, including you.",
+        "During shaking, the ground beneath you is moving at unpredictable speeds and directions. Running on moving surfaces increases your risk of falling, being struck by falling objects, or ending up near unsecured structures that may collapse.",
+        "Drop, Cover, Hold On isn't just a rule for younger kids—it's the response with the best statistical outcome for everyone, including you.",
       ],
     },
     {
@@ -27,7 +27,7 @@ export const SENTINELS_MODULE_1: TierModuleContent = {
       title: "Aftershock Awareness",
       estMinutes: 3,
       body: [
-        "Once the main shaking stops, don't treat the danger as over. Aftershocks can hit minutes or hours later, sometimes strong enough to bring down already-weakened structures. This changes your evacuation math: move with purpose, but don't linger in stairwells or near cracked walls once you're clear.",
+        "Don't assume the danger ends with the first round of shaking. Aftershocks can occur minutes or hours later, sometimes with enough force to collapse structures weakened by the initial earthquake. This changes your evacuation math: move with purpose, but don't linger in stairwells or near cracked walls once you're clear.",
       ],
     },
     {
@@ -36,7 +36,7 @@ export const SENTINELS_MODULE_1: TierModuleContent = {
       title: "Your Role With Younger Students",
       estMinutes: 3,
       body: [
-        "If you're near an 8–10 year old (Ranger tier) during this, your job is to give one short, clear instruction at a time — not a lecture. \"Damaged stairs, this way\" beats a long explanation. Panic spreads through tone as much as words; staying calm and brief is itself a safety action.",
+        "If you're near a Ranger-tier student during this, your job is to give one short, clear instruction at a time—not a lecture. \"Damaged stairs, this way\" beats a long explanation. Panic spreads through tone as much as words; staying calm and brief is itself a safety action.",
       ],
     },
     {
@@ -48,12 +48,12 @@ export const SENTINELS_MODULE_1: TierModuleContent = {
       checkpoint: {
         scenario: "You're on the 4th floor. Shaking has stopped. A younger student is frozen near a cracked stairwell wall, unsure what to do.",
         correct: {
-          label: "Give a short direction (\"Not this way — follow me to the other stairs\"), and physically lead rather than just pointing from a distance.",
-          explanation: "A frozen student needs direction plus action, not just information — leading them physically removes the decision paralysis.",
+          label: "Give a short direction (\"Not this way—follow me to the other stairs\"), and physically lead rather than just pointing from a distance.",
+          explanation: "A frozen student needs direction plus action, not just information—leading them physically removes the decision paralysis.",
         },
         wrong: {
           label: "Assume they'll figure it out and continue on your own.",
-          explanation: "Panic freeze doesn't resolve itself quickly — leaving them to \"figure it out\" can mean they stay frozen near the hazard.",
+          explanation: "Panic freeze doesn't resolve itself quickly—leaving them to \"figure it out\" can mean they stay frozen near the hazard.",
           hazardIcon: "🧱",
         },
       },
@@ -84,7 +84,7 @@ export const SENTINELS_MODULE_2: TierModuleContent = {
       title: "Compound Fire Scenarios",
       estMinutes: 3,
       body: [
-        "Fire + one staircase blocked: use the other designated stair. Don't go back to \"check\" the blocked one — that wastes time your group doesn't have.",
+        "Fire + one staircase blocked: use the other designated stair. Don't go back to \"check\" the blocked one—that wastes time your group doesn't have.",
         "Fire + both staircases smoke-filled: shelter in the safest available room, close the door, signal from a window if possible, and call for help with your exact floor and room. This is a legitimate strategy, not a failure to evacuate.",
         "Fire + a working lift: the lift being operational doesn't make it safe. Power can fail mid-fire, or the lift can open directly onto a smoke-filled floor. Stairs stay the default.",
       ],
@@ -104,7 +104,7 @@ export const SENTINELS_MODULE_2: TierModuleContent = {
       title: "When Someone Panics Near You",
       estMinutes: 2,
       body: [
-        "Give instructions in short sentences. Don't argue or over-explain \"why\" mid-evacuation — that's a conversation for after you're safe. Physically guide if needed, keep exits clear, never push.",
+        "Give instructions in short sentences. Don't argue or over-explain \"why\" mid-evacuation—that's a conversation for after you're safe. Physically guide if needed, keep exits clear, never push.",
       ],
     },
     {
@@ -116,7 +116,7 @@ export const SENTINELS_MODULE_2: TierModuleContent = {
       checkpoint: {
         scenario: "You're evacuating with a group. One student insists on going back for a bag near the fire's origin.",
         correct: {
-          label: "Firmly redirect them toward the exit — \"Leave it, we go now\" — and keep moving as a group.",
+          label: "Firmly redirect them toward the exit—\"Leave it, we go now\"—and keep moving as a group.",
           explanation: "Firm, immediate redirection prevents the whole group from lingering near the hazard while one person deliberates.",
         },
         wrong: {
@@ -142,7 +142,7 @@ export const SENTINELS_MODULE_3: TierModuleContent = {
       title: "Building a Mental Map",
       estMinutes: 3,
       body: [
-        "By this age, you should be able to sketch your floor's two exits, the assembly point, and one shelter-in-place room from memory. This isn't busywork — under stress, memory recall is faster than reading a posted map.",
+        "By this age, you should be able to sketch your floor's two exits, the assembly point, and one shelter-in-place room from memory. This isn't busywork—under stress, memory recall is faster than reading a posted map.",
       ],
     },
     {
@@ -151,7 +151,7 @@ export const SENTINELS_MODULE_3: TierModuleContent = {
       title: "Judging a Route in Real Time",
       estMinutes: 3,
       body: [
-        "A route is unsafe if it shows: active fire or smoke, standing or flowing water, visible structural damage, or a crowd that has stopped moving for more than a few seconds. Judgment calls happen fast — the standard is \"does this route currently show a hazard,\" not \"has anyone confirmed it's dangerous yet.\"",
+        "A route is unsafe if it shows: active fire or smoke, standing or flowing water, visible structural damage, or a crowd that has stopped moving for more than a few seconds. Judgment calls happen fast—the standard is \"does this route currently show a hazard,\" not \"has anyone confirmed it's dangerous yet.\"",
       ],
     },
     {
@@ -172,7 +172,7 @@ export const SENTINELS_MODULE_3: TierModuleContent = {
       checkpoint: {
         scenario: "Staircase A has light haze but no visible flame. Staircase B is completely clear but adds two extra floors of walking.",
         correct: {
-          label: "Take Staircase B. Any visible smoke means the air quality and visibility in A can worsen fast — the extra distance is worth it.",
+          label: "Take Staircase B. Any visible smoke means the air quality and visibility in A can worsen fast—the extra distance is worth it.",
           explanation: "Light haze now can become heavy smoke fast; the safe margin from taking B outweighs the extra walking time.",
         },
         wrong: {
@@ -208,7 +208,7 @@ export const SENTINELS_MODULE_4: TierModuleContent = {
       title: "Using Emergency Equipment Correctly",
       estMinutes: 3,
       body: [
-        "Eyewash stations and emergency showers exist for direct exposure and should be used per your training — not as a general precaution \"just in case.\" Using them incorrectly can waste critical time in an actual exposure.",
+        "Eyewash stations and emergency showers exist for direct exposure and should be used per your training—not as a general precaution \"just in case.\" Using them incorrectly can waste critical time in an actual exposure.",
       ],
     },
     {
@@ -217,7 +217,7 @@ export const SENTINELS_MODULE_4: TierModuleContent = {
       title: "When Fumes Are in Your Escape Route",
       estMinutes: 3,
       body: [
-        "Don't push through a fume-filled stairwell. Use an alternate route or shelter and report your location — the same logic as smoke, but chemical fumes can carry additional health risks beyond visibility loss.",
+        "Don't push through a fume-filled stairwell. Use an alternate route or shelter and report your location—the same logic as smoke, but chemical fumes can carry additional health risks beyond visibility loss.",
       ],
     },
     {
@@ -230,7 +230,7 @@ export const SENTINELS_MODULE_4: TierModuleContent = {
         scenario: "A classmate got a chemical splash on their hand during the spill event.",
         correct: {
           label: "Direct them to the eyewash/emergency shower per posted lab instructions and get a trained adult immediately.",
-          explanation: "Direct skin exposure needs the protocol equipment right away — guessing or waiting risks worse injury.",
+          explanation: "Direct skin exposure needs the protocol equipment right away—guessing or waiting risks worse injury.",
         },
         wrong: {
           label: "Try to guess a home remedy or ignore it because \"it's probably fine.\"",
@@ -255,7 +255,7 @@ export const SENTINELS_MODULE_5: TierModuleContent = {
       title: "Why \"Staying Put\" Is Often Correct",
       estMinutes: 3,
       body: [
-        "For cyclones, the instinct to \"get somewhere else\" is often wrong — moving outside during dangerous winds is more dangerous than staying in a protected interior room. A lull in wind is not the all-clear; storm systems can have a calm eye before conditions return.",
+        "For cyclones, the instinct to \"get somewhere else\" is often wrong—moving outside during dangerous winds is more dangerous than staying in a protected interior room. A lull in wind is not the all-clear; storm systems can have a calm eye before conditions return.",
       ],
     },
     {
@@ -285,12 +285,12 @@ export const SENTINELS_MODULE_5: TierModuleContent = {
       checkpoint: {
         scenario: "Wind has suddenly gone quiet during a cyclone warning. Some students want to go check the courtyard.",
         correct: {
-          label: "Stay inside — a lull can be the eye of the storm, not the end of it. Wait for an official all-clear.",
+          label: "Stay inside—a lull can be the eye of the storm, not the end of it. Wait for an official all-clear.",
           explanation: "A sudden calm during a cyclone is a known warning sign of an eye passing over, not a sign the storm has ended.",
         },
         wrong: {
           label: "Go outside briefly since \"it seems calm now.\"",
-          explanation: "Conditions can return violently and without warning once the eye passes — \"briefly\" isn't a safe window to bet on.",
+          explanation: "Conditions can return violently and without warning once the eye passes—\"briefly\" isn't a safe window to bet on.",
           hazardIcon: "🌪️",
         },
         mapOrientation: "vertical",
@@ -331,7 +331,7 @@ export const SENTINELS_MODULE_6: TierModuleContent = {
       title: "Coordinating a Group Decision",
       estMinutes: 3,
       body: [
-        "When you're the most senior student present, others will look to you. State the hazard, state the action, and move: \"Stair B has smoke — we're using Stair A, follow me.\" Confidence in tone matters as much as being right — hesitation itself can cause a crowd to freeze.",
+        "When you're the most senior student present, others will look to you. State the hazard, state the action, and move: \"Stair B has smoke—we're using Stair A, follow me.\" Confidence in tone matters as much as being right—hesitation itself can cause a crowd to freeze.",
       ],
     },
     {
@@ -344,7 +344,7 @@ export const SENTINELS_MODULE_6: TierModuleContent = {
         scenario: "After an earthquake, your group reaches a stairwell with a gas smell and a partially cracked wall. Younger students are looking to you for direction.",
         correct: {
           label: "Redirect the group away from both hazards to the alternate stair, giving one clear instruction, and report the gas smell to a responder as soon as you're safe.",
-          explanation: "Two independent hazards means the response should avoid both, not weigh which one is \"worse\" — redirect entirely and report once clear.",
+          explanation: "Two independent hazards means the response should avoid both, not weigh which one is \"worse\"—redirect entirely and report once clear.",
         },
         wrong: {
           label: "Debate with the group about whether the smell is \"really gas\" while standing near it.",

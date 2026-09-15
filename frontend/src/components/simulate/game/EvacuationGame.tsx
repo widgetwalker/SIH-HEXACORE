@@ -195,32 +195,277 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         scene.add(w);
       }
     }
-    /* door meshes: closed = amber PBR slab with emissive; opened = flat teal threshold */
-    const doorMeshes = new Map<number, THREE.Mesh>();
-    const doorMatClosed = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.45, metalness: 0.22, emissive: 0x3a1f00, emissiveIntensity: 0.45 });
+    /* door meshes: realistic architectural fire door fixed to adjacent walls, swinging open 90° on hinges */
+    interface DoorPivotState {
+      pivot: THREE.Group;
+      targetAngle: number;
+      currentAngle: number;
+      panelMat?: THREE.MeshStandardMaterial;
+      glassMat?: THREE.MeshStandardMaterial;
+    }
+    const doorPivots = new Map<number, DoorPivotState>();
+    const doorMatClosed = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      roughness: 0.38,
+      metalness: 0.28,
+      emissive: 0x451a03,
+      emissiveIntensity: 0.45,
+    });
+    const doorFrameMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.5,
+      metalness: 0.65,
+    });
+    const metalTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.25,
+      metalness: 0.85,
+    });
+    const pushBarMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.2,
+      metalness: 0.9,
+    });
+    const glassClosedMat = new THREE.MeshStandardMaterial({
+      color: 0x064e3b,
+      roughness: 0.1,
+      metalness: 0.85,
+      emissive: 0x059669,
+      emissiveIntensity: 0.35,
+    });
+
     doors.forEach((idx) => {
       const c = idx % cols;
       const r = Math.floor(idx / cols);
-      const d = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.9, 2.4, CELL * 0.35), doorMatClosed.clone());
-      d.position.copy(cellToWorld(c, r)).setY(1.2);
-      d.rotation.y = fp.at(c, r - 1) === "#" || fp.at(c, r + 1) === "#" ? 0 : Math.PI / 2;
-      scene.add(d);
-      doorMeshes.set(idx, d);
+
+      // Determine wall orientation by checking neighbouring cells
+      const hasWest = fp.at(c - 1, r) === "#";
+      const hasEast = fp.at(c + 1, r) === "#";
+      const hasNorth = fp.at(c, r - 1) === "#";
+      const hasSouth = fp.at(c, r + 1) === "#";
+      const ewScore = (hasWest ? 1 : 0) + (hasEast ? 1 : 0);
+      const nsScore = (hasNorth ? 1 : 0) + (hasSouth ? 1 : 0);
+      // If ewScore >= nsScore (and > 0), the wall runs East-West (along X).
+      // If nsScore > ewScore, the wall runs North-South (along Z).
+      const isWallAlongX = ewScore >= nsScore && ewScore > 0 ? true : nsScore > 0 ? false : true;
+
+      const frameGroup = new THREE.Group();
+
+      // 1. Top Wall Header / Arch: seamless bridge matching wall geometry & material
+      // Wall height is 2.6. Door opening height is 2.22. Header fills 2.22 to 2.6 (0.38m tall).
+      const headerH = 0.38;
+      const wallHeader = new THREE.Mesh(
+        new THREE.BoxGeometry(CELL, headerH, CELL),
+        wallMat
+      );
+      wallHeader.position.set(0, 2.6 - headerH / 2, 0);
+      frameGroup.add(wallHeader);
+
+      // 2. Heavy-duty architectural metal door frame
+      const jambW = 0.10;
+      const jambH = 2.6 - headerH; // 2.22m
+      const jambD = 0.42; // sturdy casing in wall opening
+
+      // Left Jamb (touches left wall face at -CELL/2 with 0 gap)
+      const postL = new THREE.Mesh(new THREE.BoxGeometry(jambW, jambH, jambD), doorFrameMat);
+      postL.position.set(-CELL / 2 + jambW / 2, jambH / 2, 0);
+      frameGroup.add(postL);
+
+      // Right Jamb (touches right wall face at +CELL/2 with 0 gap)
+      const postR = new THREE.Mesh(new THREE.BoxGeometry(jambW, jambH, jambD), doorFrameMat);
+      postR.position.set(CELL / 2 - jambW / 2, jambH / 2, 0);
+      frameGroup.add(postR);
+
+      // Frame Lintel trim directly below wall header
+      const frameLintel = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.05, jambD + 0.02), doorFrameMat);
+      frameLintel.position.set(0, jambH - 0.025, 0);
+      frameGroup.add(frameLintel);
+
+      // Floor threshold strip
+      const threshold = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.02, jambD), metalTrimMat);
+      threshold.position.set(0, 0.01, 0);
+      frameGroup.add(threshold);
+
+      // 3. Swinging Door Panel on Hinge Pivot
+      const doorW = CELL - 2 * jambW; // 1.80m clear span
+      const doorH = jambH - 0.06; // 2.16m panel
+      const doorThick = 0.08;
+
+      const pivot = new THREE.Group();
+      // Pivot sits right at the inner edge of the left jamb
+      pivot.position.set(-CELL / 2 + jambW, 0, 0);
+
+      // Main door panel slab
+      const panelMat = doorMatClosed.clone();
+      const panelGeo = new THREE.BoxGeometry(doorW, doorH, doorThick);
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(doorW / 2, doorH / 2 + 0.02, 0);
+      pivot.add(panel);
+
+      // Emergency vision window slit
+      const glassMat = glassClosedMat.clone();
+      const visionGlass = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.72, doorThick + 0.01), glassMat);
+      visionGlass.position.set(doorW * 0.62, 1.42, 0);
+      pivot.add(visionGlass);
+
+      // Vision window frame rim
+      const visionFrame = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.76, doorThick + 0.015), metalTrimMat);
+      visionFrame.position.set(doorW * 0.62, 1.42, 0);
+      pivot.add(visionFrame);
+
+      // Emergency crash/push bar on the door face
+      const pushBar = new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.7, 0.05, 0.04), pushBarMat);
+      pushBar.position.set(doorW * 0.52, 1.02, doorThick / 2 + 0.03);
+      pivot.add(pushBar);
+      const pushBarMount1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), metalTrimMat);
+      pushBarMount1.position.set(doorW * 0.18, 1.02, doorThick / 2 + 0.02);
+      pivot.add(pushBarMount1);
+      const pushBarMount2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), metalTrimMat);
+      pushBarMount2.position.set(doorW * 0.86, 1.02, doorThick / 2 + 0.02);
+      pivot.add(pushBarMount2);
+
+      // Protective kickplate at bottom
+      const kickplate = new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.96, 0.28, doorThick + 0.005), metalTrimMat);
+      kickplate.position.set(doorW / 2, 0.16, 0);
+      pivot.add(kickplate);
+
+      // Realistic hinge cylinders attached to the left post
+      for (const hy of [0.45, 1.85]) {
+        const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.09, 12), doorFrameMat);
+        hinge.position.set(0, hy, 0);
+        pivot.add(hinge);
+      }
+
+      frameGroup.add(pivot);
+
+      // Position in world and rotate to align with wall
+      frameGroup.position.copy(cellToWorld(c, r));
+      frameGroup.rotation.y = isWallAlongX ? 0 : Math.PI / 2;
+      scene.add(frameGroup);
+
+      doorPivots.set(idx, { pivot, targetAngle: 0, currentAngle: 0, panelMat, glassMat });
     });
 
-    /* ── exit beacons (multiple supported) — cinematic emissive pillars ── */
+    /* ── exit beacons & architectural emergency stairwells ── */
     const exitWorlds = exits.map((e) => cellToWorld(e.c, e.r));
-    for (const ew of exitWorlds) {
+    const stairMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.88,
+      metalness: 0.15,
+    });
+    const nosingMat = new THREE.MeshStandardMaterial({
+      color: 0x10b981,
+      emissive: 0x059669,
+      emissiveIntensity: 0.7,
+      roughness: 0.4,
+    });
+    const railMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.35,
+      metalness: 0.8,
+    });
+
+    const createExitSignTexture = (text: string) => {
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 64;
+      const ctx = c.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#064e3b"; // dark emerald base
+        ctx.fillRect(0, 0, 256, 64);
+        ctx.strokeStyle = "#34d399";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(3, 3, 250, 58);
+
+        // Emergency exit text + arrow symbol
+        ctx.fillStyle = "#ecfdf5";
+        ctx.font = "bold 20px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, 128, 32);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
+    };
+
+    for (let i = 0; i < exits.length; i++) {
+      const ex = exits[i];
+      const ew = exitWorlds[i];
+
+      // Architectural Stairwell Group
+      const stairwellGroup = new THREE.Group();
+      stairwellGroup.position.copy(ew);
+
+      // 3 tiered stairs descending
+      for (let s = 0; s < 3; s++) {
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(CELL * 0.76, 0.14, 0.44),
+          stairMat
+        );
+        step.position.set(0, 0.07 + s * 0.10, -0.55 + s * 0.42);
+        stairwellGroup.add(step);
+
+        // High-visibility green emergency nosing strip on step lip
+        const nosing = new THREE.Mesh(
+          new THREE.BoxGeometry(CELL * 0.76, 0.03, 0.08),
+          nosingMat
+        );
+        nosing.position.set(0, 0.14 + s * 0.10, -0.34 + s * 0.42);
+        stairwellGroup.add(nosing);
+      }
+
+      // Steel safety handrails
+      for (const side of [-CELL * 0.38, CELL * 0.38]) {
+        const rail = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.025, 1.25, 8),
+          railMat
+        );
+        rail.position.set(side, 0.55, -0.15);
+        rail.rotation.x = Math.PI / 9;
+        stairwellGroup.add(rail);
+
+        const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.55, 8), railMat);
+        post1.position.set(side, 0.28, -0.55);
+        stairwellGroup.add(post1);
+
+        const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.75, 8), railMat);
+        post2.position.set(side, 0.45, 0.28);
+        stairwellGroup.add(post2);
+      }
+
+      // Illuminated Emergency Stairwell Sign overhead
+      const signLabel = ex.label ?? (i === 0 ? "STAIRWELL A" : `STAIRWELL ${i + 1}`);
+      const signTex = createExitSignTexture(`EXIT · ${signLabel}`);
+      const signMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.6, 0.42),
+        new THREE.MeshBasicMaterial({ map: signTex, transparent: true, side: THREE.DoubleSide })
+      );
+      signMesh.position.set(0, 2.35, 0);
+      stairwellGroup.add(signMesh);
+
+      scene.add(stairwellGroup);
+
+      // Beacon column & light
       const beacon = new THREE.Mesh(
         new THREE.CylinderGeometry(0.55, 0.55, 6, 24, 1, true),
-        new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 1.15, transparent: true, opacity: 0.42, side: THREE.DoubleSide })
+        new THREE.MeshStandardMaterial({
+          color: 0x10b981,
+          emissive: 0x10b981,
+          emissiveIntensity: 1.15,
+          transparent: true,
+          opacity: 0.42,
+          side: THREE.DoubleSide,
+        })
       );
       beacon.position.copy(ew).setY(3);
       scene.add(beacon);
+
       // soft point light at beacon — cheap, 1 per exit
       const bl = new THREE.PointLight(0x10b981, 2.2, 10);
       bl.position.copy(ew).setY(1.2);
       scene.add(bl);
+
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.7, 0.95, 32),
         new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
@@ -231,19 +476,42 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       animBeacons.push({ beacon, ring });
     }
 
-    /* ── player — PBR capsule + rim glow + point light ── */
+    /* ── player — low-poly humanoid figure ── */
+    const playerMat = new THREE.MeshStandardMaterial({ color: 0x00d4aa, emissive: 0x0a4438, emissiveIntensity: 0.65, roughness: 0.45, metalness: 0.18 });
     const player = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.42, 0.8, 6, 14),
-      new THREE.MeshStandardMaterial({ color: 0x00d4aa, emissive: 0x0a4438, emissiveIntensity: 0.65, roughness: 0.45, metalness: 0.18 })
-    );
-    body.position.y = 0.85;
-    player.add(body);
+    // Torso
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.55, 0.22), playerMat);
+    torso.position.y = 0.95;
+    player.add(torso);
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), playerMat);
+    head.position.y = 1.42;
+    player.add(head);
+    // Arms
+    const armGeo = new THREE.BoxGeometry(0.1, 0.44, 0.1);
+    const armL = new THREE.Mesh(armGeo, playerMat);
+    armL.position.set(-0.28, 0.92, 0);
+    armL.rotation.z = 0.12;
+    player.add(armL);
+    const armR = new THREE.Mesh(armGeo, playerMat);
+    armR.position.set(0.28, 0.92, 0);
+    armR.rotation.z = -0.12;
+    player.add(armR);
+    // Legs
+    const legGeo = new THREE.BoxGeometry(0.12, 0.48, 0.12);
+    const legL = new THREE.Mesh(legGeo, playerMat);
+    legL.position.set(-0.1, 0.44, 0);
+    player.add(legL);
+    const legR = new THREE.Mesh(legGeo, playerMat);
+    legR.position.set(0.1, 0.44, 0);
+    player.add(legR);
     const playerLight = new THREE.PointLight(0x00d4aa, 1.2, 6);
     playerLight.position.set(0, 0.9, 0);
     player.add(playerLight);
     player.position.copy(cellToWorld(spawn.c, spawn.r));
     scene.add(player);
+    // Walking animation state
+    let walkPhase = 0;
 
     /* ── fire & smoke visuals — hyper-real shader-driven, not block planes
        flame uses canvas gradient texture + 3-plane cross + emissive flicker;
@@ -510,7 +778,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
 
     /* ── NPC crowd (BFS flow-field toward nearest reachable exit) ── */
     interface NpcAgent {
-      mesh: THREE.Mesh;
+      mesh: THREE.Group;
+      bodyMat: THREE.MeshStandardMaterial;
       speed: number;
       dead: boolean;
       deadTimer: number;
@@ -555,7 +824,43 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       fieldDirty = false;
     };
 
-    const npcGeo = new THREE.CapsuleGeometry(0.28, 0.5, 4, 8);
+    // Skin tone palette for NPC diversity
+    const skinTones = [0xf5d0a9, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac, 0xd4a574];
+    // Shirt color palette
+    const shirtColors = [0x3b82f6, 0xef4444, 0x22c55e, 0xf59e0b, 0xa855f7, 0xec4899, 0x64748b, 0x06b6d4];
+
+    const buildNpcFigure = (skinColor: number, shirtColor: number): { group: THREE.Group; bodyMat: THREE.MeshStandardMaterial } => {
+      const group = new THREE.Group();
+      const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.7, metalness: 0.05, transparent: true, opacity: 0.96 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.68, metalness: 0.08, transparent: true, opacity: 0.96 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.05, transparent: true, opacity: 0.96 });
+      // Torso
+      const t = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.36, 0.16), shirtMat);
+      t.position.y = 0.62;
+      group.add(t);
+      // Head
+      const h = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), skinMat);
+      h.position.y = 0.95;
+      group.add(h);
+      // Arms
+      const armGeo = new THREE.BoxGeometry(0.07, 0.32, 0.07);
+      const aL = new THREE.Mesh(armGeo, skinMat);
+      aL.position.set(-0.2, 0.6, 0);
+      group.add(aL);
+      const aR = new THREE.Mesh(armGeo, skinMat);
+      aR.position.set(0.2, 0.6, 0);
+      group.add(aR);
+      // Legs
+      const legGeo = new THREE.BoxGeometry(0.09, 0.34, 0.09);
+      const lL = new THREE.Mesh(legGeo, pantsMat);
+      lL.position.set(-0.07, 0.27, 0);
+      group.add(lL);
+      const lR = new THREE.Mesh(legGeo, pantsMat);
+      lR.position.set(0.07, 0.27, 0);
+      group.add(lR);
+      return { group, bodyMat: shirtMat };
+    };
+
     for (let i = 0; i < NPC_COUNT; i++) {
       /* spawn on open floor away from exits & fire seeds */
       for (let tries = 0; tries < 60; tries++) {
@@ -564,19 +869,17 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         const idx = idxOf(c, r);
         if (walls.has(idx) || doors.has(idx) || fireSeeds.includes(idx)) continue;
         if (exits.some((e) => Math.abs(e.c - c) + Math.abs(e.r - r) < 6)) continue;
-        const hueVar = 0xd97706 + Math.floor((Math.random() - 0.5) * 0x0a0a0a);
-        const mesh = new THREE.Mesh(
-          npcGeo,
-          new THREE.MeshStandardMaterial({ color: hueVar, roughness: 0.68, metalness: 0.08, transparent: true, opacity: 0.96 })
-        );
+        const skin = skinTones[Math.floor(Math.random() * skinTones.length)];
+        const shirt = shirtColors[Math.floor(Math.random() * shirtColors.length)];
+        const { group: mesh, bodyMat } = buildNpcFigure(skin, shirt);
         const w = cellToWorld(c, r);
         mesh.position.set(
           w.x + (Math.random() - 0.5) * 0.8,
-          0.55,
+          0,
           w.z + (Math.random() - 0.5) * 0.8
         );
         scene.add(mesh);
-        npcs.push({ mesh, speed: 1.9 + Math.random() * 1.2, dead: false, deadTimer: 0, fade: 1 });
+        npcs.push({ mesh, bodyMat, speed: 1.9 + Math.random() * 1.2, dead: false, deadTimer: 0, fade: 1 });
         break;
       }
     }
@@ -708,17 +1011,18 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
       const pr = Math.floor(player.position.z / CELL + rows / 2);
       const pIdx = idxOf(pc, pr);
       const nearExit = exitWorlds.some((w) => player.position.distanceTo(w) < CELL * 4);
+      const exitNames = exits.map((e) => e.label ?? "STAIRWELL").join(" or ");
       let message = exits.length > 1
-        ? `Reach any green ASSEMBLY beacon (${exits.length} active)`
-        : "Reach the green ASSEMBLY beacon";
+        ? `Evacuate via ${exitNames} (${exits.length} active)`
+        : `Evacuate via ${exits[0]?.label ?? "emergency exit"}`;
       if (time < bannerUntil) message = bannerMsg;
-      else if (status === "won") message = "Evacuated to assembly point ✓";
+      else if (status === "won") message = "Evacuated to safety via emergency stairwell ✓";
       else if (status === "lost") message = oxygen <= 0 ? `${scen.hazardLabel} exposure fatal - casualty` : "Time expired - drill failed";
       else if (fireSet.has(pIdx)) message = `YOU ARE IN ${scen.hazardLabel} - GET OUT!`;
       else if (breathing) message = "Box-breathing… 4s in, 4s hold, 4s out";
       else if (panic > 70) message = "PANIC HIGH - hold B to box-breathe";
       else if (smokeSet.has(pIdx) && !crouching) message = `${scen.hazardLabel === "TOXIC GAS" ? "Gas!" : "Smoke!"} Hold SHIFT to crawl low`;
-      else if (nearExit) message = "Assembly point ahead!";
+      else if (nearExit) message = "Emergency stairwell ahead!";
 
       /* live routing hint — reuses the same BFS flow-field the NPCs follow */
       const distToExit = distField[pIdx] ?? -1;
@@ -770,11 +1074,11 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         }
 
         /* movement (frozen while box-breathing; slowed by panic + crouch) */
+        let dx = 0, dz = 0;
         if (!breathing) {
           let speed = 4.4;
           if (crouching) speed = 2.3;
           if (panic > 70) speed *= 0.55; /* cognitive freeze */
-          let dx = 0, dz = 0;
           if (keys.has("w") || keys.has("arrowup")) dz -= 1;
           if (keys.has("s") || keys.has("arrowdown")) dz += 1;
           if (keys.has("a") || keys.has("arrowleft")) dx -= 1;
@@ -792,25 +1096,44 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
             player.rotation.y = Math.atan2(dx, dz);
           }
         }
-        body.scale.y = crouching ? 0.55 : 1;
+        // Crouch: scale the whole player group's y
+        player.scale.y = crouching ? 0.6 : 1;
+        // Walking leg/arm animation
+        if (dx || dz) {
+          walkPhase += dt * 8;
+          const swing = Math.sin(walkPhase) * 0.35;
+          legL.rotation.x = swing;
+          legR.rotation.x = -swing;
+          armL.rotation.x = -swing * 0.6;
+          armR.rotation.x = swing * 0.6;
+        } else {
+          legL.rotation.x *= 0.85;
+          legR.rotation.x *= 0.85;
+          armL.rotation.x *= 0.85;
+          armR.rotation.x *= 0.85;
+        }
 
         const pc = Math.floor(player.position.x / CELL + cols / 2);
         const pr = Math.floor(player.position.z / CELL + rows / 2);
         const pIdx = idxOf(pc, pr);
 
-        /* push through closed doors */
+        /* push through closed doors — swing the door panel open */
         if (doors.has(pIdx) && !openedDoors.has(pIdx)) {
           openedDoors.add(pIdx);
           fieldDirty = true;
-          const dm = doorMeshes.get(pIdx);
-          if (dm) {
-            (dm.material as THREE.MeshStandardMaterial).color.set(0x00d4aa);
-            (dm.material as THREE.MeshStandardMaterial).emissive.set(0x00d4aa);
-            (dm.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.45;
-            (dm.material as THREE.MeshStandardMaterial).opacity = 0.32;
-            (dm.material as THREE.MeshStandardMaterial).transparent = true;
-            dm.scale.y = 0.12;
-            dm.position.y = 0.12;
+          const dp = doorPivots.get(pIdx);
+          if (dp) {
+            dp.targetAngle = -Math.PI / 2; // swing 90° open
+            if (dp.panelMat) {
+              dp.panelMat.color.setHex(0x10b981);
+              dp.panelMat.emissive.setHex(0x047857);
+              dp.panelMat.emissiveIntensity = 0.5;
+            }
+            if (dp.glassMat) {
+              dp.glassMat.color.setHex(0x34d399);
+              dp.glassMat.emissive.setHex(0x10b981);
+              dp.glassMat.emissiveIntensity = 0.85;
+            }
           }
         }
 
@@ -957,6 +1280,14 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         (b.ring.material as THREE.MeshBasicMaterial).opacity = 0.8 * (1 - ringP);
       }
 
+      /* animate door swing — smoothly lerp toward target angle */
+      doorPivots.forEach((dp) => {
+        if (Math.abs(dp.currentAngle - dp.targetAngle) > 0.01) {
+          dp.currentAngle += (dp.targetAngle - dp.currentAngle) * Math.min(1, dt * 5);
+          dp.pivot.rotation.y = dp.currentAngle;
+        }
+      });
+
       /* camera: third-person follow + click-drag orbit + quake shake intro */
       if (!isDragging) {
         mouseYaw *= 0.92; // smoothly drift back to center
@@ -997,7 +1328,11 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           npc.deadTimer -= dt;
           if (npc.deadTimer <= 0 && npc.fade > 0) {
             npc.fade = Math.max(0, npc.fade - dt);
-            (npc.mesh.material as THREE.MeshStandardMaterial).opacity = npc.fade * 0.9;
+            npc.mesh.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity = npc.fade * 0.9;
+              }
+            });
           }
           continue;
         }
@@ -1011,9 +1346,13 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           npc.deadTimer += dt;
           if (npc.deadTimer > 1.2) {
             npc.dead = true;
-            (npc.mesh.material as THREE.MeshStandardMaterial).color.set(0xef4444);
-            (npc.mesh.material as THREE.MeshStandardMaterial).emissive.set(0x331111);
-            (npc.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.5;
+            npc.mesh.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set(0xef4444);
+                ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).emissive.set(0x331111);
+                ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = 0.5;
+              }
+            });
             continue;
           }
         }
@@ -1023,7 +1362,11 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
           /* evacuated */
           npc.fade -= dt * 2;
           npc.mesh.scale.setScalar(Math.max(0.01, npc.fade));
-          (npc.mesh.material as THREE.MeshStandardMaterial).opacity = Math.max(0, npc.fade);
+          npc.mesh.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity = Math.max(0, npc.fade);
+            }
+          });
           if (npc.fade <= 0) npc.mesh.visible = false;
           continue;
         }
@@ -1045,6 +1388,8 @@ export default function EvacuationGame({ scenario, onState, onEnd }: Props) {
         const dir = tmpTarget.sub(npc.mesh.position);
         dir.y = 0;
         if (dir.lengthSq() > 0.001) {
+          // Face movement direction
+          npc.mesh.rotation.y = Math.atan2(dir.x, dir.z);
           dir.normalize().multiplyScalar(spd * dt);
           npc.mesh.position.add(dir);
         }

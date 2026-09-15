@@ -16,6 +16,8 @@ export interface LiveThreatBannerProps {
   alert: LiveThreatAlert | null;
   onAcknowledge?: () => void;
   onTriggerProtocol?: () => void;
+  onDismiss?: () => void;
+  isAcknowledged?: boolean;
 }
 
 const SEVERITY_CONFIG = {
@@ -43,6 +45,8 @@ export default function LiveThreatBanner({
   alert,
   onAcknowledge,
   onTriggerProtocol,
+  onDismiss,
+  isAcknowledged = false,
 }: LiveThreatBannerProps) {
   if (!alert) return null;
 
@@ -57,20 +61,30 @@ export default function LiveThreatBanner({
       data-severity={alert.severity.toLowerCase()}
       style={
         {
-          "--severity-color": config.color,
-          "--severity-background": config.bgColor,
+          "--severity-color": isAcknowledged ? "#10B981" : config.color,
+          "--severity-background": isAcknowledged ? "rgba(16, 185, 129, 0.10)" : config.bgColor,
         } as React.CSSProperties
       }
     >
-      <div className={styles.severityBadge} style={{ backgroundColor: config.color }}>
-        <span className={styles.severityIcon}>{config.icon}</span>
-        <span className={styles.severityLabel}>{config.label}</span>
+      <div
+        className={styles.severityBadge}
+        style={{ backgroundColor: isAcknowledged ? "#10B981" : config.color }}
+      >
+        <span className={styles.severityIcon}>{isAcknowledged ? "✓" : config.icon}</span>
+        <span className={styles.severityLabel}>
+          {isAcknowledged ? "ACKNOWLEDGED" : config.label}
+        </span>
       </div>
 
       <div className={styles.content}>
         <div className={styles.header}>
           <h3 className={styles.title}>{alert.title}</h3>
           <span className={styles.source}>{alert.source}</span>
+          {isAcknowledged && (
+            <span className="badge badge-green" style={{ fontSize: "0.6875rem", padding: "2px 8px" }}>
+              Voice Silenced · Auto-Clearing
+            </span>
+          )}
         </div>
         <p className={styles.detail}>{alert.detail}</p>
         <span className={styles.timestamp}>Received: {alert.timestamp}</span>
@@ -79,10 +93,12 @@ export default function LiveThreatBanner({
       <div className={styles.actions}>
         {onAcknowledge && (
           <button
-            className={`${styles.btn} ${styles.btnSecondary}`}
-            onClick={onAcknowledge}
+            className={`${styles.btn} ${isAcknowledged ? styles.btnAcknowledged : styles.btnSecondary}`}
+            onClick={isAcknowledged ? undefined : onAcknowledge}
+            disabled={isAcknowledged}
+            title={isAcknowledged ? "Voice silenced. Alert logged to NDMA." : "Acknowledge alert and silence voice immediately"}
           >
-            ✓ Acknowledge
+            {isAcknowledged ? "✓ Acknowledged (Silenced)" : "✓ Acknowledge"}
           </button>
         )}
         {onTriggerProtocol && (
@@ -90,8 +106,18 @@ export default function LiveThreatBanner({
             className={`${styles.btn} ${styles.btnPrimary}`}
             onClick={onTriggerProtocol}
             style={{ backgroundColor: config.color }}
+            title="Broadcast emergency protocol across campus"
           >
             ⚡ Trigger Protocol
+          </button>
+        )}
+        {onDismiss && (
+          <button
+            className={styles.btnDismiss}
+            onClick={onDismiss}
+            title="Dismiss banner"
+          >
+            ✕
           </button>
         )}
       </div>

@@ -23,9 +23,12 @@ import json
 import logging
 from typing import Any
 
+import jwt
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 
+from app.core.config import settings
+from app.models.user import UserRole
 from app.schemas.websocket import JoinCampusMessage, DrillTelemetryMessage
 
 logger = logging.getLogger(__name__)
@@ -41,24 +44,52 @@ class WebSocketManager:
     message.  The Redis relay is stubbed here and activated in Sprint 2.
     """
 
-    VALID_ROLES = {"STUDENT", "FACULTY", "FIRST_RESPONDER", "FIRE_SERVICE", "POLICE", "ADMIN"}
-
     @staticmethod
     def _validate_role(role: Any) -> str:
-        if isinstance(role, str) and role in WebSocketManager.VALID_ROLES:
-            return role
-        return "STUDENT"
+        try:
+            return UserRole(role).value
+        except (ValueError, TypeError):
+            return UserRole.STUDENT.value
 
     def __init__(self) -> None:
         # campus_id -> set of (websocket, user_id, role)
         self._rooms: dict[str, set[tuple[WebSocket, str, str]]] = {}
         self._lock = asyncio.Lock()
 
-
     # ── connection lifecycle ────────────────────────────────────────────────
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket) -> bool:
+        """Authenticate and accept a WebSocket connection."""
+        token = websocket.query_params.get("token")
+        if not token:
+            await websocket.close(code=1008)
+            return False
+
+        try:
+            claims = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+                issuer=settings.JWT_ISSUER,
+                audience=settings.JWT_AUDIENCE,
+                options={
+                    "require": ["exp", "sub"],
+                    "verify_iss": settings.JWT_ISSUER is not None,
+                    "verify_aud": settings.JWT_AUDIENCE is not None,
+                },
+            )
+            user_id = str(claims["sub"])
+            from uuid import UUID
+
+            UUID(user_id)
+        except (jwt.PyJWTError, ValueError, TypeError, KeyError):
+            await websocket.close(code=1008)
+            return False
+
+        websocket.scope.setdefault("state", {})["user_id"] = user_id
+        websocket.scope["state"]["role"] = self._validate_role(claims.get("role"))
         await websocket.accept()
+        return True
 
     async def join_campus(self, websocket: WebSocket, payload: dict[str, Any]) -> None:
         """
@@ -66,10 +97,12 @@ class WebSocketManager:
         corresponding campus room.
         """
         msg = JoinCampusMessage(**payload)
-        role = self._validate_role(msg.role)
         async with self._lock:
+            state = websocket.scope.get("state", {})
+            user_id = state.get("user_id", payload.get("user_id", "anonymous"))
+            role = state.get("role", self._validate_role(msg.role))
             room = self._rooms.setdefault(msg.campus_id, set())
-            room.add((websocket, payload.get("user_id", "anonymous"), role))
+            room.add((websocket, user_id, role))
         logger.info("WebSocket joined campus=%s role=%s", msg.campus_id, role)
 
 
@@ -106,9 +139,14 @@ class WebSocketManager:
             # was set when the socket joined via JOIN_CAMPUS. Look the
             # socket up across all rooms to find which one it's in.
             target_room: set | None = None
+            sender_user_id = "anonymous"
             for room in self._rooms.values():
-                if any(ws is websocket for ws, _, _ in room):
-                    target_room = room
+                for ws, user_id, _ in room:
+                    if ws is websocket:
+                        target_room = room
+                        sender_user_id = user_id
+                        break
+                if target_room is not None:
                     break
 
         if target_room is None:
@@ -122,7 +160,7 @@ class WebSocketManager:
 
         broadcast = {
             "type": "DRILL_TELEMETRY",
-            "user_id": msg.user_id,
+            "user_id": sender_user_id,
             "floor": msg.floor,
             "cell": msg.cell,
             "status": msg.status,
