@@ -19,6 +19,7 @@ from app.core.redis_client import redis_client  # noqa: F401 - initializes Redis
 import app.models  # noqa: F401  - register ORM models with Base.metadata
 
 from app.api.v1 import (
+    auth,
     alerts,
     buildings,
     health,
@@ -84,6 +85,7 @@ app.include_router(telemetry.router, prefix="/api/v1", tags=["telemetry"])
 app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
 app.include_router(incidents.router, prefix="/api/v1", tags=["incidents"])
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
+app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
 app.include_router(pathfinder.router, prefix="/api/v1", tags=["pathfinder"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])

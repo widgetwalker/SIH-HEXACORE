@@ -61,6 +61,10 @@ class User(Base):
     avatar_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     avatar_image: Mapped[str | None] = mapped_column(String, nullable=True)
     tier_scores: Mapped[dict | None] = mapped_column(type_=JSONB, server_default='{}', nullable=True)
+    # Verify password using bcrypt
+    def verify_password(self, password: str) -> bool:
+        from app.utils.security import verify_password as _verify_password
+        return _verify_password(password, self.password_hash or "")
     quiz_scores: Mapped[dict | None] = mapped_column(type_=JSONB, server_default='{}', nullable=True)
     age: Mapped[int | None] = mapped_column(Integer, nullable=True)
     age_cohort: Mapped[str | None] = mapped_column(String(30), nullable=True)

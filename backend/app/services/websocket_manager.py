@@ -41,10 +41,19 @@ class WebSocketManager:
     message.  The Redis relay is stubbed here and activated in Sprint 2.
     """
 
+    VALID_ROLES = {"STUDENT", "FACULTY", "FIRST_RESPONDER", "FIRE_SERVICE", "POLICE", "ADMIN"}
+
+    @staticmethod
+    def _validate_role(role: Any) -> str:
+        if isinstance(role, str) and role in WebSocketManager.VALID_ROLES:
+            return role
+        return "STUDENT"
+
     def __init__(self) -> None:
         # campus_id -> set of (websocket, user_id, role)
         self._rooms: dict[str, set[tuple[WebSocket, str, str]]] = {}
         self._lock = asyncio.Lock()
+
 
     # ── connection lifecycle ────────────────────────────────────────────────
 
@@ -57,10 +66,12 @@ class WebSocketManager:
         corresponding campus room.
         """
         msg = JoinCampusMessage(**payload)
+        role = self._validate_role(msg.role)
         async with self._lock:
             room = self._rooms.setdefault(msg.campus_id, set())
-            room.add((websocket, payload.get("user_id", "anonymous"), msg.role))
-        logger.info("WebSocket joined campus=%s role=%s", msg.campus_id, msg.role)
+            room.add((websocket, payload.get("user_id", "anonymous"), role))
+        logger.info("WebSocket joined campus=%s role=%s", msg.campus_id, role)
+
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """Remove the socket from whatever room it was in."""
