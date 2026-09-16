@@ -6,6 +6,7 @@ import { loadCadetProfile, CADET_PROFILE_EVENT, type CadetProfile } from "@/lib/
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { fetchLiveAlerts, CAMPUS_EMERGENCY_EVENT, type LiveAlert } from "@/lib/liveAlerts";
 import { useEmergencyBroadcasts } from "@/lib/useEmergencyBroadcasts";
+import { useAuth } from "@/context/AuthContext";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
@@ -19,6 +20,7 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
   const { broadcasts } = useEmergencyBroadcasts();
   const [criticalLiveAlert, setCriticalLiveAlert] = useState<LiveAlert | null>(null);
   const [manualEventAlert, setManualEventAlert] = useState<string | null>(null);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -183,6 +185,16 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
             )}
           </Link>
 
+          {!user ? (
+            <Link href="/login" className={styles.authBtn}>
+              <span>Login</span>
+            </Link>
+          ) : (
+            <button onClick={logout} className={styles.logoutBtn} title="Sign Out">
+              Sign Out
+            </button>
+          )}
+
           <Link
             href="/profile"
             prefetch={true}
@@ -214,6 +226,11 @@ export default function Navbar({ mode = "learning" }: NavbarProps) {
           <Link href="/learn" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Learn</Link>
           <Link href="/simulate" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Simulate</Link>
           <Link href="/command" prefetch={true} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Command Hub</Link>
+          {!user ? (
+            <Link href="/login" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Login / Sign Up</Link>
+          ) : (
+            <button className={styles.mobileLink} style={{ background: "transparent", border: "none", textAlign: "left", cursor: "pointer" }} onClick={() => { logout(); setMobileOpen(false); }}>Sign Out ({user.full_name})</button>
+          )}
         </div>
       )}
     </nav>
