@@ -27,8 +27,11 @@ pytest==8.3.3
 pytest-asyncio==0.23.8
 websockets==12.0
 
-# JWT for WebSocket authentication
+# JWT for WebSocket and API authentication
 pyjwt==2.9.0
+bcrypt==4.2.0
+email-validator==2.3.0
 
 # Neural text-to-speech for crystal-clear female emergency voice
 edge-tts>=7.2.8
+

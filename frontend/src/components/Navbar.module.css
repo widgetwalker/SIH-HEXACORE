@@ -348,3 +348,42 @@
   .alertIndicator { display: none; }
   .menuBtn { display: flex; }
 }
+
+.authBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--accent-teal-dim);
+  border: 1px solid var(--accent-teal-glow);
+  border-radius: 9999px;
+  color: var(--accent-teal);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.authBtn:hover {
+  background: var(--accent-teal);
+  color: #0A0F1E;
+  box-shadow: 0 0 15px var(--accent-teal-glow);
+}
+
+.logoutBtn {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--accent-red);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover {
+  background: var(--accent-red-dim);
+  border-color: var(--accent-red);
+}
+

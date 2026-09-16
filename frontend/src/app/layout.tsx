@@ -4,6 +4,7 @@ import "@designcodeio/threeui/style.css";
 import "./globals.css";
 import CustomCursor from "@/components/fx/CustomCursor";
 import SettingsInit from "@/components/SettingsInit";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "SafeZone - Gamified Disaster Preparedness | SIH 2026",
@@ -59,10 +60,13 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        {children}
-        <CustomCursor />
-        <SettingsInit />
+        <AuthProvider>
+          {children}
+          <CustomCursor />
+          <SettingsInit />
+        </AuthProvider>
       </body>
     </html>
   );
 }
+
