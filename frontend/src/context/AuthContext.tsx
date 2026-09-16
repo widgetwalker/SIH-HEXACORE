@@ -114,38 +114,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
+      let userPayload: AuthUser | null = null;
+      let accessToken: string | null = null;
 
-      const data = await res.json();
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, password }),
+        });
 
-      if (!res.ok) {
-        throw new Error(data.detail || data.msg || "Login failed. Please check your credentials.");
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.detail || data.msg || "Login failed. Please check your credentials.");
+        }
+
+        accessToken = data.access_token;
+        userPayload = data.user || null;
+      } catch (networkErr: any) {
+        // If HTTP error response with detail, rethrow
+        if (networkErr.message && !networkErr.message.includes("fetch")) {
+          throw networkErr;
+        }
+        console.warn("Backend server unreachable. Falling back to offline cadet session:", networkErr);
       }
 
-      const accessToken = data.access_token;
-      const userPayload: AuthUser = data.user || {
-        id: "usr-" + Date.now(),
-        email,
-        full_name: email.split("@")[0] || "Cadet",
-        role: "STUDENT",
-      };
+      if (!userPayload) {
+        userPayload = {
+          id: "usr-" + Date.now(),
+          email,
+          full_name: email.split("@")[0] || "Cadet",
+          role: "STUDENT",
+        };
+      }
 
-      setToken(accessToken);
+      setToken(accessToken || "offline-demo-token");
       setUser(userPayload);
       if (accessToken) {
         localStorage.setItem(TOKEN_KEY, accessToken);
       }
       localStorage.setItem(USER_KEY, JSON.stringify(userPayload));
+      syncCadetProfile(userPayload);
 
       if (accessToken) {
         fetchMe(accessToken);
-      } else {
-        syncCadetProfile(userPayload);
       }
 
       setLoading(false);
@@ -161,27 +175,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: payload.email,
-          password: payload.password,
-          full_name: payload.full_name,
-          role: payload.role || "STUDENT",
-          grade: payload.grade || "Grade 10",
-          school: payload.school || "SafeZone High",
-          avatar_id: payload.avatar_id || "shield",
-          avatar_image: payload.avatar_image || null,
-          age: payload.age || 15,
-        }),
-      });
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            email: payload.email,
+            password: payload.password,
+            full_name: payload.full_name,
+            role: payload.role || "STUDENT",
+            grade: payload.grade || "Grade 10",
+            school: payload.school || "SafeZone High",
+            avatar_id: payload.avatar_id || "shield",
+            avatar_image: payload.avatar_image || null,
+            age: payload.age || 15,
+          }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.detail || data.msg || "Registration failed.");
+        if (!res.ok) {
+          throw new Error(data.detail || data.msg || "Registration failed.");
+        }
+      } catch (networkErr: any) {
+        if (networkErr.message && !networkErr.message.includes("fetch")) {
+          throw networkErr;
+        }
+        console.warn("Backend database unreachable during registration. Creating offline local profile.", networkErr);
       }
 
       const loginSuccess = await login(payload.email, payload.password);
